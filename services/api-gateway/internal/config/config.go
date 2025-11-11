@@ -13,7 +13,7 @@ type (
 	Config struct {
 		Env        string           `mapstructure:"env"`
 		HttpServer HttpServerConfig `mapstructure:"http_server"`
-		JWT        JWTConfig        `maptructure:"jwt"`
+		Auth       AuthConfig       `maptructure:"auth"`
 		Services   ServicesConfig   `mapstructure:"services"`
 	}
 
@@ -25,17 +25,12 @@ type (
 		AllowedOrigins []string      `mapstructure:"allowed_origins"`
 	}
 
-	JWTConfig struct {
-		SignKey  string        `mapstructure:"sign_key"`
-		TokenTTL time.Duration `mapstructure:"token_ttl"`
+	AuthConfig struct {
+		JWTSignKey string `mapstructure:"jwt_sign_key"`
+		BotKey     string `mapstructure:"bot_key"`
 	}
 
 	ServicesConfig struct {
-	}
-
-	PrometheusConfig struct {
-		Enabled bool   `mapstructure:"enabled"`
-		Path    string `mapstructure:"path"`
 	}
 )
 
