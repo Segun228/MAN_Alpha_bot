@@ -1,12 +1,13 @@
+
 services:
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
     container_name: clickhouse
     restart: always
     ports:
-      - "8123:8123"   # HTTP-интерфейс
-      - "9000:9000"   # TCP для клиентов
-      - "9009:9009"   # Native protocol
+      - "${CLICKHOUSE_HTTP_PORT}:8123"   # HTTP-интерфейс
+      - "${CLICKHOUSE_TCP_PORT}:9000"   # TCP для клиентов
+      - "${CLICKHOUSE_NATIVE_PROTOCOL}:9009"   # Native protocol
     volumes:
       - clickhouse_data:/var/lib/clickhouse
       - clickhouse_config:/etc/clickhouse-server
@@ -15,7 +16,7 @@ services:
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
     networks:
-      - app-network
+      - app-man-network
   postgres:
     image: postgres:14-alpine
     container_name: postgres
@@ -34,15 +35,15 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - app-network
+      - app-man-network
   redis:
     image: redis:7-alpine
     container_name: redis
     ports:
-      - "6379-6379"
+      - "${REDIS_PORT}:6379"
     restart: on-failure
     networks:
-      - app-network
+      - app-man-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -52,7 +53,7 @@ services:
     image: prom/prometheus:v2.47.0
     container_name: prometheus
     ports: 
-      - "9090:9090"
+      - "${PROMETHEUS_PORT}:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
@@ -60,12 +61,12 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
-      - app-network
+      - app-man-network
   grafana:
     image: grafana/grafana:10.1.5
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT}:3000"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -83,7 +84,7 @@ services:
       - prometheus
       - postgres
     networks:
-      - app-network
+      - app-man-network
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     container_name: zookeeper
@@ -91,14 +92,14 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
-      - app-network
+      - app-man-network
   kafka:
     image: confluentinc/cp-kafka:7.3.0
     container_name: kafka
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
+      - "${KAFKA_PORT}:9092"
       - "29092:29092"
     environment:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
@@ -115,7 +116,7 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - app-network
+      - app-man-network
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
     container_name: kafdrop
@@ -123,21 +124,21 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "19000:9000"
+      - "${KAFDROP_PORT}:9000"
     environment:
       KAFKA_BROKERCONNECT: kafka:9092
     networks:
-      - app-network
+      - app-man-network
   loki:
     image: grafana/loki:2.9.0
     container_name: loki
     ports:
-     - "3100:3100"
+      - "${LOKI_PORT}:3100"
     volumes:
       - ./monitoring/loki-config.yml:/etc/loki/local-config.yml
     command: -config.file=/etc/loki/local-config.yml
     networks:
-      - app-network
+      - app-man-network
   promtail:
     image: grafana/promtail:2.9.0
     container_name: promtail
@@ -146,7 +147,101 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command: -config.file=/etc/promtail/config.yml
     networks:
-      - app-network
+      - app-man-network
+
+
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    ports:
+      - "${NODE_EXPORTER_PORT}:9100"
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - app-man-network
+
+  cadvisor:
+    image: zcube/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "${CADVISOR_EXPORTER_PORT}:8080"
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    networks:
+      - app-man-network
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka_exporter
+    ports:
+      - "${KAFKA_EXPORTER_PORT}:9308"
+    restart: unless-stopped
+    command:
+      - --kafka.server=${KAFKA_BROKER_URL}
+      - --web.listen-address=:9308
+      - --log.level=info
+    networks:
+      - app-man-network
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis_exporter
+    ports:
+      - "${REDIS_EXPORTER_PORT}:9121"
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=${REDIS_ADDR}
+    networks:
+      - app-man-network
+
+  clickhouse-exporter:
+    image: flant/clickhouse-exporter:latest
+    container_name: clickhouse_exporter
+    ports:
+      - "${CLICKHOUSE_EXPORTER_PORT}:9116"
+    restart: unless-stopped
+    environment:
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_URL=${CLICKHOUSE_URL}
+    networks:
+      - app-man-network
+
+  superset:
+    image: apache/superset:latest
+    container_name: superset
+    env_file:
+      - .env
+    environment:
+      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+    ports:
+      - "${SUPERSET_PORT}:8088"
+    volumes:
+      - superset_data:/app/superset_home
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${SUPERSET_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-man-network
 
 volumes:
   clickhouse_data:
@@ -154,7 +249,8 @@ volumes:
   prometheus-data:
   grafana-data:
   clickhouse_config:
+  superset_data:
 
 networks:
-  app-network:
+  app-man-network:
     driver: bridge
