@@ -10,7 +10,7 @@ const (
 	defaultReadTimeout     = 5 * time.Second
 	defaultWriteTimeout    = 5 * time.Second
 	defaultIdleTimeout     = 30 * time.Second
-	defaultAddr            = ":8080"
+	defaultAddr            = ":8081"
 	defaultShutdownTimeout = 3 * time.Second
 )
 

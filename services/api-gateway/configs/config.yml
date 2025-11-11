@@ -1,7 +1,7 @@
 env: "dev"
 
 http_server:
-  port: 8080
+  port: 8081
   read_timeout: 5m
   write_timeout: 5m
   idle_timeout: 60s
