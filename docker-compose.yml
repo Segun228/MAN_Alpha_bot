@@ -243,6 +243,20 @@ services:
     networks:
       - app-man-network
 
+  bot:
+    image: bot:latest
+    container_name: bot
+    restart: unless-stopped
+    build: ./services/bot
+    ports:
+      - "${BOT_PORT}:8080"
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    networks:
+      - app-man-network
+
 volumes:
   clickhouse_data:
   postgres-data:
