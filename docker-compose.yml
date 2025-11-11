@@ -1,4 +1,17 @@
 services:
+  api-gateway:
+    build: 
+      context: .
+      dockerfile: ./services/api-gateway/Dockerfile
+    container_name: api-gateway
+    restart: on-failure
+    environment:
+      - AUTH_JWT_SIGN_KEY=${AUTH_JWT_SIGN_KEY}
+      - AUTH_BOT_KEY=${AUTH_BOT_KEY}
+    ports:
+      - "8080:8080"
+    networks:
+      - man-alfa-bot-network
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
     container_name: clickhouse

@@ -6,59 +6,34 @@ import (
 	"slices"
 	"time"
 
+	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/metrics"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/utils"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 )
-
-var (
-	httpRequestsTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Total number of http requests",
-		}, []string{"mathod", "path", "status"})
-
-	httpRequestDurationSeconds = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "http_request_duration_seconds",
-			Help:    "HTTP request duration in seconds",
-			Buckets: prometheus.DefBuckets,
-		}, []string{"method", "path"},
-	)
-)
-
-func init() {
-	prometheus.MustRegister(collectors.NewGoCollector())
-	prometheus.MustRegister(httpRequestsTotal, httpRequestDurationSeconds)
-}
-
-func PrometheusMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
-		ww := &statusWriter{ResponseWriter: w, status: http.StatusOK}
-		next.ServeHTTP(ww, r)
-
-		duration := time.Since(start).Seconds()
-		httpRequestDurationSeconds.WithLabelValues(r.Method, r.URL.Path).Observe(duration)
-		httpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, fmt.Sprintf("%d", ww.status)).Inc()
-	})
-}
 
 type statusWriter struct {
 	http.ResponseWriter
 	status int
 }
 
+func PrometheusMiddleware(m *metrics.Metrics) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+
+			ww := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+			next.ServeHTTP(ww, r)
+
+			duration := time.Since(start).Seconds()
+			m.HttpRequestDurationSeconds.WithLabelValues(r.Method, r.URL.Path).Observe(duration)
+			m.HttpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, fmt.Sprintf("%d", ww.status)).Inc()
+		})
+	}
+}
+
 func (w *statusWriter) WriteHeader(code int) {
 	w.status = code
 	w.ResponseWriter.WriteHeader(code)
-}
-
-func PrometheusHandler() http.Handler {
-	return promhttp.Handler()
 }
 
 func CORSMiddleware(allowedOrigins []string) func(next http.Handler) http.Handler {

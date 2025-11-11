@@ -9,9 +9,11 @@ import (
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/internal/config"
 	v1 "github.com/Segun228/MAN_Alpha_bot/services/api-gateway/internal/controller/http/v1"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/httpserver"
+	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/metrics"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/utils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-chi/chi"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,10 +53,14 @@ func Run(configPath string) {
 	authCfg := cfg.Auth
 	cfgMutex.RUnlock()
 
+	// Prometheus metrics
+	reg := prometheus.NewRegistry()
+	m := metrics.NewMetrics(reg)
+
 	// Chi router
 	log.Info("initializing router...")
 	router := chi.NewRouter()
-	v1.NewRouter(router, log, srvCfg.AllowedOrigins, authCfg.JWTSignKey, authCfg.BotKey)
+	v1.NewRouter(router, m, log, srvCfg.AllowedOrigins, authCfg.JWTSignKey, authCfg.BotKey)
 
 	// HTTP Server
 	log.Info("starting http server...")

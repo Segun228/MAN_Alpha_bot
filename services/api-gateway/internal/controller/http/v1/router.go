@@ -7,18 +7,19 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/metrics"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/utils"
 	"github.com/go-chi/chi"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func NewRouter(r *chi.Mux, logger utils.Logger, allowedOrigins []string, jwtSecret string, botSecretKey string) {
+func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigins []string, jwtSecret string, botSecretKey string) {
 	auth := NewAuth([]byte(jwtSecret), []byte(botSecretKey))
 
 	r.Use(LoggingMiddleware(logger))
 	r.Use(RecoveryMiddleware(logger))
 	r.Use(CORSMiddleware(allowedOrigins))
-	r.Use(PrometheusMiddleware)
+	r.Use(PrometheusMiddleware(m))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
