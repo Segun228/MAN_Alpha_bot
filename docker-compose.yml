@@ -15,7 +15,7 @@ services:
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
     networks:
-      - app-network
+      - man-alfa-bot-network
   postgres:
     image: postgres:14-alpine
     container_name: postgres
@@ -34,7 +34,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - app-network
+      - man-alfa-bot-network
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -42,7 +42,7 @@ services:
       - "6379-6379"
     restart: on-failure
     networks:
-      - app-network
+      - man-alfa-bot-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -60,7 +60,7 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
-      - app-network
+      - man-alfa-bot-network
   grafana:
     image: grafana/grafana:10.1.5
     container_name: grafana
@@ -83,7 +83,7 @@ services:
       - prometheus
       - postgres
     networks:
-      - app-network
+      - man-alfa-bot-network
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     container_name: zookeeper
@@ -91,7 +91,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
-      - app-network
+      - man-alfa-bot-network
   kafka:
     image: confluentinc/cp-kafka:7.3.0
     container_name: kafka
@@ -115,7 +115,7 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - app-network
+      - man-alfa-bot-network
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
     container_name: kafdrop
@@ -127,7 +127,7 @@ services:
     environment:
       KAFKA_BROKERCONNECT: kafka:9092
     networks:
-      - app-network
+      - man-alfa-bot-network
   loki:
     image: grafana/loki:2.9.0
     container_name: loki
@@ -137,7 +137,7 @@ services:
       - ./monitoring/loki-config.yml:/etc/loki/local-config.yml
     command: -config.file=/etc/loki/local-config.yml
     networks:
-      - app-network
+      - man-alfa-bot-network
   promtail:
     image: grafana/promtail:2.9.0
     container_name: promtail
@@ -146,7 +146,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command: -config.file=/etc/promtail/config.yml
     networks:
-      - app-network
+      - man-alfa-bot-network
 
 volumes:
   clickhouse_data:
@@ -156,5 +156,5 @@ volumes:
   clickhouse_config:
 
 networks:
-  app-network:
+  man-alfa-bot-network:
     driver: bridge
