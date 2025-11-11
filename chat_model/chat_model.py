@@ -6,8 +6,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-api_key = "ВЫНЕСТИ В .ENV, пока просите у меня лично"
-API_KEY = os.environ.get("OPENROUTER_API_KEY")
+api_key = os.environ.get("OPENROUTER_API_KEY")
 app = FastAPI()
 url = "https://openrouter.ai/api/v1/chat/completions"
 
