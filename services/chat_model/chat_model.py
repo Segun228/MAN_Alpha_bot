@@ -5,10 +5,14 @@ import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
-api_key = os.environ.get("OPENROUTER_API_KEY")
+
+load_dotenv()
+api_key = os.getenv("OPENROUTER_API_KEY")
 app = FastAPI()
-url = "https://openrouter.ai/api/v1/chat/completions"
+URL = os.getenv("OPENROUTER_URL")
+
 
 
 class Message(BaseModel):
@@ -62,7 +66,7 @@ def generate_message(request_data: RequestData):
             "messages": messages,
             "temperature": 0.7
         }
-        resp = requests.post(url, headers=headers, json=data)
+        resp = requests.post(URL, headers=headers, json=data)
         resp.raise_for_status()
         response_data = resp.json()
         return {

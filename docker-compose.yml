@@ -311,7 +311,7 @@ services:
       - app-man-network
 
   logs:
-    image: stats_logs:latest
+    image: logs:latest
     build: ./services/logs
     container_name: logs
     ports:
@@ -320,6 +320,18 @@ services:
       - .env
     networks:
       - app-man-network
+
+  summarizer:
+    image: stats_logs:latest
+    build: ./services/summarizer
+    container_name: summarizer
+    ports:
+      - ${SUMMARIZER_PORT}:8002
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+
 
 volumes:
   clickhouse_data:
