@@ -47,6 +47,7 @@ class RequestData(BaseModel):
     context: Context
     business: str = "малый бизнес"
     description: str = ""
+    word_count: int|None = None
 
 
 @app.post("/generate_response")
@@ -68,13 +69,15 @@ async def generate_message(request_data: RequestData):
     business_description = ""
     if request_data.description:
         business_description = "Более подробное описание бизнеса: " + request_data.description
-
+    word_count_prompt = ""
+    if request_data.word_count:
+        word_count_prompt = f"Ответ должен быть на {request_data.word_count} слов"
     system_message = {
         "role": "system",
         "content": f"Ты опытный бизнес-ассистент. Твоя задача дать точную консультацию для владельца {request_data.business}. "
                    f"{business_description}. Опирайся на существующий опыт и правила, не давай вредных и опасных советов. "
                    f"Не нарушай законодательство РФ и международные нормы. Упомянай, что информацию необходимо "
-                   f"проверять самостоятельно."
+                   f"проверять самостоятельно." + word_count_prompt
     }
     user_message = {"role": "user", "content": request_data.text}
     messages = [system_message] + [message.dict() for message in request_data.context.history] + [user_message]
