@@ -12,6 +12,18 @@ services:
       - "${API_GATEWAY_PORT}:8081"
     networks:
       - app-man-network
+  user-service:
+    build: 
+      context: .
+      dockerfile: ./services/user-service/Dockerfile
+    container_name: user-service
+    restart: on-failure
+    environment:
+      - AUTH_JWT_SIGN_KEY=${AUTH_JWT_SIGN_KEY}
+    ports:
+      - "${USER_SERVICE_PORT}:8083"
+    networks:
+      - app-man-network
   chat-model:
     build:
       context: ./services/chat_model
