@@ -1,6 +1,6 @@
 module github.com/Segun228/MAN_Alpha_bot/services/user-service
 
-go 1.25.3
+go 1.24.0
 
 require github.com/sirupsen/logrus v1.9.3
 
