@@ -23,6 +23,8 @@ services:
       - OPENROUTER_API_KEY=${CHAT_MODEL_API_KEY}
     networks:
       - app-man-network
+    env_file:
+      - .env
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
@@ -326,7 +328,7 @@ services:
     build: ./services/summarizer
     container_name: summarizer
     ports:
-      - ${SUMMARIZER_PORT}:8002
+      - ${SUMMARIZER_PORT}:8001
     env_file:
       - .env
     networks:
@@ -338,7 +340,7 @@ services:
     build: ./services/recomendator
     container_name: recomendator
     ports:
-      - ${RECOMENDATOR_PORT}:8002
+      - ${RECOMENDATOR_PORT}:8001
     env_file:
       - .env
     networks:

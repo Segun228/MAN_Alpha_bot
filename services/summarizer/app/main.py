@@ -8,16 +8,22 @@ from fastapi import Response
 from prometheus_client import generate_latest, REGISTRY
 from .kafka_producer import ensure_topic_exists, build_log_message
 import json
+from typing import List
 from prometheus_client import Counter, Histogram, generate_latest, REGISTRY
 from fastapi import Request
-from .summarize import summarize_text
-
+from .summarize import summarize_text, summarize_dialog
+from pydantic import BaseModel
+from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
 load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+logging.getLogger("uvicorn").setLevel(logging.WARNING)
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
 
 KAFKA_LOGS_TOPIC = os.getenv("KAFKA_LOGS_TOPIC")
 
@@ -33,7 +39,6 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         logging.info("Shutting down summarizer...")
-
 
 
 app = FastAPI(lifespan=lifespan)
@@ -59,10 +64,10 @@ async def monitor_requests(request: Request, call_next):
 
 
 
-@app.post("/summarize")
-async def summarize(request: Request):
+@app.post("/summarize/text")
+async def summarize_text_route(request: Request):
     try:
-        data = json.loads(await request.json())
+        data = await request.json()
         await build_log_message(
             telegram_id = data.get("telegram_id"),
             action = data.get("action"),
@@ -81,10 +86,45 @@ async def summarize(request: Request):
         result = summarize_text(
             data = data
         )
-        return Response(
+        return JSONResponse(
             content=result,
-            media_type="text/plain"
+            media_type="text/json"
         )
+    except Exception as e:
+        logging.exception(e)
+        return Response(status_code=500)
+
+
+
+@app.post("/summarize/dialog")
+async def summarize_dialog_route(request: Request):
+    try:
+        data = await request.json()
+        await build_log_message(
+            telegram_id = data.get("telegram_id"),
+            action = data.get("action"),
+            source = data.get("source"),
+            payload = data.get("payload"),
+            platform = data.get("platform", "bot"),
+            level = data.get("level", "INFO"),
+            env = data.get("env", "prod"),
+            timestamp = data.get("timestamp", "prod"),
+            request_method = data.get("request_method", "post"),
+            request_body = "ping",
+            response_code = 200,
+            user_id = data.get("user_id"),
+            is_authenticated = True
+        )
+        result = summarize_dialog(
+            data = data
+        )
+        return JSONResponse(
+            content=result,
+            media_type="text/json"
+        )
+    except HTTPException as e:
+        logging.exception(e)
+        raise
     except Exception as e:
         logging.exception(e)
         return Response(status_code=500)
