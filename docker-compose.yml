@@ -1,3 +1,4 @@
+
 services:
   api-gateway:
     build: 
@@ -12,6 +13,7 @@ services:
       - "${API_GATEWAY_PORT}:8081"
     networks:
       - app-man-network
+
   chat-model:
     build:
       context: ./services/chat_model
@@ -21,10 +23,11 @@ services:
       - OPENROUTER_API_KEY=${CHAT_MODEL_API_KEY}
     networks:
       - app-man-network
+
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
     container_name: clickhouse
-    restart: always
+    restart: unless-stopped
     ports:
       - "${CLICKHOUSE_HTTP_PORT}:8123"   # HTTP-интерфейс
       - "${CLICKHOUSE_TCP_PORT}:9000"   # TCP для клиентов
@@ -36,8 +39,25 @@ services:
       - CLICKHOUSE_DB=${CLICKHOUSE_DB}
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
     networks:
       - app-man-network
+
+  clickhouse_ui:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse_ui
+    ports:
+      - "${CLICKHOUSE_UI_PORT}:8123"
+    environment:
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_HTTP_PORT=${CLICKHOUSE_HTTP_PORT}
+      - CLICKHOUSE_LISTEN_HOST=0.0.0.0
+    depends_on:
+      - clickhouse
+    networks:
+      - app-man-network
+
   postgres:
     image: postgres:14-alpine
     container_name: postgres
@@ -57,6 +77,7 @@ services:
       retries: 5
     networks:
       - app-man-network
+
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -70,6 +91,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
   prometheus:
     image: prom/prometheus:v2.47.0
     container_name: prometheus
@@ -83,6 +105,7 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
       - app-man-network
+
   grafana:
     image: grafana/grafana:10.1.5
     container_name: grafana
@@ -106,6 +129,7 @@ services:
       - postgres
     networks:
       - app-man-network
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     container_name: zookeeper
@@ -114,6 +138,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - app-man-network
+
   kafka:
     image: confluentinc/cp-kafka:7.3.0
     container_name: kafka
@@ -138,6 +163,7 @@ services:
       start_period: 10s
     networks:
       - app-man-network
+
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
     container_name: kafdrop
@@ -150,6 +176,7 @@ services:
       KAFKA_BROKERCONNECT: kafka:9092
     networks:
       - app-man-network
+
   loki:
     image: grafana/loki:2.9.0
     container_name: loki
@@ -160,6 +187,7 @@ services:
     command: -config.file=/etc/loki/local-config.yml
     networks:
       - app-man-network
+
   promtail:
     image: grafana/promtail:2.9.0
     container_name: promtail
@@ -169,6 +197,7 @@ services:
     command: -config.file=/etc/promtail/config.yml
     networks:
       - app-man-network
+
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node_exporter
@@ -186,6 +215,7 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - app-man-network
+
   cadvisor:
     image: zcube/cadvisor:latest
     container_name: cadvisor
@@ -203,6 +233,7 @@ services:
       - app-man-network
     env_file:
       - .env
+
   kafka-exporter:
     image: danielqsj/kafka-exporter:latest
     container_name: kafka_exporter
@@ -217,6 +248,7 @@ services:
       - app-man-network
     env_file:
       - .env
+
   redis-exporter:
     image: oliver006/redis_exporter:latest
     container_name: redis_exporter
@@ -229,6 +261,7 @@ services:
       - .env
     networks:
       - app-man-network
+
   clickhouse-exporter:
     image: flant/clickhouse-exporter:latest
     container_name: clickhouse_exporter
@@ -243,6 +276,7 @@ services:
       - CLICKHOUSE_URL=${CLICKHOUSE_URL}
     networks:
       - app-man-network
+
   superset:
     image: apache/superset:latest
     container_name: superset
@@ -263,6 +297,7 @@ services:
       retries: 3
     networks:
       - app-man-network
+
   bot:
     image: bot:latest
     container_name: bot
@@ -274,6 +309,7 @@ services:
       - .env
     networks:
       - app-man-network
+
   logs:
     image: stats_logs:latest
     build: ./services/logs
@@ -282,7 +318,8 @@ services:
       - ${LOGGING_PORT}:8002
     env_file:
       - .env
-
+    networks:
+      - app-man-network
 
 volumes:
   clickhouse_data:

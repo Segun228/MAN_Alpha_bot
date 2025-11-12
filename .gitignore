@@ -1,5 +1,4 @@
-# 📜 Log-files 
-logs  
+# 📜 Log-files  
 venv
 *.log  
 npm-debug.log*  
