@@ -3,16 +3,21 @@ from typing import List
 
 import requests
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+load_dotenv()
 api_key = os.environ.get("OPENROUTER_API_KEY")
+if not api_key:
+    print("No api-key, please check .env")
+    exit(-1)
 app = FastAPI()
 url = "https://openrouter.ai/api/v1/chat/completions"
 
 
 class Message(BaseModel):
-    role: str  # "user" или "assistant"
+    role: str  # "user" / "assistant"
     content: str
 
 
@@ -36,13 +41,30 @@ def generate_message(request_data: RequestData):
             "usage": 0,
             "model": "-"
         }
+    if request_data.text.strip().lower() in ["привет", "здравствуй", "здравствуйте", "добрый день", "добрый вечер",
+                                             "доброе утро", "хай", "здорова"]:
+        return {
+            "success": True,
+            "response": "Здравствуйте! Я многофункциональный бизнес-ассистент и буду всегда рад помочь Вам. "
+                        "Помните, что я использую ИИ, поэтому проверяйте важную информацию перед принятием решений."
+                        "Все мои ответы являются советами, которые могут требовать дополнительной оценки специалиста.",
+            "usage": 0,
+            "model": "-"
+        }
+    if request_data.text.strip().lower() in ["спасибо", "спс", "добро", "благодарю", "отлично", "класс", "кайф", "отл",
+                                             "от души"]:
+        return {
+            "success": True,
+            "response": "Отлично! Приятно быть полезным, буду рад помочь Вам снова!",
+            "usage": 0,
+            "model": "-"
+        }
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "https://your-app.com",
         "X-Title": "chatbot",
     }
-
     business_description = ""
     if request_data.description:
         business_description = "Более подробное описание бизнеса: " + request_data.description
@@ -79,8 +101,8 @@ def generate_message(request_data: RequestData):
 
 @app.get("/model_health")
 def root():
-    return {"message": "Business Assistant API is running", "status": "ok"}
+    return {"message": "Message generation service is running.", "status": "ok"}
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8082)
