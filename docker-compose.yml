@@ -322,9 +322,21 @@ services:
       - app-man-network
 
   summarizer:
-    image: stats_logs:latest
+    image: summarizer:latest
     build: ./services/summarizer
     container_name: summarizer
+    ports:
+      - ${SUMMARIZER_PORT}:8002
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+
+
+  recomendator:
+    image: recomendator:latest
+    build: ./services/recomendator
+    container_name: recomendator
     ports:
       - ${SUMMARIZER_PORT}:8002
     env_file:

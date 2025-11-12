@@ -10,7 +10,7 @@ from .kafka_producer import ensure_topic_exists, build_log_message
 import json
 from prometheus_client import Counter, Histogram, generate_latest, REGISTRY
 from fastapi import Request
-from .summarize import summarize_text
+from .recomendations import generate_recomendation
 
 load_dotenv()
 
@@ -59,8 +59,8 @@ async def monitor_requests(request: Request, call_next):
 
 
 
-@app.post("/summarize")
-async def summarize(request: Request):
+@app.post("/recomedations")
+async def recomedations(request: Request):
     try:
         data = json.loads(await request.json())
         await build_log_message(
@@ -78,7 +78,7 @@ async def summarize(request: Request):
             user_id = data.get("user_id"),
             is_authenticated = True
         )
-        result = summarize_text(
+        result = generate_recomendation(
             data = data
         )
         return Response(
