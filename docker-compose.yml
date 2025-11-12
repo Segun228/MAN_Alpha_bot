@@ -338,7 +338,7 @@ services:
     build: ./services/recomendator
     container_name: recomendator
     ports:
-      - ${SUMMARIZER_PORT}:8002
+      - ${RECOMENDATOR_PORT}:8002
     env_file:
       - .env
     networks:

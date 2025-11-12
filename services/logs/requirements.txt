@@ -9,16 +9,16 @@ aiohttp==3.12.15
 confluent-kafka==2.12.2
 kafka-python==2.2.15
 
-clickhouse-driver==0.2.6  # или другая библиотека для ClickHouse
-psycopg2-binary==2.9.10  # если нужен Postgres
-redis==6.4.0  # если нужен Redis
+clickhouse-driver==0.2.6
+psycopg2-binary==2.9.10
+redis==6.4.0
 
 prometheus_client==0.23.1
 loguru==0.7.3
 dynaconf==3.2.11
 python-dotenv==1.1.1
 
-aiofiles==24.1.0  # если работаешь с файлами
+aiofiles==24.1.0
 aiosignal==1.4.0
 async-timeout==5.0.1
 attrs==25.4.0
