@@ -1,0 +1,14 @@
+env: "dev"
+
+http_server:
+  port: 8081
+  read_timeout: 5m
+  write_timeout: 5m
+  idle_timeout: 60s
+  allowed_origins:
+
+auth:
+  jwt_sign_key: ""
+  bot_key: ""
+
+services:
