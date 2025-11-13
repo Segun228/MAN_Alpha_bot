@@ -34,9 +34,6 @@ from app.requests.user.make_admin import make_admin
 
 from app.kafka.utils import build_log_message
 
-from services.bot.app.requests.post.post_message import post_dataset
-from app.requests.put.put_dataset import put_dataset
-from app.requests.put.put_distribution import put_distribution
 
 #===========================================================================================================================
 # Конфигурация основных маршрутов
