@@ -11,6 +11,10 @@ import json
 from prometheus_client import Counter, Histogram, generate_latest, REGISTRY
 from fastapi import Request
 from .recomendations import generate_recomendation
+from .app_requests import get_summary
+from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
+
 
 load_dotenv()
 
@@ -62,7 +66,15 @@ async def monitor_requests(request: Request, call_next):
 @app.post("/recomedations")
 async def recomedations(request: Request):
     try:
-        data = json.loads(await request.json())
+        data = await request.json()
+        context = data.get("context")
+        business = data.get("business", "Малый бизнес")
+        description = data.get("description")
+        if not context:
+            raise HTTPException(
+                status_code=400,
+                detail="Empty context given"
+            )
         await build_log_message(
             telegram_id = data.get("telegram_id"),
             action = data.get("action"),
@@ -78,10 +90,16 @@ async def recomedations(request: Request):
             user_id = data.get("user_id"),
             is_authenticated = True
         )
-        result = generate_recomendation(
-            data = data
+        summary = await get_summary(
+            context = context,
+            business = business,
+            description = description,
         )
-        return Response(
+        result = generate_recomendation(
+            summary = summary,
+            words_count = data.get("words_count", None)
+        )
+        return JSONResponse(
             content=result,
             media_type="text/plain"
         )
@@ -102,4 +120,4 @@ async def metrics():
 
 @app.get("/")
 async def ping(request: Request):
-    return {"status": "Summarizer is alive"}
+    return {"status": "Recomendator is alive"}

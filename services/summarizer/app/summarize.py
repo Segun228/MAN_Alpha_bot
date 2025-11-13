@@ -75,11 +75,8 @@ def summarize_dialog(data: dict):
         business = data.get("business", "Малый бизнес")
         description = data.get("description", "")
         words_count = data.get("words_count")
-        
         if text is None:
             raise HTTPException(status_code=400, detail="Invalid text field given")
-        if not text.strip():
-            raise HTTPException(status_code=400, detail="Empty text given")
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
