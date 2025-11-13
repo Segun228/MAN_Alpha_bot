@@ -21,6 +21,20 @@ services:
     restart: on-failure
     environment:
       - OPENROUTER_API_KEY=${CHAT_MODEL_API_KEY}
+      - OPENROUTER_URL=${CHAT_MODEL_URL}
+    networks:
+      - app-man-network
+    env_file:
+      - .env
+
+  docs-model:
+    build:
+      context: ./services/docs_model
+    container_name: docs_model
+    restart: on-failure
+    environment:
+      - OPENROUTER_API_KEY=${CHAT_MODEL_API_KEY}
+      - OPENROUTER_URL=${CHAT_MODEL_URL}
     networks:
       - app-man-network
     env_file:
