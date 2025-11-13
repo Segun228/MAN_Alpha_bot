@@ -1,55 +1,53 @@
 import aiohttp
-import asyncio
 import os
 import logging
 from dotenv import load_dotenv
-from pprint import pprint
 from io import BytesIO
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-async def post_dataset(telegram_id, name, description="", csv_buffer:(BytesIO|None) = None):
+async def post_business(
+    telegram_id,
+    name,
+    description,
+):
     load_dotenv()
     base_url = os.getenv("BASE_URL")
-
-    if not base_url:
+    BOT_API_KEY = os.getenv("BOT_API_KEY")
+    if not base_url or base_url is None:
         logging.error("No base URL was provided")
         raise ValueError("No base URL was provided")
-    if not telegram_id:
+    if not BOT_API_KEY or BOT_API_KEY is None:
+        logging.error("No BOT_API_KEY was provided")
+        raise ValueError("No BOT_API_KEY was provided")
+    if not telegram_id or telegram_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
-    if csv_buffer is None:
-        raise ValueError("CSV buffer is empty")
-
+    request_url = f"users/tg/{telegram_id}/business/"
     async with aiohttp.ClientSession() as session:
-        headers = {
-            "Authorization": f"Bot {telegram_id}",
-        }
-
-        exact_url = f"{base_url}api/datasets/"
-        logging.debug(f"Sending to {exact_url}")
-
-        form = aiohttp.FormData()
-        form.add_field("name", name)
-        form.add_field("description", description)
-
-        csv_buffer.seek(0)
-        form.add_field(
-            "file",
-            csv_buffer,
-            filename=f"{name}.csv",
-            content_type="text/csv"
-        )
-
         async with session.post(
-            exact_url,
-            headers=headers,
-            data=form
+            request_url,
+            json={
+                "telegram_id":telegram_id,
+                "name":name,
+                "description":description,
+            },
+            headers={
+                "X-Bot-Key":f"{BOT_API_KEY}",
+                "X-User-ID":f"{telegram_id}",
+                "Content-Type": "application/json" 
+            },
         ) as response:
-            if response.status in (200, 201, 202, 203):
-                logging.info("Датасет отправлен")
-                return await response.json()
+            if response.status in (200, 201, 202, 203, 204, 205):
+                data = await response.json()
+                logging.info("Бизнес успешно создан!")
+                return data
+            elif response.status == 404:
+                logging.error("Route was not found")
+                return {
+                    "error": "Route was not found",
+                    "status": 404
+                }
             else:
-                text = await response.text()
-                logging.error(f"Ошибка {response.status}: {text}")
+                logging.error(f"Ошибка: {response.status}")
                 return None

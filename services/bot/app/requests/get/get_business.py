@@ -27,6 +27,7 @@ async def get_business(telegram_id, business_id = None):
             base_url+f"businesses/{business_id}/", 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
+                "Content-Type": "application/json",
                 "X-User-ID":f"{telegram_id}"
             },
         ) as response:

@@ -25,6 +25,7 @@ async def get_users(telegram_id, tg_id=None):
             request_url, 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
+                "Content-Type": "application/json",
                 "X-User-ID":f"{telegram_id}"
             },
         ) as response:
