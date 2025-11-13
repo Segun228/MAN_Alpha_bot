@@ -63,7 +63,7 @@ async def get_labels(message):
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "https://your-app.com",
-        "X-Title": "chatbot",
+        "X-Title": "docsbot",
     }
     system_message = {  # Систем промпт модели, можно позже поиграться
         "role": "system",
@@ -78,7 +78,7 @@ async def get_labels(message):
         data = {
             "model": "meta-llama/llama-3.1-8b-instruct",
             "messages": messages,
-            "temperature": 0.97  # Если ставить ниже - много придумывает ненужного
+            "temperature": 0.1  # Можно поэксперементировать, пока жесткая граница
         }
         resp = requests.post(URL, headers=headers, json=data)
         resp.raise_for_status()
@@ -100,7 +100,7 @@ async def get_docs_from_category(message, category):
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "https://your-app.com",
-        "X-Title": "chatbot",
+        "X-Title": "docsbot",
     }
     with open(f"compressed_categorization/{category}.json", encoding="utf-8") as fr:
         data = json.load(fr)
@@ -120,7 +120,7 @@ async def get_docs_from_category(message, category):
                            f"Список документов: {documents}. ."
             }
         ],
-        "temperature": 0.97  # Если ставить ниже - много придумывает ненужного
+        "temperature": 1  # Можно поставить выше, пока золотая середина
     }
     try:
         resp = requests.post(URL, headers=headers, json=data)
@@ -146,14 +146,18 @@ async def root():  # Для пинга
 @app.post("/generate_response", response_model=GenerateResponse)
 async def generate_response_endpoint(request: QuestionRequest):
     question = request.question
-    labels = get_labels(question)["response"].split(",")  # Выбор категорий
+    data = await get_labels(question)  # Выбор категорий
+    labels = data["response"].split(",")
     res = ["Возможно вам смогут помочь эти документы. Если среди них нет подходящих, воспользуйтесь официальными "
            "источниками, такими как http://pravo.gov.ru/search/ или https://regulation.gov.ru/ или выполните повторный "
            "запрос"]
     try:
         for i in range(len(labels)):
             labels[i] = re.sub(r'[^а-яёА-ЯЁ]', '', labels[i])  # Чищу ответ модели
-            res.append(get_docs_from_category(question, labels[i].upper())["response"])  # Отправляю на поиск документов
+            documents = await get_docs_from_category(question, labels[i].upper())  # Отправляю на поиск документов
+            for elem in documents["response"].split(','):
+                if len(elem) > 10:
+                    res.append(elem)
         if len(res) == 1:
             return {  # Если всё ок - возвращаем только нужные поля, без лишнего
                 "success": True,
