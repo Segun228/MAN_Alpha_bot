@@ -1,11 +1,9 @@
 import aiohttp
-import asyncio
 import os
 import logging
 from dotenv import load_dotenv
 
-
-async def login(telegram_id):
+async def get_users(telegram_id, tg_id=None):
     load_dotenv()
     base_url = os.getenv("BASE_URL")
     BOT_API_KEY = os.getenv("BOT_API_KEY")
@@ -18,14 +16,18 @@ async def login(telegram_id):
     if not telegram_id or telegram_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
-    
+    if tg_id:
+        request_url = base_url+f"users/tg/{tg_id}"
+    else:
+        request_url = base_url+"users/"
     async with aiohttp.ClientSession() as session:
         async with session.get(
-            base_url+"users/tg/{id}/", 
+            request_url, 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
+                "Content-Type": "application/json",
                 "X-User-ID":f"{telegram_id}"
-            }
+            },
         ) as response:
             if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
@@ -40,13 +42,3 @@ async def login(telegram_id):
             else:
                 logging.error(f"Ошибка: {response.status}")
                 return None
-
-
-async def main():
-    response_data = await login(telegram_id="6911237041")
-    if response_data:
-        print("\n--- Результат ---")
-        print(response_data)
-
-if __name__ == "__main__":
-    asyncio.run(main())

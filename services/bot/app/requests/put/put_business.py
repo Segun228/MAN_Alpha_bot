@@ -1,11 +1,18 @@
 import aiohttp
-import asyncio
 import os
 import logging
 from dotenv import load_dotenv
+from io import BytesIO
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-async def login(telegram_id):
+async def put_business(
+    telegram_id,
+    busines_id,
+    name,
+    description,
+    business_id
+):
     load_dotenv()
     base_url = os.getenv("BASE_URL")
     BOT_API_KEY = os.getenv("BOT_API_KEY")
@@ -18,35 +25,34 @@ async def login(telegram_id):
     if not telegram_id or telegram_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
-    
+    if not busines_id or busines_id is None:
+        logging.error("No base telegram_id was provided")
+        raise ValueError("No telegram_id was provided")
+    request_url = f"businesses/{business_id}/"
     async with aiohttp.ClientSession() as session:
-        async with session.get(
-            base_url+"users/tg/{id}/", 
+        async with session.post(
+            request_url,
+            json={
+                "telegram_id":telegram_id,
+                "name":name,
+                "description":description,
+            },
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
-                "X-User-ID":f"{telegram_id}"
-            }
+                "X-User-ID":f"{telegram_id}",
+                "Content-Type": "application/json" 
+            },
         ) as response:
             if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
-                logging.info("Данные успешно получены!")
+                logging.info("Бизнес успешно изменен!")
                 return data
             elif response.status == 404:
-                logging.error("User was not found")
+                logging.error("Route was not found")
                 return {
-                    "error": "User was not found",
+                    "error": "Route was not found",
                     "status": 404
                 }
             else:
                 logging.error(f"Ошибка: {response.status}")
                 return None
-
-
-async def main():
-    response_data = await login(telegram_id="6911237041")
-    if response_data:
-        print("\n--- Результат ---")
-        print(response_data)
-
-if __name__ == "__main__":
-    asyncio.run(main())

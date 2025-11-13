@@ -32,6 +32,9 @@ from app.requests.user.make_admin import make_admin
 
 
 from app.kafka.utils import build_log_message
+from app.states.states import CreateUser
+
+from app.requests.post.post_user import post_user
 #===========================================================================================================================
 # Конфигурация основных маршрутов
 #===========================================================================================================================
@@ -43,6 +46,11 @@ async def cmd_start_admin(message: Message, state: FSMContext):
     if data is None:
         logging.error("Error while logging in")
         await message.answer("Бот еще не проснулся, попробуйте немного подождать 😔", reply_markup=inline_keyboards.restart)
+        return
+    if data.get("status") == 404:
+        await state.set_state(CreateUser.start_creating)
+        await message.answer("Вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
+        await message.answer("Введите ваше имя")
         return
     await state.update_data(telegram_id = data.get("telegram_id"))
     await message.reply("Приветствую Админ! 👋")
@@ -66,8 +74,13 @@ async def callback_start_admin(callback: CallbackQuery, state: FSMContext):
         logging.error("Error while logging in")
         await callback.message.answer("Бот еще не проснулся, попробуйте немного подождать 😔", reply_markup=inline_keyboards.restart)
         return
+    if data.get("status") == 404:
+        await state.set_state(CreateUser.start_creating)
+        await callback.message.answer("Вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
+        await callback.message.answer("Введите ваше имя")
+        return
     await state.update_data(telegram_id = data.get("telegram_id"))
-    await callback.message.reply("Приветствую! 👋")
+    await callback.message.reply("Приветствую, Админ! 👋")
     await callback.message.answer("Я ваш личный бизнес асистент")
     await callback.message.answer("Я могу помочь вам с любыми бизнес вопросами, предложить новые идеи и предложить инсайты")
     await build_log_message(
@@ -78,6 +91,92 @@ async def callback_start_admin(callback: CallbackQuery, state: FSMContext):
     )
     await callback.answer()
 
+#===========================================================================================================================
+# Регистрация юзера
+#===========================================================================================================================
+
+
+@router.message(CreateUser.start_creating, IsAdmin())
+async def start_admin_user_create(message: Message, state: FSMContext):
+    try:
+        login = message.text
+        if login:
+            login = login.strip()
+        await state.update_data(login = login)
+        await message.answer("Имя получено!")
+        await message.answer("Введите ваше почту")
+        await state.set_state(CreateUser.login)
+    except Exception as e:
+        logging.error(e)
+        await message.answer("Ошибка во время создания пользователя, попробуйте снова", reply_markup=inline_keyboards.restart)
+        await state.clear()
+        await build_log_message(
+            telegram_id=message.from_user.id,
+            action="error",
+            source="message",
+            payload="error"
+        )
+        return
+
+
+@router.message(CreateUser.login, IsAdmin())
+async def admin_user_enter_email(message: Message, state: FSMContext):
+    try:
+        email = message.text
+        if email:
+            email = email.strip()
+        await state.update_data(email = email)
+        await message.answer("Почта получена!")
+        await message.answer("Введите ваш пароль")
+        await state.set_state(CreateUser.email)
+    except Exception as e:
+        logging.error(e)
+        await message.answer("Ошибка во время создания пользователя, попробуйте снова", reply_markup=inline_keyboards.restart)
+        await state.clear()
+        await build_log_message(
+            telegram_id=message.from_user.id,
+            action="error",
+            source="message",
+            payload="error"
+        )
+        return
+
+
+@router.message(CreateUser.login, IsAdmin())
+async def admin_user_enter_password(message: Message, state: FSMContext):
+    try:
+        password = message.text
+        if password:
+            password = password.strip()
+        await state.update_data(password = password)
+        await message.answer("Пароль получен!")
+        data = await state.get_data()
+        login = data.get("login")
+        email = data.get("email")
+        result = await post_user(
+            telegram_id = message.from_user.id,
+            login=login,
+            password=password,
+            churned=False,
+            email=email
+        )
+        if result is None or not result:
+            raise ValueError("Error while sending info to the server")
+        await message.answer(
+            "Вы успешно зарегались! Нажмите на кнопку чтоб начать диалог...",
+            reply_markup=inline_keyboards.restart
+        )
+    except Exception as e:
+        logging.error(e)
+        await message.answer("Ошибка во время создания пользователя, попробуйте снова", reply_markup=inline_keyboards.restart)
+        await state.clear()
+        await build_log_message(
+            telegram_id=message.from_user.id,
+            action="error",
+            source="message",
+            payload="error"
+        )
+        return
 
 
 #===========================================================================================================================

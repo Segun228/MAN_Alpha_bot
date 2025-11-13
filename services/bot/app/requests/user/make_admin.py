@@ -5,30 +5,41 @@ import logging
 from dotenv import load_dotenv
 from pprint import pprint
 
-async def make_admin(telegram_id, target_user_id, value=True):
+async def make_admin(telegram_id, target_user_id=None, value=True):
     load_dotenv()
     base_url = os.getenv("BASE_URL")
-
+    BOT_API_KEY = os.getenv("BOT_API_KEY")
     if not base_url or base_url is None:
         logging.error("No base URL was provided")
         raise ValueError("No base URL was provided")
+    if not BOT_API_KEY or BOT_API_KEY is None:
+        logging.error("No BOT_API_KEY was provided")
+        raise ValueError("No BOT_API_KEY was provided")
     if not telegram_id or telegram_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
     
     async with aiohttp.ClientSession() as session:
-        headers = {
-            "Authorization": f"Bot {telegram_id}",
-        }
         async with session.patch(
-            base_url+f"auth/user/{target_user_id}/", 
-            headers = headers,
-            json={"is_staff": value}
+            base_url+"users/tg/{id}/", 
+            headers={
+                "X-Bot-Key":f"{BOT_API_KEY}",
+                "X-User-ID":f"{telegram_id}"
+            },
+            json={
+                "is_admin":value
+            }
         ) as response:
-            if response.status in (200, 201, 202, 203, 204):
+            if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
-                logging.info("Данные успешно отправлены!")
+                logging.info("Данные успешно получены!")
                 return data
+            elif response.status == 404:
+                logging.error("User was not found")
+                return {
+                    "error": "User was not found",
+                    "status": 404
+                }
             else:
                 logging.error(f"Ошибка: {response.status}")
                 return None

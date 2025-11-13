@@ -362,6 +362,16 @@ services:
     networks:
       - app-man-network
 
+  business_analyzer:
+    image: business_analyzer:latest
+    build: ./services/business_analyzer
+    container_name: business_analyzer
+    ports:
+      - ${BUSINESS_ANALYZER_PORT}:${BUSINESS_ANALYZER_PORT}
+    env_file:
+      - .env
+    networks:
+      - app-man-network
 
 volumes:
   clickhouse_data:

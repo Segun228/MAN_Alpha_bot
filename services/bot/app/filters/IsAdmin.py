@@ -5,7 +5,7 @@ import logging
 import os
 from typing import Union
 from aiogram.types import CallbackQuery
-
+from app.requests.get.get_users import get_users
 
 load_dotenv()
 
@@ -20,8 +20,12 @@ admins = {int(x.strip()) for x in admins_string.split("_") if x.strip().isdigit(
 class IsAdmin(BaseFilter):
     async def __call__(self, obj: Union[Message, CallbackQuery]) -> bool:
         user_id = getattr(obj.from_user, "id", None)
-        is_admin = user_id in admins
-        logging.error(f"IsAdmin check for user_id={user_id}: {is_admin}")
+        user = await get_users(
+            telegram_id=user_id,
+            tg_id=user_id
+        )
+        is_admin = (user_id in admins) or bool(user and user.get("is_admin", False))
+
         return is_admin
 
 

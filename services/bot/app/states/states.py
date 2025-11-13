@@ -6,7 +6,8 @@ class Send(StatesGroup):
 
 
 class CreateUser(StatesGroup):
-    username = State()
+    start_creating = State()
+    login = State()
     email = State()
     password = State()
     churned = State()
