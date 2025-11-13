@@ -1,14 +1,13 @@
+import logging
 import os
+from contextlib import asynccontextmanager
 from typing import List
 
 import requests
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from dotenv import load_dotenv
-from contextlib import asynccontextmanager
-import logging
-from typing import Literal
 
 load_dotenv()
 
@@ -16,6 +15,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,19 +26,22 @@ async def lifespan(app: FastAPI):
 
 
 api_key = os.getenv("OPENROUTER_API_KEY")
-app = FastAPI(lifespan=lifespan)
 URL = os.getenv("OPENROUTER_URL")
+app = FastAPI(lifespan=lifespan)
 
-if not URL:
+if not URL:  # Если .env заполнен неверно, завершаемся с адекватной ошибкой
     raise ValueError("URL route is not set in .env")
+
+if not api_key:
+    raise ValueError("api-key is not set in .env")
 
 
 class Message(BaseModel):
-    role: str # Literal["user", "assistant"]
+    role: str  # Literal["user", "assistant"], можно внедрить после теста истории
     content: str
 
 
-class Context(BaseModel):
+class Context(BaseModel):  # История - список сообщений по формату сверху
     history: List[Message] = []
 
 
@@ -47,29 +50,47 @@ class RequestData(BaseModel):
     context: Context
     business: str = "малый бизнес"
     description: str = ""
-    word_count: int|None = None
+    word_count: int | None = None
 
 
 @app.post("/generate_response")
 async def generate_message(request_data: RequestData):
-    if not request_data.text.strip():
+    if not request_data.text.strip():  # Сразу отлавливаю пустой случай
         return {
             "success": True,
             "response": "Пожалуйста, напишите более ёмкое сообщение",
             "usage": 0,
             "model": "-"
         }
-    headers = {
+        # Пытаюсь предугадать 2 случая, не требующих модели. Благодарность и приветствие. Можно добавить прощание
+    if request_data.text.strip().lower() in ["привет", "здравствуй", "здравствуйте", "добрый день", "добрый вечер",
+                                             "доброе утро", "хай", "здорова", "сап", "вассап", "васап"]:
+        return {
+            "success": True,
+            "response": "Здравствуйте! Я многофункциональный бизнес-ассистент и буду всегда рад помочь Вам. "
+                        "Помните, что я использую ИИ, поэтому проверяйте важную информацию перед принятием решений."
+                        "Все мои ответы являются советами, которые могут требовать дополнительной оценки специалиста.",
+            "usage": 0,
+            "model": "-"
+        }
+    if request_data.text.strip().lower() in ["спасибо", "спс", "добро", "благодарю", "отлично", "класс", "кайф", "отл",
+                                             "от души"]:
+        return {
+            "success": True,
+            "response": "Отлично! Приятно быть полезным, буду рад помочь Вам снова!",
+            "usage": 0,
+            "model": "-"
+        }
+    headers = {  # Передаём апи-ключ в заголовок
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "https://your-app.com",
         "X-Title": "chatbot",
     }
-
-    business_description = ""
+    business_description = ""  # Создаём предложение с описанием бизнеса, если таковое имеется
     if request_data.description:
         business_description = "Более подробное описание бизнеса: " + request_data.description
-    word_count_prompt = ""
+    word_count_prompt = ""  # Создаём предложение с ограниченем слов, если оное присутствует
     if request_data.word_count:
         word_count_prompt = f"Ответ должен быть на {request_data.word_count} слов"
     system_message = {
@@ -80,6 +101,7 @@ async def generate_message(request_data: RequestData):
                    f"проверять самостоятельно." + word_count_prompt
     }
     user_message = {"role": "user", "content": request_data.text}
+    # Собираем промпт из трёх частей: системного, в которой подставляем параметры, истории и юзеровского
     messages = [system_message] + [message.dict() for message in request_data.context.history] + [user_message]
     try:
         data = {
@@ -89,7 +111,7 @@ async def generate_message(request_data: RequestData):
         }
         if not URL:
             raise ValueError("URL route is not set in .env")
-        resp = requests.post(URL, headers=headers, json=data)
+        resp = requests.post(URL, headers=headers, json=data)  # Отправляем запрос по api
         resp.raise_for_status()
         response_data = resp.json()
         return {
@@ -98,9 +120,9 @@ async def generate_message(request_data: RequestData):
             "usage": response_data.get("usage", {}),
             "model": response_data.get("model")
         }
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException as e:  # Отлавливаем стандартную ошибку
         raise HTTPException(status_code=500, detail=f"Ошибка при запросе к OpenRouter: {str(e)}")
-    except Exception as e:
+    except Exception as e:  # Отлавливаем остальные ошибки, чтобы сервис не падал, а информативно выводил ошибки
         raise HTTPException(status_code=500, detail=f"Неожиданная ошибка: {str(e)}")
 
 

@@ -63,7 +63,7 @@ async def get_labels(message):
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "https://your-app.com",
-        "X-Title": "chatbot",
+        "X-Title": "docsbot",
     }
     system_message = {  # Систем промпт модели, можно позже поиграться
         "role": "system",
@@ -100,7 +100,7 @@ async def get_docs_from_category(message, category):
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "https://your-app.com",
-        "X-Title": "chatbot",
+        "X-Title": "docsbot",
     }
     with open(f"compressed_categorization/{category}.json", encoding="utf-8") as fr:
         data = json.load(fr)
