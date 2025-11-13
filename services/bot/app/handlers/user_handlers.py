@@ -40,7 +40,7 @@ from app.kafka.utils import build_log_message
 from app.requests.get.get_datasets import get_datasets, retrieve_dataset, get_dataset_file
 from app.requests.get.get_distributions import get_distributions, retrieve_distribution
 
-from app.requests.post.post_dataset import post_dataset
+from services.bot.app.requests.post.post_message import post_dataset
 from app.requests.post.post_distribution import post_distribution
 
 from app.requests.put.put_dataset import put_dataset

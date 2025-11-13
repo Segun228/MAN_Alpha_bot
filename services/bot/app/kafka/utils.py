@@ -14,7 +14,7 @@ load_dotenv()
 
 KAFKA_BROKER_DOCKER = os.getenv("KAFKA_BROKER_DOCKER")
 KAFKA_BROKER_URL = os.getenv("KAFKA_BROKER_URL")
-KAFKA_TOPIC = os.getenv("KAFKA_BOT_TOPIC")
+KAFKA_TOPIC = os.getenv("KAFKA_LOGS_TOPIC")
 PRODUCER_CLIENT_ID = os.getenv("PRODUCER_CLIENT_ID")
 LOGS = os.getenv("LOGS", "false").lower() == "true"
 
