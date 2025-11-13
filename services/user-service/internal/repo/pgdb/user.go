@@ -133,7 +133,7 @@ func (r *UserRepo) CreateUser(ctx context.Context, user models.User) (*models.Us
 	return &user, nil
 }
 
-func (r *UserRepo) AddBusinessToUserByID(ctx context.Context, userID int, business models.Business) (*models.User, error) {
+func (r *UserRepo) AddBusinessToUser(ctx context.Context, userID int, business models.Business) (*models.User, error) {
 	sql, args, _ := r.Builder.
 		Insert("businesses").
 		Columns("name", "description", "user_id").
@@ -149,28 +149,6 @@ func (r *UserRepo) AddBusinessToUserByID(ctx context.Context, userID int, busine
 	user, err := r.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
-	}
-
-	user.Businesses = append(user.Businesses, business)
-	return user, nil
-}
-
-func (r *UserRepo) AddBusinessToUserByTgID(ctx context.Context, tgId int64, business models.Business) (*models.User, error) {
-	user, err := r.GetUserByTgID(ctx, tgId)
-	if err != nil {
-		return nil, err
-	}
-
-	sql, args, _ := r.Builder.
-		Insert("businesses").
-		Columns("name", "description", "user_id").
-		Values(business.Name, business.Description, user.ID).
-		Suffix("RETURNING id").
-		ToSql()
-
-	err = r.Pool.QueryRow(ctx, sql, args...).Scan(&business.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute sql request: %w", err)
 	}
 
 	user.Businesses = append(user.Businesses, business)
@@ -198,24 +176,10 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user models.User) (*models.Us
 	return &user, nil
 }
 
-func (r *UserRepo) DeleteUserByID(ctx context.Context, userID int) error {
+func (r *UserRepo) DeleteUser(ctx context.Context, userID int) error {
 	sql, args, _ := r.Builder.
 		Delete("users").
 		Where("id = ?", userID).
-		ToSql()
-
-	_, err := r.Pool.Exec(ctx, sql, args...)
-	if err != nil {
-		return fmt.Errorf("failed to execute sql request: %w", err)
-	}
-
-	return nil
-}
-
-func (r *UserRepo) DeleteUserByTgID(ctx context.Context, tgID int64) error {
-	sql, args, _ := r.Builder.
-		Delete("users").
-		Where("telegram_id = ?", tgID).
 		ToSql()
 
 	_, err := r.Pool.Exec(ctx, sql, args...)

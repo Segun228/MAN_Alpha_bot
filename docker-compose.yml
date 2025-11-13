@@ -12,13 +12,15 @@ services:
       - "${API_GATEWAY_PORT}:8081"
     networks:
       - app-man-network
-      
+
   user-service:
     build: 
       context: .
       dockerfile: ./services/user-service/Dockerfile
     container_name: user-service
     restart: on-failure
+    depends_on:
+      - postgres
     environment:
       - AUTH_JWT_SIGN_KEY=${AUTH_JWT_SIGN_KEY}
     ports:
@@ -328,6 +330,9 @@ services:
     image: logs:latest
     build: ./services/logs
     container_name: logs
+    depends_on:
+      kafka:
+        condition: service_healthy
     ports:
       - ${LOGGING_PORT}:8002
     env_file:

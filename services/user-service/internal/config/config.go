@@ -13,6 +13,7 @@ type (
 	Config struct {
 		Env        string           `mapstructure:"env"`
 		HttpServer HttpServerConfig `mapstructure:"http_server"`
+		PG         PGConfig         `mapstructure:"pg"`
 		Auth       AuthConfig       `maptructure:"auth"`
 		Services   ServicesConfig   `mapstructure:"services"`
 	}
@@ -22,6 +23,10 @@ type (
 		ReadTimeout  time.Duration `mapstructure:"read_timeout"`
 		WriteTimeout time.Duration `mapstructutre:"write_timeout"`
 		IdleTimeout  time.Duration `mapstructure:"idle_timeout"`
+	}
+
+	PGConfig struct {
+		Url string `mapstructure:"url"`
 	}
 
 	AuthConfig struct {

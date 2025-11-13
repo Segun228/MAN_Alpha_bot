@@ -7,6 +7,11 @@ import (
 	"syscall"
 
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/config"
+	v1 "github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/controller/http/v1"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/httpserver"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/postgres"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/utils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
@@ -42,6 +47,27 @@ func Run(configPath string) {
 		log.Info("config reloaded successfully")
 	})
 
+	log.Info("Initializing postgres...")
+	pg, err := postgres.New(cfg.PG.Url)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	defer pg.Close()
+
+	runMigrations(cfg.PG.Url)
+
+	log.Info("init repos")
+	repositories := repo.NewRepositories(pg)
+
+	deps := service.ServicesDependencies{
+		Repos: repositories,
+	}
+	services := service.NewServices(&deps)
+
+	handler := v1.NewRouter(services)
+
+	httpServer := httpserver.New(handler, httpserver.Port("8083"))
+
 	// Waiting signal
 	log.Info("configuring gracefull shuttdown...")
 	interrupt := make(chan os.Signal, 1)
@@ -50,5 +76,12 @@ func Run(configPath string) {
 	select {
 	case s := <-interrupt:
 		log.Info("catched interrupt signal", logrus.Fields{"signal": s.String()})
+	case err = <-httpServer.Notify():
+		log.Error("http server notify error", logrus.Fields{"error": err})
+	}
+
+	err = httpServer.Shutdown()
+	if err != nil {
+		log.Error("http server shutdown error", logrus.Fields{"error": err})
 	}
 }

@@ -13,11 +13,9 @@ type User interface {
 	GetUserByID(ctx context.Context, userID int) (*models.User, error)
 	GetUserByTgID(ctx context.Context, tgID int64) (*models.User, error)
 	CreateUser(ctx context.Context, user models.User) (*models.User, error)
-	AddBusinessToUserByID(ctx context.Context, userID int, business models.Business) (*models.User, error)
-	AddBusinessToUserByTgID(ctx context.Context, tgId int64, business models.Business) (*models.User, error)
+	AddBusinessToUser(ctx context.Context, userID int, business models.Business) (*models.User, error)
 	UpdateUser(ctx context.Context, user models.User) (*models.User, error)
-	DeleteUserByID(ctx context.Context, userID int) error
-	DeleteUserByTgID(ctx context.Context, tgID int64) error
+	DeleteUser(ctx context.Context, userID int) error
 }
 
 type Business interface {

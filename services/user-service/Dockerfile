@@ -19,5 +19,6 @@ WORKDIR /app
 COPY --from=builder /app/user-service .
 
 COPY ./services/user-service/configs ./configs
+COPY ./services/user-service/migrations ./migrations
 
 CMD ["/app/user-service"]

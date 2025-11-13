@@ -8,3 +8,6 @@ http_server:
 
 auth:
   jwt_sign_key: ""
+
+pg:
+  url: "postgres://user:password123@postgres:5432/db?sslmode=disable"
