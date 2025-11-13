@@ -5,14 +5,36 @@ import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+import logging
+from typing import Literal
 
-api_key = os.environ.get("OPENROUTER_API_KEY")
-app = FastAPI()
-url = "https://openrouter.ai/api/v1/chat/completions"
+load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        yield
+    finally:
+        logging.info("Shutting down chat model...")
+
+
+api_key = os.getenv("OPENROUTER_API_KEY")
+app = FastAPI(lifespan=lifespan)
+URL = os.getenv("OPENROUTER_URL")
+
+if not URL:
+    raise ValueError("URL route is not set in .env")
 
 
 class Message(BaseModel):
-    role: str  # "user" или "assistant"
+    role: str # Literal["user", "assistant"]
     content: str
 
 
@@ -25,10 +47,11 @@ class RequestData(BaseModel):
     context: Context
     business: str = "малый бизнес"
     description: str = ""
+    word_count: int|None = None
 
 
 @app.post("/generate_response")
-def generate_message(request_data: RequestData):
+async def generate_message(request_data: RequestData):
     if not request_data.text.strip():
         return {
             "success": True,
@@ -46,13 +69,15 @@ def generate_message(request_data: RequestData):
     business_description = ""
     if request_data.description:
         business_description = "Более подробное описание бизнеса: " + request_data.description
-
+    word_count_prompt = ""
+    if request_data.word_count:
+        word_count_prompt = f"Ответ должен быть на {request_data.word_count} слов"
     system_message = {
         "role": "system",
-        "content": f"Ты опытный бизнес-ассистент. Твоя задача дать точную консультауию для владельца {request_data.business}. "
+        "content": f"Ты опытный бизнес-ассистент. Твоя задача дать точную консультацию для владельца {request_data.business}. "
                    f"{business_description}. Опирайся на существующий опыт и правила, не давай вредных и опасных советов. "
                    f"Не нарушай законодательство РФ и международные нормы. Упомянай, что информацию необходимо "
-                   f"проверять самостоятельно."
+                   f"проверять самостоятельно." + word_count_prompt
     }
     user_message = {"role": "user", "content": request_data.text}
     messages = [system_message] + [message.dict() for message in request_data.context.history] + [user_message]
@@ -62,7 +87,9 @@ def generate_message(request_data: RequestData):
             "messages": messages,
             "temperature": 0.7
         }
-        resp = requests.post(url, headers=headers, json=data)
+        if not URL:
+            raise ValueError("URL route is not set in .env")
+        resp = requests.post(URL, headers=headers, json=data)
         resp.raise_for_status()
         response_data = resp.json()
         return {
@@ -78,7 +105,7 @@ def generate_message(request_data: RequestData):
 
 
 @app.get("/model_health")
-def root():
+async def root():
     return {"message": "Business Assistant API is running", "status": "ok"}
 
 
