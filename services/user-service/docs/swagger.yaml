@@ -1,0 +1,656 @@
+definitions:
+  github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Business:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      userID:
+        type: integer
+    type: object
+  github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User:
+    properties:
+      businesses:
+        items:
+          $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Business'
+        type: array
+      churned:
+        type: boolean
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      isAdmin:
+        type: boolean
+      login:
+        type: string
+      password:
+        type: string
+      telegramID:
+        type: integer
+      updatedAt:
+        type: string
+    type: object
+  internal_controller_http_v1.addBusinessRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_controller_http_v1.businessUpdateRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_controller_http_v1.createUserRequest:
+    properties:
+      email:
+        type: string
+      login:
+        type: string
+      password:
+        type: string
+      telegram_id:
+        type: integer
+    type: object
+  internal_controller_http_v1.updateUserRequest:
+    properties:
+      churned:
+        type: boolean
+      email:
+        type: string
+      is_admin:
+        type: boolean
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /businesses:
+    get:
+      consumes:
+      - application/json
+      description: Получить список всех бизнесов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Business'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all businesses
+      tags:
+      - businesses
+  /businesses/{businessID}:
+    delete:
+      consumes:
+      - application/json
+      description: Удалить бизнес по ID
+      parameters:
+      - description: Business ID
+        in: path
+        name: businessID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete business
+      tags:
+      - businesses
+    put:
+      consumes:
+      - application/json
+      description: Полное обновление бизнеса по ID
+      parameters:
+      - description: Business ID
+        in: path
+        name: businessID
+        required: true
+        type: integer
+      - description: Business info
+        in: body
+        name: business
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.businessUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Business'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update business (full)
+      tags:
+      - businesses
+  /businesses/{businessID}/owner:
+    get:
+      consumes:
+      - application/json
+      description: Получить владельца бизнеса по ID
+      parameters:
+      - description: Business ID
+        in: path
+        name: businessID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get owner of business
+      tags:
+      - businesses
+  /businesses/user/{userID}:
+    get:
+      consumes:
+      - application/json
+      description: Получить все бизнесы пользователя по ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Business'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get businesses by user ID
+      tags:
+      - businesses
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Получить список всех пользователей
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Создать нового пользователя
+      parameters:
+      - description: User info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.createUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create new user
+      tags:
+      - users
+  /users/{userID}:
+    delete:
+      consumes:
+      - application/json
+      description: Удалить пользователя по ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete user by ID
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: Получить пользователя по ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user by ID
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      description: Частичное обновление пользователя по ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: User info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.updateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Patch user by ID
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Полное обновление пользователя по ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: User info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.updateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update user by ID (full)
+      tags:
+      - users
+  /users/{userID}/businesses:
+    post:
+      consumes:
+      - application/json
+      description: Добавить бизнес пользователю по ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: Business info
+        in: body
+        name: business
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.addBusinessRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add business to user by ID
+      tags:
+      - users
+  /users/tg/{tgID}:
+    get:
+      consumes:
+      - application/json
+      description: Получить пользователя по Telegram ID
+      parameters:
+      - description: Telegram ID
+        in: path
+        name: tgID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user by Telegram ID
+      tags:
+      - users
+  /users/tg/{tgId}:
+    delete:
+      consumes:
+      - application/json
+      description: Удалить пользователя по Telegram ID
+      parameters:
+      - description: Telegram ID
+        in: path
+        name: tgId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete user by Telegram ID
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      description: Частичное обновление пользователя по Telegram ID
+      parameters:
+      - description: Telegram ID
+        in: path
+        name: tgId
+        required: true
+        type: integer
+      - description: User info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.updateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Patch user by Telegram ID
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Полное обновление пользователя по Telegram ID
+      parameters:
+      - description: Telegram ID
+        in: path
+        name: tgId
+        required: true
+        type: integer
+      - description: User info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.updateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update user by Telegram ID (full)
+      tags:
+      - users
+  /users/tg/{tgId}/businesses:
+    post:
+      consumes:
+      - application/json
+      description: Добавить бизнес пользователю по Telegram ID
+      parameters:
+      - description: Telegram ID
+        in: path
+        name: tgId
+        required: true
+        type: integer
+      - description: Business info
+        in: body
+        name: business
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.addBusinessRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add business to user by Telegram ID
+      tags:
+      - users
+swagger: "2.0"

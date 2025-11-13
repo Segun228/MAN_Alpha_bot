@@ -29,6 +29,14 @@ func newBusinessRoutes(r chi.Router, businessService service.Business) {
 	})
 }
 
+// @Summary Get all businesses
+// @Description Получить список всех бизнесов
+// @Tags businesses
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.Business
+// @Failure 500 {object} map[string]string
+// @Router /businesses [get]
 func (br *businessRoutes) getAll(w http.ResponseWriter, r *http.Request) {
 	businesses, err := br.businessService.GetBusinesses(r.Context())
 	if err != nil {
@@ -38,6 +46,17 @@ func (br *businessRoutes) getAll(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, businesses)
 }
+
+// @Summary Get business by ID
+// @Description Получить бизнес по ID
+// @Tags businesses
+// @Accept json
+// @Produce json
+// @Param businessID path int true "Business ID"
+// @Success 200 {object} models.Business
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /businesses/{businessID} [get]
 
 func (br *businessRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 	businessIDParam := chi.URLParam(r, "businessID")
@@ -56,6 +75,16 @@ func (br *businessRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, business)
 }
 
+// @Summary Get businesses by user ID
+// @Description Получить все бизнесы пользователя по ID
+// @Tags businesses
+// @Accept json
+// @Produce json
+// @Param userID path int true "User ID"
+// @Success 200 {array} models.Business
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /businesses/user/{userID} [get]
 func (br *businessRoutes) getByUserID(w http.ResponseWriter, r *http.Request) {
 	userIDParam := chi.URLParam(r, "userID")
 	userID, err := parseIDParam(userIDParam)
@@ -73,6 +102,16 @@ func (br *businessRoutes) getByUserID(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, businesses)
 }
 
+// @Summary Get owner of business
+// @Description Получить владельца бизнеса по ID
+// @Tags businesses
+// @Accept json
+// @Produce json
+// @Param businessID path int true "Business ID"
+// @Success 200 {object} models.User
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /businesses/{businessID}/owner [get]
 func (br *businessRoutes) getOwner(w http.ResponseWriter, r *http.Request) {
 	businessIDParam := chi.URLParam(r, "businessID")
 	businessID, err := parseIDParam(businessIDParam)
@@ -95,6 +134,17 @@ type businessUpdateRequest struct {
 	Description string `json:"description"`
 }
 
+// @Summary Update business (full)
+// @Description Полное обновление бизнеса по ID
+// @Tags businesses
+// @Accept json
+// @Produce json
+// @Param businessID path int true "Business ID"
+// @Param business body businessUpdateRequest true "Business info"
+// @Success 200 {object} models.Business
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /businesses/{businessID} [put]
 func (br *businessRoutes) put(w http.ResponseWriter, r *http.Request) {
 	businessIDParam := chi.URLParam(r, "businessID")
 	businessID, err := parseIDParam(businessIDParam)
@@ -123,6 +173,18 @@ func (br *businessRoutes) put(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, updatedBusiness)
 }
+
+// @Summary Patch business
+// @Description Частичное обновление бизнеса по ID
+// @Tags businesses
+// @Accept json
+// @Produce json
+// @Param businessID path int true "Business ID"
+// @Param business body businessUpdateRequest true "Business info"
+// @Success 200 {object} models.Business
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /businesses/{businessID} [patch]
 
 func (br *businessRoutes) patch(w http.ResponseWriter, r *http.Request) {
 	businessIDParam := chi.URLParam(r, "businessID")
@@ -153,6 +215,16 @@ func (br *businessRoutes) patch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, updatedBusiness)
 }
 
+// @Summary Delete business
+// @Description Удалить бизнес по ID
+// @Tags businesses
+// @Accept json
+// @Produce json
+// @Param businessID path int true "Business ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /businesses/{businessID} [delete]
 func (br *businessRoutes) delete(w http.ResponseWriter, r *http.Request) {
 	businessIDParam := chi.URLParam(r, "businessID")
 	businessID, err := parseIDParam(businessIDParam)
