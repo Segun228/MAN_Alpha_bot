@@ -19,15 +19,10 @@ from app.states.states import Send
 
 from aiogram.types import BufferedInputFile
 
-
-from app.keyboards.inline_user import get_distributions_catalogue, get_datasets_catalogue
-
 from app.filters.IsAdmin import IsAdmin
 
 from app.requests.user.login import login
 from app.requests.helpers.get_cat_error import get_cat_error_async
-from app.requests.get.get_datasets import get_datasets
-from app.requests.get.get_distributions import get_distributions
 
 from app.requests.helpers.get_cat_error import get_cat_error_async
 
@@ -73,48 +68,14 @@ async def callback_start_admin(callback: CallbackQuery, state: FSMContext):
         return
     await state.update_data(telegram_id = data.get("telegram_id"))
     await callback.message.reply("Приветствую! 👋")
-    await callback.message.answer("Я предоставляю полный инструментарий для МатСтата и АБтестов")
-    await callback.message.answer("Сейчас ты можешь создавать, удалять и изменять распределения, а также добавлять свои датасеты в формате CSV")
+    await callback.message.answer("Я ваш личный бизнес асистент")
+    await callback.message.answer("Я могу помочь вам с любыми бизнес вопросами, предложить новые идеи и предложить инсайты")
     await build_log_message(
         telegram_id=callback.from_user.id,
         action="inline",
         source="callback",
         payload="restart"
     )
-    await callback.answer()
-
-
-@router.message(Command("help"), IsAdmin())
-async def cmd_help(message: Message):
-    await build_log_message(
-        telegram_id=message.from_user.id,
-        action="command",
-        source="command",
-        payload="help"
-    )
-    await message.reply(text="Этот бот предоставляет доступ к инструментам статистического анализа, а также он специализирован для проведения АБ тестов\n\n Он может выполнять несколько интересных функций \n\nВы можете выбирать интересующие вас функции, в каждой из них вам будут предоставлены инструкции\n\nЕсли у вас остались вопросы, звоните нам или пишите в тех поддержку, мы всегда на связи:\n\n@dianabol_metandienon_enjoyer", reply_markup=inline_keyboards.home)
-
-@router.message(Command("contacts"), IsAdmin())
-async def cmd_contacts(message: Message):
-    await build_log_message(
-        telegram_id=message.from_user.id,
-        action="command",
-        source="command",
-        payload="contacts"
-    )
-    text = "Связь с разрабом: 📞\n\n\\@dianabol\\_metandienon\\_енjoyer 🤝"
-    await message.reply(text=text, reply_markup=inline_keyboards.home, parse_mode='MarkdownV2')
-
-@router.callback_query(F.data == "contacts", IsAdmin())
-async def contacts_callback(callback: CallbackQuery):
-    await build_log_message(
-        telegram_id=callback.from_user.id,
-        action="callback",
-        source="menu",
-        payload="contacts"
-    )
-    text = "Связь с разрабом: 📞\n\n\\@dianabol\\_metandienon\\_enjoyer 🤝"
-    await callback.message.edit_text(text=text, reply_markup=inline_keyboards.home, parse_mode='MarkdownV2')
     await callback.answer()
 
 
@@ -125,7 +86,7 @@ async def contacts_callback(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == "send_menu", IsAdmin())
-async def send_menu_admin(callback: CallbackQuery, state: FSMContext):
+async def send_main_menu_admin(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
         "Напишите текст сообщения или прикрепите фото с подписью. ",
         reply_markup=inline_keyboards.catalogue

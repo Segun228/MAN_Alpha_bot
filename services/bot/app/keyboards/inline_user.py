@@ -1,8 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from typing import Iterable
-from app.requests.get.get_datasets import get_datasets
-from app.requests.get.get_distributions import get_distributions
 from pprint import pprint
 
 main = InlineKeyboardMarkup(

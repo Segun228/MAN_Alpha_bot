@@ -316,6 +316,9 @@ services:
     image: logs:latest
     build: ./services/logs
     container_name: logs
+    depends_on:
+      kafka:
+        condition: service_healthy
     ports:
       - ${LOGGING_PORT}:8002
     env_file:
