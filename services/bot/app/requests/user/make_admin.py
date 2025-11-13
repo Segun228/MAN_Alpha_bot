@@ -26,7 +26,7 @@ async def make_admin(telegram_id, target_user_id=None, value=True):
                 "X-Bot-Key":f"{BOT_API_KEY}",
                 "X-User-ID":f"{telegram_id}"
             },
-            data={
+            json={
                 "is_admin":value
             }
         ) as response:

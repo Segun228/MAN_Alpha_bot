@@ -8,7 +8,7 @@ async def post_user(
     login,
     password,
     email,
-    churned = True
+    churned = False
 ):
     load_dotenv()
     base_url = os.getenv("BASE_URL")
@@ -46,12 +46,6 @@ async def post_user(
                 data = await response.json()
                 logging.info("Пользователь успешно создан!")
                 return data
-            elif response.status == 404:
-                logging.error("Route was not found")
-                return {
-                    "error": "Route was not found",
-                    "status": 404
-                }
             else:
                 logging.error(f"Ошибка: {response.status}")
                 return None
