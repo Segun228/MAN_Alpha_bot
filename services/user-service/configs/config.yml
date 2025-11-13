@@ -1,0 +1,13 @@
+env: "dev"
+
+http_server:
+  port: 8083
+  read_timeout: 5m
+  write_timeout: 5m
+  idle_timeout: 60s
+
+auth:
+  jwt_sign_key: ""
+
+pg:
+  url: "postgres://user:password123@postgres:5432/db?sslmode=disable"
