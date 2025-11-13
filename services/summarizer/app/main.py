@@ -88,7 +88,7 @@ async def summarize_text_route(request: Request):
         )
         return JSONResponse(
             content=result,
-            media_type="text/json"
+            media_type="application/json"
         )
     except Exception as e:
         logging.exception(e)
@@ -120,7 +120,7 @@ async def summarize_dialog_route(request: Request):
         )
         return JSONResponse(
             content=result,
-            media_type="text/json"
+            media_type="application/json"
         )
     except HTTPException as e:
         logging.exception(e)
