@@ -43,7 +43,7 @@ restart = InlineKeyboardMarkup(
 
 catalogue = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="📦 Персональный юрист", callback_data="personal_ju")],
+        [InlineKeyboardButton(text="📦 Персональный юрист", callback_data="personal_lawyer")],
         [InlineKeyboardButton(text="👤 Генерация идей", callback_data="idea_generation")],
         [InlineKeyboardButton(text="📞 Бизнес-анализ", callback_data="business_analysis")],
         [InlineKeyboardButton(text="👤 Структурирование информации", callback_data="information_structure")],
@@ -54,7 +54,7 @@ catalogue = InlineKeyboardMarkup(
 
 justice = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="📦 Юридическая консультация", callback_data="personal_ju")],
+        [InlineKeyboardButton(text="📦 Юридическая консультация", callback_data="personal_lawyer_start")],
         [InlineKeyboardButton(text="Назад", callback_data="catalogue")]
     ]
 )

@@ -38,6 +38,8 @@ from app.kafka.utils import build_log_message
 import re
 from typing import Optional
 
+from app.states import states
+
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
         return ""
@@ -95,7 +97,7 @@ async def cmd_start(message: Message):
     
     await message.reply(
         text=welcome_text,
-        reply_markup=inline_keyboards.main_menu,#TODO
+        reply_markup=inline_keyboards.main,
         parse_mode='MarkdownV2'
     )
 
@@ -124,7 +126,7 @@ async def callback_start_admin(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
         reply_string,
         parse_mode='MarkdownV2',
-        reply_markup=inline_keyboards.main_menu  #TODO
+        reply_markup=inline_keyboards.main,
     )
     
     await callback.answer()
@@ -143,7 +145,6 @@ async def cmd_help(message: Message):
         source="command",
         payload="help"
     )
-    
     help_text = """
         🤖 *Бизнес-Аналитик AI* - ваш персональный помощник в развитии бизнеса!
 
@@ -167,7 +168,7 @@ async def cmd_help(message: Message):
         *💡 Как работать с ботом:*
         1. Выберите интересующий раздел в меню
         2. Следуйте инструкциям бота
-        3. Получайте структурированные insights
+        3. Получайте структурированные инсайты
 
         Начните с команды /start для доступа ко всем функциям!
     """
@@ -334,3 +335,72 @@ async def get_catalogue_menu(callaback:CallbackQuery):
         "Вы можете задать специализированные вопросы:",
         reply_markup=inline_keyboards.catalogue
     )
+
+
+#===========================================================================================================================
+# Lawyer
+#===========================================================================================================================
+
+
+@router.callback_query(F.data == "personal_lawyer")
+async def get_justice_menu(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer(
+        "Подробно опишите интересующий вас вопрос боту",
+    )
+    await state.set_state(states.Lawyer.start)
+
+
+@router.message(states.Lawyer.start)
+async def ask_lawyer_question(message:Message, state:FSMContext):
+    user_question = message.text
+    if not user_question or not user_question.strip():
+        await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
+        return
+    await message.answer("Я вас понял, дайте секунду подумать...")
+    # TODO
+
+
+#===========================================================================================================================
+# Summarise
+#===========================================================================================================================
+
+
+@router.callback_query(F.data == "information_structure")
+async def get_information_structure(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer(
+        "напишите информацию для структурирования боту",
+    )
+    await state.set_state(states.Summarizer.start)
+
+
+@router.message(states.Summarizer.start)
+async def summarizer_send_request(message:Message, state:FSMContext):
+    user_question = message.text
+    if not user_question or not user_question.strip():
+        await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
+        return
+    await message.answer("Я вас понял, дайте секунду сформулировать...")
+    # TODO
+
+
+#===========================================================================================================================
+# Business analytics
+#===========================================================================================================================
+
+@router.callback_query(F.data == "information_structure")
+async def get_information_structure(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer(
+        "напишите информацию для структурирования боту",
+    )
+    await state.set_state(states.Summarizer.start)
+
+
+@router.message(states.Summarizer.start)
+async def summarizer_send_request(message:Message, state:FSMContext):
+    user_question = message.text
+    if not user_question or not user_question.strip():
+        await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
+        return
+    await message.answer("Я вас понял, дайте секунду сформулировать...")
+    # TODO
+

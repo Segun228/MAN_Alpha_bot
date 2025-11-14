@@ -20,3 +20,21 @@ class CreateBusiness(StatesGroup):
     password = State()
     churned = State()
     is_admin = State()
+
+
+class Analysys(StatesGroup):
+    swot = State()
+    pest = State()
+    cjm = State()
+    bmc = State()
+    vpc = State()
+
+
+class Lawyer(StatesGroup):
+    start = State()
+    finish = State()
+
+
+class Summarizer(StatesGroup):
+    start = State()
+    finish = State()
