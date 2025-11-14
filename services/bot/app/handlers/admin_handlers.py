@@ -44,12 +44,12 @@ from app.requests.post.post_user import post_user
 async def cmd_start_admin(message: Message, state: FSMContext):
     data = await login(telegram_id=message.from_user.id)
     if data is None:
-        logging.error("Error while logging in")
+        logging.error("Error while logging admin in")
         await message.answer("Бот еще не проснулся, попробуйте немного подождать 😔", reply_markup=inline_keyboards.restart)
         return
     if data.get("status") == 404:
         await state.set_state(CreateUser.start_creating)
-        await message.answer("Вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
+        await message.answer("Админ, вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
         await message.answer("Введите ваше имя")
         return
     await state.update_data(telegram_id = data.get("telegram_id"))
@@ -76,7 +76,7 @@ async def callback_start_admin(callback: CallbackQuery, state: FSMContext):
         return
     if data.get("status") == 404:
         await state.set_state(CreateUser.start_creating)
-        await callback.message.answer("Вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
+        await callback.message.answer("Админ, вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
         await callback.message.answer("Введите ваше имя")
         return
     await state.update_data(telegram_id = data.get("telegram_id"))
@@ -142,7 +142,7 @@ async def admin_user_enter_email(message: Message, state: FSMContext):
         return
 
 
-@router.message(CreateUser.login, IsAdmin())
+@router.message(CreateUser.email, IsAdmin())
 async def admin_user_enter_password(message: Message, state: FSMContext):
     try:
         password = message.text
