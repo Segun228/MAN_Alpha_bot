@@ -147,7 +147,9 @@ async def cmd_help(message: Message):
     help_text = """
         🤖 *Бизнес-Аналитик AI* - ваш персональный помощник в развитии бизнеса!
 
-        *🎯 Основные возможности:*
+        Вы можете просто общаться с ним как с чат-ботом, просто напишите в чат ваш вопрос
+
+        *🎯 Дополнительные возможности:*
 
         • *Анализ бизнес-метрик* - оценка ключевых показателей
         • *Генерация идей* - креативные решения для роста  
@@ -253,7 +255,7 @@ async def cmd_info(message: Message):
         • Современные языковые модели (LLM)
         • Статистический анализ данных
         • Машинное обучение для прогнозирования
-        • NLP для обработки текстовой информации
+        • Эмбеддинги для работы с документами
 
         *💼 Для кого наш бот:*
         • Малый и средний бизнес
@@ -271,17 +273,43 @@ async def cmd_info(message: Message):
         reply_markup=inline_keyboards.home,
         parse_mode='Markdown'
     )
+
 @router.callback_query(F.data == "contacts")
 async def contacts_callback(callback: CallbackQuery):
-    await build_log_message(
-        telegram_id=callback.from_user.id,
-        action="callback",
-        source="menu",
-        payload="contacts"
+    contacts_text = """
+    *📞 Контакты поддержки*
+
+    *🤝 Реклама и сотрудничество:*
+    @dianabol_metandienon_enjoyer
+
+    *🤝 Техническая поддержка:*
+    @mattwix
+
+    *🤝 Проблеммы с ИИ:*
+    @andy_andy13
+
+    *⏰ Время работы поддержки:*
+    Пн-Пт: 8:00 - 18:00 (МСК)
+    Сб-Вс: по запросу
+
+    *🚀 Мы поможем:*
+    • Согласовать рекламу и сотрудничество
+    • Настроить работу с ботом
+    • Ответим на вопросы по аналитике
+    • Примем предложения по улучшению
+    • Решим технические проблемы
+
+    *📧 Альтернативные способы связи:*
+    Для срочных вопросов используйте Telegram
+    """
+    contacts_text = escape_markdown_v2(
+        contacts_text
     )
-    text = "Связь с разрабом: 📞\n\n\\@dianabol\\_metandienon\\_enjoyer 🤝"
-    await callback.message.edit_text(text=text, reply_markup=inline_keyboards.home, parse_mode='MarkdownV2')
-    await callback.answer()
+    await callback.message.reply(
+        text=contacts_text,
+        reply_markup=inline_keyboards.home,
+        parse_mode='MarkdownV2'
+    )
 
 @router.callback_query(F.data == "main_menu")
 async def main_menu_callback(callback: CallbackQuery):
@@ -291,10 +319,18 @@ async def main_menu_callback(callback: CallbackQuery):
         source="menu",
         payload="main_menu"
     )
-    await callback.message.answer("Я много что умею 👇", reply_markup=inline_keyboards.main)
+    await callback.message.answer("Что вас интересует 👇", reply_markup=inline_keyboards.main)
     await callback.answer()
 
 
 #===========================================================================================================================
 # Каталог
 #===========================================================================================================================
+
+
+@router.callback_query(F.data == "catalogue")
+async def get_catalogue_menu(callaback:CallbackQuery):
+    await callaback.message.answer(
+        "Вы можете задать специализированные вопросы:",
+        reply_markup=inline_keyboards.catalogue
+    )
