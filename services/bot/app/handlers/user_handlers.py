@@ -38,6 +38,8 @@ from app.kafka.utils import build_log_message
 import re
 from typing import Optional
 
+from app.states import states
+
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
         return ""
@@ -95,7 +97,7 @@ async def cmd_start(message: Message):
     
     await message.reply(
         text=welcome_text,
-        reply_markup=inline_keyboards.main_menu,#TODO
+        reply_markup=inline_keyboards.main,
         parse_mode='MarkdownV2'
     )
 
@@ -124,7 +126,7 @@ async def callback_start_admin(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
         reply_string,
         parse_mode='MarkdownV2',
-        reply_markup=inline_keyboards.main_menu  #TODO
+        reply_markup=inline_keyboards.main,
     )
     
     await callback.answer()
@@ -143,11 +145,12 @@ async def cmd_help(message: Message):
         source="command",
         payload="help"
     )
-    
     help_text = """
         🤖 *Бизнес-Аналитик AI* - ваш персональный помощник в развитии бизнеса!
 
-        *🎯 Основные возможности:*
+        Вы можете просто общаться с ним как с чат-ботом, просто напишите в чат ваш вопрос
+
+        *🎯 Дополнительные возможности:*
 
         • *Анализ бизнес-метрик* - оценка ключевых показателей
         • *Генерация идей* - креативные решения для роста  
@@ -165,7 +168,7 @@ async def cmd_help(message: Message):
         *💡 Как работать с ботом:*
         1. Выберите интересующий раздел в меню
         2. Следуйте инструкциям бота
-        3. Получайте структурированные insights
+        3. Получайте структурированные инсайты
 
         Начните с команды /start для доступа ко всем функциям!
     """
@@ -253,7 +256,7 @@ async def cmd_info(message: Message):
         • Современные языковые модели (LLM)
         • Статистический анализ данных
         • Машинное обучение для прогнозирования
-        • NLP для обработки текстовой информации
+        • Эмбеддинги для работы с документами
 
         *💼 Для кого наш бот:*
         • Малый и средний бизнес
@@ -271,17 +274,43 @@ async def cmd_info(message: Message):
         reply_markup=inline_keyboards.home,
         parse_mode='Markdown'
     )
+
 @router.callback_query(F.data == "contacts")
 async def contacts_callback(callback: CallbackQuery):
-    await build_log_message(
-        telegram_id=callback.from_user.id,
-        action="callback",
-        source="menu",
-        payload="contacts"
+    contacts_text = """
+    *📞 Контакты поддержки*
+
+    *🤝 Реклама и сотрудничество:*
+    @dianabol_metandienon_enjoyer
+
+    *🤝 Техническая поддержка:*
+    @mattwix
+
+    *🤝 Проблеммы с ИИ:*
+    @andy_andy13
+
+    *⏰ Время работы поддержки:*
+    Пн-Пт: 8:00 - 18:00 (МСК)
+    Сб-Вс: по запросу
+
+    *🚀 Мы поможем:*
+    • Согласовать рекламу и сотрудничество
+    • Настроить работу с ботом
+    • Ответим на вопросы по аналитике
+    • Примем предложения по улучшению
+    • Решим технические проблемы
+
+    *📧 Альтернативные способы связи:*
+    Для срочных вопросов используйте Telegram
+    """
+    contacts_text = escape_markdown_v2(
+        contacts_text
     )
-    text = "Связь с разрабом: 📞\n\n\\@dianabol\\_metandienon\\_enjoyer 🤝"
-    await callback.message.edit_text(text=text, reply_markup=inline_keyboards.home, parse_mode='MarkdownV2')
-    await callback.answer()
+    await callback.message.reply(
+        text=contacts_text,
+        reply_markup=inline_keyboards.home,
+        parse_mode='MarkdownV2'
+    )
 
 @router.callback_query(F.data == "main_menu")
 async def main_menu_callback(callback: CallbackQuery):
@@ -291,10 +320,107 @@ async def main_menu_callback(callback: CallbackQuery):
         source="menu",
         payload="main_menu"
     )
-    await callback.message.answer("Я много что умею 👇", reply_markup=inline_keyboards.main)
+    await callback.message.answer("Что вас интересует 👇", reply_markup=inline_keyboards.main)
     await callback.answer()
 
 
 #===========================================================================================================================
 # Каталог
 #===========================================================================================================================
+
+
+@router.callback_query(F.data == "catalogue")
+async def get_catalogue_menu(callaback:CallbackQuery):
+    await callaback.message.answer(
+        "Вы можете задать специализированные вопросы:",
+        reply_markup=inline_keyboards.catalogue
+    )
+
+
+#===========================================================================================================================
+# Lawyer
+#===========================================================================================================================
+
+
+@router.callback_query(F.data == "personal_lawyer")
+async def get_justice_menu(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer(
+        "Подробно опишите интересующий вас вопрос боту",
+    )
+    await state.set_state(states.Lawyer.start)
+
+
+@router.message(states.Lawyer.start)
+async def ask_lawyer_question(message:Message, state:FSMContext):
+    user_question = message.text
+    if not user_question or not user_question.strip():
+        await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
+        return
+    await message.answer("Я вас понял, дайте секунду подумать...")
+    # TODO
+
+
+#===========================================================================================================================
+# Summarise
+#===========================================================================================================================
+
+
+@router.callback_query(F.data == "information_structure")
+async def get_information_structure(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer(
+        "напишите информацию для структурирования боту",
+    )
+    await state.set_state(states.Summarizer.start)
+
+
+@router.message(states.Summarizer.start)
+async def summarizer_send_request(message:Message, state:FSMContext):
+    user_question = message.text
+    if not user_question or not user_question.strip():
+        await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
+        return
+    await message.answer("Я вас понял, дайте секунду сформулировать...")
+    # TODO
+
+
+#===========================================================================================================================
+# Business analytics
+#===========================================================================================================================
+
+@router.callback_query(F.data == "business_analysis")
+async def get_analyzis_type(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer(
+        "Какой вид анализа вы хотите провести?",
+        reply_markup=inline_keyboards.business_analysis
+    )
+    await state.set_state(states.Summarizer.start)
+
+
+
+#==================
+# Business analysis
+#==================
+
+@router.callback_query(F.data == "swot_start")
+async def swot_analysis(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
+    await state.set_state(states.Analysys.swot)
+    await state.update_data(type = "swot")
+    return
+
+
+@router.message(states.Analysys.swot)
+async def analyzer_send_request(message:Message, state:FSMContext):
+    user_question = message.text
+    if not user_question or not user_question.strip():
+        await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
+        return
+    await message.answer("Я вас понял, дайте секунду проанализировать...")
+    data = await state.get_data()
+    analyzys_type = data.get("type")
+    if not analyzys_type:
+        raise ValueError("No type was saved")
+    # TODO
+
+
+
