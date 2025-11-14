@@ -26,7 +26,8 @@ class IsAdmin(BaseFilter):
             if user_id in admins:
                 logging.info(f"Admin check for user {user_id} successful (static list)")
                 return True
-            user = await get_users(telegram_id=user_id)
+            user = await get_users(telegram_id=user_id, tg_id=user_id)
+            logging.info(str(user))
             is_admin = bool(user and user.get("is_admin", False))
             if is_admin:
                 logging.info(f"Admin check for user {user_id} successful (database)")
