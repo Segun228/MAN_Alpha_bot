@@ -10,13 +10,13 @@ from app.init_postgres import create_grades_table, create_messages_table
 from dotenv import load_dotenv
 from fastapi import Response
 from prometheus_client import generate_latest, REGISTRY
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Path
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from prometheus_client import Counter, Histogram
 from datetime import datetime
 from app.postgres_grade_client import _insert_grade_sync
-from app.postgres_message_client import _insert_message_sync
+from app.postgres_message_client import _insert_message_sync, get_user_messages
 
 load_dotenv()
 
@@ -97,7 +97,7 @@ class MessageRequest(BaseModel):
     chat_type: str = "private"
 
 
-@app.post("/grade")
+@app.post("/grades")
 async def insert_grade(grade:Grade):
     try:
         grade_data = {
@@ -122,7 +122,7 @@ async def insert_grade(grade:Grade):
         )
 
 
-@app.post("/message")
+@app.post("/messages")
 async def insert_message(message: MessageRequest):
     try:
         if message.direction not in ['question', 'answer']:
@@ -152,6 +152,31 @@ async def insert_message(message: MessageRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to save message"
         )
+
+
+@app.get("/messages/{telegram_id}")
+async def get_user_mes(
+    request:Request,
+    telegram_id: int = Path(..., ge=1, description="ID пользователя"),
+):
+    try:
+        offset = request.get("offset")
+        result = get_user_messages(
+            telegram_id = telegram_id,
+            offset = offset
+        )
+        if not result:
+            raise Exception("Error while executing DB querry")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.exception(f"Error saving message: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save message"
+        )
+
+
 
 
 @app.get("/metrics")
