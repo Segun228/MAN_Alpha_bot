@@ -44,9 +44,9 @@ def safe_int(value, default=0):
     except (TypeError, ValueError):
         return default
 
-async def insert_log_async(log: dict):
+async def insert_message_async(log: dict):
     timestamp = parse_timestamp(log.get('timestamp'))
-
+    
     try:
         await asyncio.get_event_loop().run_in_executor(None, lambda: _insert_log_sync(log, timestamp))
         logging.info(f"Inserted log: {log.get('trace_id')}")

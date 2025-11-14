@@ -26,7 +26,7 @@ class TextMessageLoggerMiddleware(BaseMiddleware):
                 "text": event.text,
                 "message_id": event.message_id,
                 "timestamp": datetime.datetime.now().isoformat(),
-                "direction": "incoming",
+                "direction": "question",
                 "chat_type": event.chat.type
             }
             await self.save_to_db(message_data)
@@ -41,7 +41,7 @@ class TextMessageLoggerMiddleware(BaseMiddleware):
                 "text": response.text,
                 "message_id": response.message_id,
                 "timestamp": datetime.datetime.now().isoformat(),
-                "direction": "outgoing", 
+                "direction": "answer", 
                 "chat_type": event.chat.type,
             }
             await self.save_to_db(response_data)
