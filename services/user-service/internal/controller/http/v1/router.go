@@ -21,7 +21,7 @@ func NewRouter(services *service.Services, logger utils.Logger) http.Handler {
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	r.Route("/", func(r chi.Router) {
-		newUserRoutes(r, services.User)
+		newUserRoutes(r, services.User, logger)
 		newBusinessRoutes(r, services.Business)
 	})
 
