@@ -59,10 +59,7 @@ func NewLogger(env string) Logger {
 	switch env {
 	case envLocal:
 		log.SetLevel(logrus.DebugLevel)
-		log.SetFormatter(&logrus.TextFormatter{
-			FullTimestamp: true,
-			ForceColors:   true,
-		})
+		log.SetFormatter(&logrus.JSONFormatter{})
 	case envDev:
 		log.SetLevel(logrus.DebugLevel)
 		log.SetFormatter(&logrus.JSONFormatter{})
@@ -71,7 +68,7 @@ func NewLogger(env string) Logger {
 		log.SetFormatter(&logrus.JSONFormatter{})
 	default:
 		log.SetLevel(logrus.DebugLevel)
-		log.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+		log.SetFormatter(&logrus.JSONFormatter{})
 	}
 
 	return &logrusLogger{entry: logrus.NewEntry(log)}
