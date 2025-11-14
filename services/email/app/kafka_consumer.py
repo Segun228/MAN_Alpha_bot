@@ -4,7 +4,7 @@ from aiokafka import AIOKafkaConsumer
 from dotenv import load_dotenv
 import logging
 import asyncio
-from app.email import send_email_with_zip_photos_simple
+from app.email import send_email
 from prometheus_client import Counter, Histogram
 
 load_dotenv()
@@ -15,12 +15,35 @@ KAFKA_MESSAGES_PROCESSED = Counter('kafka_messages_processed_total', 'Total Kafk
 KAFKA_PROCESSING_DURATION = Histogram('kafka_processing_duration_seconds', 'Kafka message processing duration')
 KAFKA_CONSUMER_ERRORS = Counter('kafka_consumer_errors_total', 'Kafka consumer errors', ['topic'])
 
+
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = os.getenv("SMTP_PORT", 587)
+SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
+
+
+if SMTP_SERVER is None:
+    raise ValueError("SMTP_SERVER не задан в переменных окружения")
+if SMTP_PORT is None:
+    raise ValueError("SMTP_PORT не задан в переменных окружения")
+if SENDER_EMAIL is None:
+    raise ValueError("SENDER_EMAIL не задан в переменных окружения")
+if SENDER_PASSWORD is None:
+    raise ValueError("SENDER_PASSWORD не задан в переменных окружения")
+
+try:
+    SMTP_PORT = int(SMTP_PORT)
+except (TypeError, ValueError):
+    raise ValueError(f"SMTP_PORT должен быть числом, получено: {SMTP_PORT}")
+
+
+
 class KafkaLogConsumer:
     def __init__(self, topic, insert_log):
         if not KAFKA_BOOTSTRAP_SERVERS:
             raise Exception("empty bootstrap server env variable given")
         self.topic = topic
-        self.send_email = send_email_with_zip_photos_simple
+        self.send_email = send_email
         self.consumer = AIOKafkaConsumer(
             topic,
             bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
@@ -53,7 +76,8 @@ class KafkaLogConsumer:
         start_time = asyncio.get_event_loop().time()
         try:
             await self.send_email(
-                message.value
+                message.value,
+                
             )
             KAFKA_MESSAGES_PROCESSED.labels(topic=self.topic, status='success').inc()
         except Exception as e:

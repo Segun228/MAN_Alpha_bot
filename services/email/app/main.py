@@ -13,8 +13,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-
-
+from prometheus_client import Counter, Histogram
+from app.email import send_email
 load_dotenv()
 
 logging.basicConfig(
@@ -29,19 +29,37 @@ REQUEST_COUNT = Counter('bot_http_requests_total', 'Total Bot HTTP requests', ['
 REQUEST_DURATION = Histogram('bot_http_request_duration_seconds', 'Bot HTTP request duration')
 BOT_KAFKA_MESSAGES = Counter('bot_kafka_messages_processed_total', 'Total Bot Kafka messages processed', ['topic', 'status'])
 
+
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = os.getenv("SMTP_PORT", 587)
+SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
+
+
+if SMTP_SERVER is None:
+    raise ValueError("SMTP_SERVER не задан в переменных окружения")
+if SMTP_PORT is None:
+    raise ValueError("SMTP_PORT не задан в переменных окружения")
+if SENDER_EMAIL is None:
+    raise ValueError("SENDER_EMAIL не задан в переменных окружения")
+if SENDER_PASSWORD is None:
+    raise ValueError("SENDER_PASSWORD не задан в переменных окружения")
+
+try:
+    SMTP_PORT = int(SMTP_PORT)
+except (TypeError, ValueError):
+    raise ValueError(f"SMTP_PORT должен быть числом, получено: {SMTP_PORT}")
+
 app = FastAPI()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logging.info("ClickHouse table ensured")
-
-    bot_consumer = KafkaLogConsumer(KAFKA_LOGS_TOPIC, insert_log_async)
+    bot_consumer = KafkaLogConsumer(KAFKA_LOGS_TOPIC, send_email)
     await bot_consumer.start()
     logging.info("Kafka consumers started")
-
     bot_task = asyncio.create_task(bot_consumer.consume_forever())
     logging.info("Kafka consumer tasks running")
-
     try:
         yield
     finally:
@@ -54,18 +72,14 @@ async def lifespan(app: FastAPI):
 @app.middleware("http")
 async def monitor_requests(request: Request, call_next):
     start_time = asyncio.get_event_loop().time()
-    
     response = await call_next(request)
-    
     REQUEST_COUNT.labels(
         method=request.method,
         endpoint=request.url.path,
         status=response.status_code
     ).inc()
-    
     duration = asyncio.get_event_loop().time() - start_time
     REQUEST_DURATION.observe(duration)
-    
     return response
 
 
@@ -80,24 +94,20 @@ async def send_email_with_zip(
     Получает ZIP файл и текст из multipart/form-data и отправляет по почте
     """
     try:
-        # Настройки SMTP (можно вынести в конфиг)
-        SMTP_SERVER = "smtp.gmail.com"
-        SMTP_PORT = 587
-        SENDER_EMAIL = "your_email@gmail.com"
-        SENDER_PASSWORD = "your_app_password"
-        
-        # Создаем сообщение
+        if SMTP_SERVER is None:
+            raise ValueError("SMTP_SERVER не задан в переменных окружения")
+        if SMTP_PORT is None:
+            raise ValueError("SMTP_PORT не задан в переменных окружения")
+        if SENDER_EMAIL is None:
+            raise ValueError("SENDER_EMAIL не задан в переменных окружения")
+        if SENDER_PASSWORD is None:
+            raise ValueError("SENDER_PASSWORD не задан в переменных окружения")
         msg = MIMEMultipart()
         msg['From'] = SENDER_EMAIL
         msg['To'] = receiver_email
         msg['Subject'] = subject
-        
-        # Добавляем текстовую часть
         msg.attach(MIMEText(text_message, 'plain'))
-        
-        # Добавляем ZIP файл как вложение
         zip_content = await zip_file.read()
-        
         zip_part = MIMEBase('application', 'zip')
         zip_part.set_payload(zip_content)
         encoders.encode_base64(zip_part)
@@ -106,18 +116,15 @@ async def send_email_with_zip(
             f'attachment; filename="{zip_file.filename}"'
         )
         msg.attach(zip_part)
-        
-        # Отправляем письмо
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        with smtplib.SMTP(SMTP_SERVER, int(SMTP_PORT)) as server:
             server.starttls()
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.send_message(msg)
-        
+        logging.info(f"Письмо с архивом '{zip_file.filename}' успешно отправлено на {receiver_email}")
         return {
             "status": "success",
             "message": f"Письмо с архивом '{zip_file.filename}' успешно отправлено на {receiver_email}"
         }
-        
     except Exception as e:
         return {
             "status": "error",
