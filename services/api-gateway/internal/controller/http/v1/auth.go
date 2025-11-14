@@ -46,6 +46,7 @@ func (a *Auth) Middleware(logger utils.Logger) func(next http.Handler) http.Hand
 
 					r = r.WithContext(ctx)
 					next.ServeHTTP(w, r)
+					return
 				}
 			}
 
@@ -62,7 +63,7 @@ func (a *Auth) Middleware(logger utils.Logger) func(next http.Handler) http.Hand
 			}
 
 			tokenStr := parts[1]
-			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
 				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, http.ErrAbortHandler
 				}

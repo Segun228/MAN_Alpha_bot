@@ -17,9 +17,9 @@ import (
 func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigins []string, jwtSecret string, botSecretKey string, servicesConfig config.ServicesConfig) {
 	auth := NewAuth([]byte(jwtSecret), []byte(botSecretKey))
 
+	r.Use(CORSMiddleware(allowedOrigins))
 	r.Use(LoggingMiddleware(logger))
 	r.Use(RecoveryMiddleware(logger))
-	r.Use(CORSMiddleware(allowedOrigins))
 	r.Use(PrometheusMiddleware(m))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -34,17 +34,19 @@ func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigi
 		api.Group(func(protected chi.Router) {
 			protected.Use(auth.Middleware(logger))
 
-			protected.Mount("/users", createReverseProxy(servicesConfig.UserServiceURL))
+			protected.Mount("/users", createProfixedHandler("/api/users", servicesConfig.UserServiceURL))
 		})
 	})
 }
 
-func createReverseProxy(targetURL string) *httputil.ReverseProxy {
+func createProfixedHandler(prefix, targetURL string) http.Handler {
 	remote, err := url.Parse(targetURL)
 	if err != nil {
 		slog.Error("failed to parse target url", "url", targetURL, "error", err)
 		os.Exit(1)
 	}
 
-	return httputil.NewSingleHostReverseProxy(remote)
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+
+	return http.StripPrefix(prefix, proxy)
 }
