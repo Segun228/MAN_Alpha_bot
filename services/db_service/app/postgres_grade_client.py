@@ -44,17 +44,17 @@ def safe_int(value, default=0):
     except (TypeError, ValueError):
         return default
 
-async def insert_message_async(log: dict):
-    timestamp = parse_timestamp(log.get('timestamp'))
-    
-    try:
-        await asyncio.get_event_loop().run_in_executor(None, lambda: _insert_log_sync(log, timestamp))
-        logging.info(f"Inserted log: {log.get('trace_id')}")
-    except Exception:
-        logging.exception(f"Failed to insert log: {log}")
+async def insert_grade_async(grade: dict):
+    timestamp = parse_timestamp(grade.get('timestamp'))
 
-def _insert_log_sync(log: dict, timestamp: datetime):
-    """Синхронная функция для вставки в PostgreSQL"""
+    try:
+        await asyncio.get_event_loop().run_in_executor(None, lambda: _insert_grade_sync(grade, timestamp))
+        logging.info(f"Inserted grade: {grade.get('trace_id')}")
+    except Exception:
+        logging.exception(f"Failed to insert grade: {grade}")
+
+def _insert_grade_sync(grade: dict, timestamp: datetime):
+    """Синхронная функция для вставки в таблицу Grades"""
     conn = psycopg2.connect(
         host=POSTGRES_HOST,
         port=POSTGRES_PORT,
@@ -67,31 +67,18 @@ def _insert_log_sync(log: dict, timestamp: datetime):
     
     try:
         cursor.execute("""
-            INSERT INTO logs (
-                timestamp, user_id, is_authenticated, telegram_id, trace_id,
-                action, response_code, request_method, request_body,
-                platform, level, source, env, event_type, message
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO Grades (
+                timestamp, telegram_id, service_grade, model_grade, overall_grade, message
+            ) VALUES (%s, %s, %s, %s, %s, %s)
         """, (
             timestamp,
-            safe_int(log.get('user_id')),
-            bool(log.get('is_authenticated', False)),
-            str(log.get('telegram_id', '')),
-            str(log.get('trace_id', str(uuid.uuid4()))),
-            str(log.get('action', '')),
-            safe_int(log.get('response_code', 200)),
-            str(log.get('request_method', 'GET')),
-            str(log.get('request_body', '')),
-            str(log.get('platform', 'backend')),
-            str(log.get('level', 'INFO')),
-            str(log.get('source', 'backend')),
-            str(log.get('env', 'prod')),
-            str(log.get('event_type', log.get('action', 'action'))),
-            str(log.get('message', 'undefined action'))
+            safe_int(grade.get('telegram_id')),
+            safe_int(grade.get('service_grade')),
+            safe_int(grade.get('model_grade')),
+            safe_int(grade.get('overall_grade')),
+            str(grade.get('message', ''))
         ))
-        
         conn.commit()
-        
     except Exception as e:
         conn.rollback()
         raise e

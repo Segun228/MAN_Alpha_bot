@@ -52,9 +52,7 @@ class TextMessageLoggerMiddleware(BaseMiddleware):
     async def save_to_db(self, message_data: Dict) -> None:
         """Твоя функция для сохранения в БД"""
         try:
-            # Здесь вызывай твой API для сохранения сообщений
-            # Например:
-            # await your_api_service.save_message(message_data)
+            #TODO
             pass
         except Exception as e:
             logging.error(f"Error saving to DB: {e}")
