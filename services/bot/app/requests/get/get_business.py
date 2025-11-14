@@ -22,6 +22,7 @@ async def get_business(telegram_id, business_id = None):
         request_url = base_url+f"businesses/{business_id}/"
     else:
         request_url = base_url+"businesses/"
+    logging.info(f"Sending to {request_url}")
     async with aiohttp.ClientSession() as session:
         async with session.get(
             base_url+f"businesses/{business_id}/", 

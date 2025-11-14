@@ -21,7 +21,7 @@ async def get_alive(telegram_id):
     
     async with aiohttp.ClientSession() as session:
         async with session.get(
-            base_url+"users/", 
+            base_url+"users", 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
                 "X-User-ID":f"{telegram_id}"
@@ -30,9 +30,10 @@ async def get_alive(telegram_id):
             if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
                 logging.info("Данные успешно получены!")
+                logging.info(str(data))
                 result = []
                 for el in data:
-                    if isinstance(dict, el) and not el.get("churned"):
+                    if isinstance(el, dict) and not el.get("churned"):
                         result.append(el)
                 return result
             elif response.status == 404:

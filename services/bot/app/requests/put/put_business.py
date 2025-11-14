@@ -28,7 +28,7 @@ async def put_business(
     if not busines_id or busines_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
-    request_url = f"businesses/{business_id}/"
+    request_url = f"businesses/{business_id}"
     async with aiohttp.ClientSession() as session:
         async with session.post(
             request_url,

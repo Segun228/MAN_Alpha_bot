@@ -47,7 +47,7 @@ async def cmd_start_admin(message: Message, state: FSMContext):
         logging.error("Error while logging admin in")
         await message.answer("Бот еще не проснулся, попробуйте немного подождать 😔", reply_markup=inline_keyboards.restart)
         return
-    if data.get("status") == 404:
+    if data.get("status") in (404, 500):
         await state.set_state(CreateUser.start_creating)
         await message.answer("Админ, вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
         await message.answer("Введите ваше имя")

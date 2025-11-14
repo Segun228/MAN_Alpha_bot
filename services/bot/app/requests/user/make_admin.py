@@ -21,7 +21,7 @@ async def make_admin(telegram_id, target_user_id=None, value=True):
     
     async with aiohttp.ClientSession() as session:
         async with session.patch(
-            base_url+"users/tg/{id}/", 
+            base_url+f"users/tg/{telegram_id}", 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
                 "X-User-ID":f"{telegram_id}"

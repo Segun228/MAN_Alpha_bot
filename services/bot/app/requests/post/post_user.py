@@ -23,7 +23,7 @@ async def post_user(
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
     if telegram_id:
-        request_url = base_url+"users/"
+        request_url = base_url+"users"
     else:
         raise ValueError("No telegram id provided")
     logging.info(f"Sending request to {request_url}")

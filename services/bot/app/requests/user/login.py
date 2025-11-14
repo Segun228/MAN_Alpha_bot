@@ -21,7 +21,7 @@ async def login(telegram_id):
     
     async with aiohttp.ClientSession() as session:
         async with session.get(
-            base_url+"users/tg/{id}/", 
+            base_url+f"users/tg/{telegram_id}", 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
                 "X-User-ID":f"{telegram_id}"
@@ -31,7 +31,7 @@ async def login(telegram_id):
                 data = await response.json()
                 logging.info("Данные успешно получены!")
                 return data
-            elif response.status == 404:
+            elif response.status in (500, 404):
                 logging.error("User was not found")
                 return {
                     "error": "User was not found",
@@ -39,6 +39,7 @@ async def login(telegram_id):
                 }
             else:
                 logging.error(f"Ошибка: {response.status}")
+                logging.error(f"{await response.json()}")
                 return None
 
 

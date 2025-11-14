@@ -21,7 +21,7 @@ async def set_blocked(telegram_id, value=False):
     
     async with aiohttp.ClientSession() as session:
         async with session.patch(
-            base_url+"users/tg/{id}/", 
+            base_url+f"users/tg/{id}", 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
                 "X-User-ID":f"{telegram_id}"
