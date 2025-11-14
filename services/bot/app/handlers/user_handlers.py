@@ -387,20 +387,40 @@ async def summarizer_send_request(message:Message, state:FSMContext):
 # Business analytics
 #===========================================================================================================================
 
-@router.callback_query(F.data == "information_structure")
-async def get_information_structure(callaback:CallbackQuery, state:FSMContext):
+@router.callback_query(F.data == "business_analysis")
+async def get_analyzis_type(callaback:CallbackQuery, state:FSMContext):
     await callaback.message.answer(
-        "напишите информацию для структурирования боту",
+        "Какой вид анализа вы хотите провести?",
+        reply_markup=inline_keyboards.business_analysis
     )
     await state.set_state(states.Summarizer.start)
 
 
-@router.message(states.Summarizer.start)
-async def summarizer_send_request(message:Message, state:FSMContext):
+
+#==================
+# Business analysis
+#==================
+
+@router.callback_query(F.data == "swot_start")
+async def swot_analysis(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
+    await state.set_state(states.Analysys.swot)
+    await state.update_data(type = "swot")
+    return
+
+
+@router.message(states.Analysys.swot)
+async def analyzer_send_request(message:Message, state:FSMContext):
     user_question = message.text
     if not user_question or not user_question.strip():
         await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
         return
-    await message.answer("Я вас понял, дайте секунду сформулировать...")
+    await message.answer("Я вас понял, дайте секунду проанализировать...")
+    data = await state.get_data()
+    analyzys_type = data.get("type")
+    if not analyzys_type:
+        raise ValueError("No type was saved")
     # TODO
+
+
 
