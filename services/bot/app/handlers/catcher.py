@@ -7,7 +7,7 @@ from typing import Dict, Any
 from app.requests.helpers.get_cat_error import get_cat_error_async
 
 from app.kafka.utils import build_log_message
-
+from app.keyboards import inline_user as inline
 #===========================================================================================================================
 # Заглушка
 #===========================================================================================================================
@@ -61,3 +61,11 @@ async def unknown_callback(callback: CallbackQuery):
         source="inline",
         payload="undefined"
     )
+    photo_data = await get_cat_error_async()
+    if photo_data:
+        photo_to_send = BufferedInputFile(photo_data, filename="cat_error.jpg")
+        await callback.message.bot.send_photo(
+            chat_id=callback.message.chat.id, 
+            photo=photo_to_send,
+            reply_markup=inline.home
+        )

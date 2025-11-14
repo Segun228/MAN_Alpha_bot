@@ -18,8 +18,8 @@ from aiogram.types import InputFile
 
 from app.keyboards import inline_user as inline_keyboards
 
-from app.states.states import Send
-
+from app.states.states import Send, CreateUser
+from app.states import states
 from aiogram.types import BufferedInputFile
 
 from app.filters.IsAdmin import IsAdmin
@@ -56,15 +56,8 @@ def escape_markdown_v2(text: str, version: int = 2) -> str:
 #===========================================================================================================================
 
 
-@router.message(Command("start"))
-async def cmd_start(message: Message):
-    await build_log_message(
-        telegram_id=message.from_user.id,
-        action="command",
-        source="command", 
-        payload="start"
-    )
-    welcome_text = """
+welcome_text = escape_markdown_v2(
+    """
     *🚀 Добро пожаловать в Business Analyst AI!*
 
     Я ваш персональный AI-помощник для развития бизнеса. Помогаю анализировать данные, генерировать идеи и находить пути для роста.
@@ -91,15 +84,33 @@ async def cmd_start(message: Message):
 
     *Выберите раздел ниже чтобы начать работу! 👇*
     """
-    welcome_text = escape_markdown_v2(
-        welcome_text
+)
+
+@router.message(CommandStart())
+async def cmd_start_admin(message: Message, state: FSMContext):
+    data = await login(telegram_id=message.from_user.id)
+    if data is None:
+        logging.error("Error while logging admin in")
+        await message.answer("Бот еще не проснулся, попробуйте немного подождать 😔", reply_markup=inline_keyboards.restart)
+        return
+    if data.get("status") == 404:
+        await state.set_state(CreateUser.start_creating)
+        await message.reply("Приветствую Вас! 👋")
+        await message.answer("Ой, вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
+        await message.answer("Введите ваше имя")
+        return
+    await state.update_data(telegram_id = data.get("telegram_id"))
+    await message.reply("Приветствую, Пользователь! 👋")
+    await message.answer("Я ваш личный бизнес асистент")
+    await message.answer(welcome_text)
+    await message.answer("Я много что умею 👇", reply_markup=inline_keyboards.main)
+    await build_log_message(
+        telegram_id=message.from_user.id,
+        action="command",
+        source="command",
+        payload="start"
     )
-    
-    await message.reply(
-        text=welcome_text,
-        reply_markup=inline_keyboards.main,
-        parse_mode='MarkdownV2'
-    )
+    await state.clear()
 
 
 @router.callback_query(F.data == "restart")
@@ -110,32 +121,112 @@ async def callback_start_admin(callback: CallbackQuery, state: FSMContext):
         logging.error("Error while logging in")
         await callback.message.answer("Бот еще не проснулся, попробуйте немного подождать 😔", reply_markup=inline_keyboards.restart)
         return
-    
-    await state.update_data(telegram_id=data.get("telegram_id"))
-    reply_string = escape_markdown_v2(
-        "🎯 *Что я могу для вас сделать:*\n\n"
-        "• *📊 Проанализировать* ваши бизнес-метрики\n"
-        "• *💡 Сгенерировать* новые идеи для развития\n"  
-        "• *📝 Структурировать* отчеты и документы\n"
-        "• *🔍 Выявить* слабые места и возможности\n"
-        "• *🎯 Предложить* конкретные шаги для улучшений\n\n"
-        "Выберите раздел ниже чтобы начать работу! 👇"
-    )
-    await callback.message.reply("Приветствую! 👋")
-    await callback.message.answer("Я ваш персональный AI-помощник для развития бизнеса!")
-    await callback.message.answer(
-        reply_string,
-        parse_mode='MarkdownV2',
-        reply_markup=inline_keyboards.main,
-    )
-    
-    await callback.answer()
+    if data.get("status") == 404:
+        await state.set_state(CreateUser.start_creating)
+        await state.set_state(CreateUser.start_creating)
+        await callback.message.reply("Приветствую Вас! 👋")
+        await callback.message.answer("Ой, вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
+        await callback.message.answer("Введите ваше имя")
+        return
+    await state.update_data(telegram_id = data.get("telegram_id"))
+    await callback.message.reply("Приветствую, Пользователь! 👋")
+    await callback.message.answer("Я ваш личный бизнес асистент")
+    await callback.message.answer(welcome_text)
     await build_log_message(
         telegram_id=callback.from_user.id,
-        action="callback",
-        source="inline",
+        action="inline",
+        source="callback",
         payload="restart"
     )
+    await callback.answer()
+
+#===========================================================================================================================
+# Регистрация юзера
+#===========================================================================================================================
+
+
+@router.message(CreateUser.start_creating)
+async def start_admin_user_create(message: Message, state: FSMContext):
+    try:
+        login = message.text
+        if login:
+            login = login.strip()
+        await state.update_data(login = login)
+        await message.answer("Имя получено!")
+        await message.answer("Введите ваше почту")
+        await state.set_state(CreateUser.login)
+    except Exception as e:
+        logging.error(e)
+        await message.answer("Ошибка во время создания пользователя, попробуйте снова", reply_markup=inline_keyboards.restart)
+        await state.clear()
+        await build_log_message(
+            telegram_id=message.from_user.id,
+            action="error",
+            source="message",
+            payload="error"
+        )
+        return
+
+
+@router.message(CreateUser.login)
+async def admin_user_enter_email(message: Message, state: FSMContext):
+    try:
+        email = message.text
+        if email:
+            email = email.strip()
+        await state.update_data(email = email)
+        await message.answer("Почта получена!")
+        await message.answer("Введите ваш пароль")
+        await state.set_state(CreateUser.email)
+    except Exception as e:
+        logging.error(e)
+        await message.answer("Ошибка во время создания пользователя, попробуйте снова", reply_markup=inline_keyboards.restart)
+        await state.clear()
+        await build_log_message(
+            telegram_id=message.from_user.id,
+            action="error",
+            source="message",
+            payload="error"
+        )
+        return
+
+
+@router.message(CreateUser.email)
+async def admin_user_enter_password(message: Message, state: FSMContext):
+    try:
+        password = message.text
+        if password:
+            password = password.strip()
+        await state.update_data(password = password)
+        await message.answer("Пароль получен!")
+        data = await state.get_data()
+        login = data.get("login")
+        email = data.get("email")
+        result = await post_user(
+            telegram_id = message.from_user.id,
+            login=login,
+            password=password,
+            churned=False,
+            email=email
+        )
+        if result is None or not result:
+            raise ValueError("Error while sending info to the server")
+        await message.answer(
+            "Вы успешно зарегались! Нажмите на кнопку чтоб начать диалог...",
+            reply_markup=inline_keyboards.restart
+        )
+    except Exception as e:
+        logging.error(e)
+        await message.answer("Ошибка во время создания пользователя, попробуйте снова", reply_markup=inline_keyboards.restart)
+        await state.clear()
+        await build_log_message(
+            telegram_id=message.from_user.id,
+            action="error",
+            source="message",
+            payload="error"
+        )
+        return
+
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
@@ -345,7 +436,7 @@ async def get_catalogue_menu(callaback:CallbackQuery):
 @router.callback_query(F.data == "personal_lawyer")
 async def get_justice_menu(callaback:CallbackQuery, state:FSMContext):
     await callaback.message.answer(
-        "Подробно опишите интересующий вас вопрос боту",
+        "Подробно опишите интересующий вас вопрос боту. Здесь вам необходимо описать его ОЧЕНЬ точно, так как бот может не понять вольностей интерпритации",
     )
     await state.set_state(states.Lawyer.start)
 
@@ -406,6 +497,38 @@ async def swot_analysis(callaback:CallbackQuery, state:FSMContext):
     await callaback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
     await state.set_state(states.Analysys.swot)
     await state.update_data(type = "swot")
+    return
+
+
+@router.callback_query(F.data == "bmc_start")
+async def swot_analysis(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
+    await state.set_state(states.Analysys.swot)
+    await state.update_data(type = "swot")
+    return
+
+
+@router.callback_query(F.data == "cjm_start")
+async def swot_analysis(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
+    await state.set_state(states.Analysys.swot)
+    await state.update_data(type = "cjm")
+    return
+
+
+@router.callback_query(F.data == "vpc_start")
+async def swot_analysis(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
+    await state.set_state(states.Analysys.swot)
+    await state.update_data(type = "vpc")
+    return
+
+
+@router.callback_query(F.data == "pest_start")
+async def swot_analysis(callaback:CallbackQuery, state:FSMContext):
+    await callaback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
+    await state.set_state(states.Analysys.swot)
+    await state.update_data(type = "pest")
     return
 
 
