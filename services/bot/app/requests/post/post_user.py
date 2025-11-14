@@ -48,5 +48,11 @@ async def post_user(
                 logging.info("Пользователь успешно создан!")
                 return data
             else:
-                logging.error(f"Ошибка: {response.status}")
+                logging.error(f"Ошибка HTTP: {response.status}")
+                try:
+                    error_data = await response.json()
+                    logging.error(f"Детали ошибки: {error_data}")
+                except Exception as e:
+                    error_text = await response.text()
+                    logging.error(f"Не удалось распарсить JSON. Текст ответа: {error_text}")
                 return None
