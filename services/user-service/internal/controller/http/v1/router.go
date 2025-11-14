@@ -10,7 +10,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func NewRouter(services *service.Services, logger utils.Logger) http.Handler {
+func NewRouter(services *service.Services, logger utils.Logger, botApiKey string) http.Handler {
 	r := chi.NewRouter()
 	r.Use(loggingMiddleware(logger))
 
@@ -21,6 +21,7 @@ func NewRouter(services *service.Services, logger utils.Logger) http.Handler {
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	r.Route("/", func(r chi.Router) {
+		r.Use(BotAuthMiddleware(botApiKey))
 		newUserRoutes(r, services.User, logger)
 		newBusinessRoutes(r, services.Business, logger)
 	})

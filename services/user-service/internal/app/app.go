@@ -64,7 +64,7 @@ func Run(configPath string) {
 	}
 	services := service.NewServices(&deps)
 
-	handler := v1.NewRouter(services, log)
+	handler := v1.NewRouter(services, log, cfg.Auth.BotKey)
 
 	httpServer := httpserver.New(handler, httpserver.Port("8083"))
 

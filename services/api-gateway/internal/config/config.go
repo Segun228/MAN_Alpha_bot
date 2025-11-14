@@ -31,6 +31,7 @@ type (
 	}
 
 	ServicesConfig struct {
+		UserServiceURL string `mapstructure:"user_service_url"`
 	}
 )
 

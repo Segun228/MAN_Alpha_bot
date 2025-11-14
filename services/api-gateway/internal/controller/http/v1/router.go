@@ -7,13 +7,14 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/internal/config"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/metrics"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/utils"
 	"github.com/go-chi/chi"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigins []string, jwtSecret string, botSecretKey string) {
+func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigins []string, jwtSecret string, botSecretKey string, servicesConfig config.ServicesConfig) {
 	auth := NewAuth([]byte(jwtSecret), []byte(botSecretKey))
 
 	r.Use(LoggingMiddleware(logger))
@@ -28,36 +29,14 @@ func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigi
 
 	r.Handle("/metrics", promhttp.Handler())
 
-	// TODO: add real proxy servers when main services will be ready
 	r.Route("/api", func(api chi.Router) {
-		// Setting up public routes
-		api.Mount("/bot", botRoutes())
-
 		// Setting up protected routes
 		api.Group(func(protected chi.Router) {
 			protected.Use(auth.Middleware(logger))
 
-			api.Mount("/users", userRoutes())
+			protected.Mount("/users", createReverseProxy(servicesConfig.UserServiceURL))
 		})
 	})
-}
-
-func userRoutes() http.Handler {
-	r := chi.NewRouter()
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("User endpoint placeholder"))
-	})
-
-	return r
-}
-
-func botRoutes() http.Handler {
-	r := chi.NewRouter()
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Bot endpoint placeholder"))
-	})
-
-	return r
 }
 
 func createReverseProxy(targetURL string) *httputil.ReverseProxy {

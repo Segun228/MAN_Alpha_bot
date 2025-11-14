@@ -24,6 +24,7 @@ services:
       - postgres
     environment:
       - AUTH_JWT_SIGN_KEY=${AUTH_JWT_SIGN_KEY}
+      - AUTH_BOT_KEY=${AUTH_BOT_KEY}
     ports:
       - "${USER_SERVICE_PORT}:8083"
     networks:
