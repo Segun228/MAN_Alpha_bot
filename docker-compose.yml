@@ -410,6 +410,9 @@ services:
       - .env
     networks:
       - app-man-network
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   email_service:
     image: email_service:latest
@@ -421,6 +424,9 @@ services:
       - .env
     networks:
       - app-man-network
+    depends_on:
+      kafka:
+        condition: service_healthy
 
 
 

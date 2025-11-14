@@ -37,28 +37,40 @@ async def lifespan(app: FastAPI):
     create_grades_table()
     create_messages_table()
     logging.info("Postgres table ensured")
-
-    messages_consumer = KafkaLogConsumer(KAFKA_MESSAGES_TOPIC, insert_message_async)
-    await messages_consumer.start()
-    await messages_consumer.start()
-    logging.info("Message kafka consumers started")
-    message_task = asyncio.create_task(messages_consumer.consume_forever())
-    logging.info("Kafka message consumer tasks running")
-
-    grades_consumer = KafkaLogConsumer(KAFKA_MESSAGES_TOPIC, insert_grade_async)
-    await grades_consumer.start()
-    logging.info("Grades kafka consumers started")
-    grades_task = asyncio.create_task(grades_consumer.consume_forever())
-    logging.info("Kafka message consumer tasks running")
+    messages_consumer = None
+    grades_consumer = None
+    message_task = None
+    grades_task = None
+    
     try:
+        messages_consumer = KafkaLogConsumer(KAFKA_MESSAGES_TOPIC, insert_message_async)
+        await messages_consumer.start()
+        logging.info("Message kafka consumers started")
+        message_task = asyncio.create_task(messages_consumer.consume_forever())
+
+        grades_consumer = KafkaLogConsumer(KAFKA_GRADES_TOPIC, insert_grade_async)
+        await grades_consumer.start()
+        logging.info("Grades kafka consumers started")
+        grades_task = asyncio.create_task(grades_consumer.consume_forever())
+        
+        logging.info("All Kafka consumers started successfully")
         yield
+        
+    except Exception as e:
+        logging.error(f"Error starting Kafka consumers: {e}")
+        raise
     finally:
         logging.info("Shutting down Kafka consumers...")
-        await messages_consumer.stop()
-        message_task.cancel()
-        await grades_consumer.stop()
-        grades_task.cancel()
+        if message_task:
+            message_task.cancel()
+        if grades_task:
+            grades_task.cancel()
+        if messages_consumer:
+            await messages_consumer.stop()
+        if grades_consumer:
+            await grades_consumer.stop()
         logging.info("Kafka consumers stopped")
+
 
 app = FastAPI(lifespan=lifespan)
 
