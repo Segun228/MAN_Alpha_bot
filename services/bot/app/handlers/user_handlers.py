@@ -33,7 +33,7 @@ from app.requests.user.get_alive import get_alive
 from app.requests.user.make_admin import make_admin
 
 from app.kafka.utils import build_log_message
-
+from app.requests.user.get_admin_ids import get_admin_ids
 
 import re
 from typing import Optional
@@ -408,6 +408,49 @@ async def main_menu_callback(callback: CallbackQuery):
     )
     await callback.message.answer("Что вас интересует 👇", reply_markup=inline_keyboards.main)
     await callback.answer()
+
+
+#===========================================================================================================================
+# Взаимодействие с аккаунтом
+#===========================================================================================================================
+
+
+
+@router.callback_query(F.data == "request_admin")
+async def callback_request_admin(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    await callback.answer()
+    user_id = callback.from_user.id
+    admins = await get_admin_ids(
+        telegram_id=callback.from_user.id
+    )
+    if not admins:
+        await callback.message.answer("В сети недостаточно админов чтоб принять у вас заявку", reply_markup=inline_keyboards.home)
+        return
+    tasks = []
+    text = f"Пользоватеь с id {user_id} запросил доступ к правам админа"
+    for admin in admins:
+        tasks.append(bot.send_message(chat_id=admin, text=text, reply_markup= await inline_keyboards.give_acess(user_id=callback.from_user.id)))
+    await callback.message.answer("Права админа запрошены, запрос передан на рассмотрение администраторам")
+    await asyncio.gather(*tasks, return_exceptions=True)
+
+
+@router.callback_query(F.data == "account_menu")
+async def account_menu_callback(callback: CallbackQuery):
+    await callback.message.answer("Что вы хотите сделать с вашим аккаунтом? 👤", reply_markup=inline_keyboards.account_menu)
+    await callback.answer()
+
+@router.callback_query(F.data == "delete_account_confirmation")
+async def delete_account_confirmation_callback(callback: CallbackQuery):
+    await callback.message.answer("Вы уверены что хотите удалить аккаунт? 😳 Восстановить записи будет невозможно... 🗑️", reply_markup=inline_keyboards.delete_account_confirmation_menu)
+    await callback.answer()
+
+@router.callback_query(F.data == "delete_account")
+async def delete_account_callback(callback: CallbackQuery, state: FSMContext):
+    await delete_account(telegram_id=callback.from_user.id)
+    await state.clear()
+    await callback.message.answer("Аккаунт удален 😢", reply_markup=inline_keyboards.restart)
+    await callback.answer()
+
 
 
 #===========================================================================================================================
