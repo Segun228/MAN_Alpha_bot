@@ -164,6 +164,9 @@ type createUserRequest struct {
 func (ur *userRoutes) create(w http.ResponseWriter, r *http.Request) {
 	var req createUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ur.logger.Error("error decoding request body", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -207,12 +210,18 @@ func (ur *userRoutes) addBusinessByID(w http.ResponseWriter, r *http.Request) {
 	userIDParam := chi.URLParam(r, "userID")
 	userID, err := parseIDParam(userIDParam)
 	if err != nil {
+		ur.logger.Error("invalid user id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid user ID")
 		return
 	}
 
 	var req addBusinessRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ur.logger.Error("error decoding request body", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -224,6 +233,9 @@ func (ur *userRoutes) addBusinessByID(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := ur.userService.AddBusinessToUserByID(r.Context(), userID, business)
 	if err != nil {
+		ur.logger.Error("error updating user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to add business to user")
 		return
 	}
@@ -246,12 +258,18 @@ func (ur *userRoutes) addBusinessByTgID(w http.ResponseWriter, r *http.Request) 
 	tgIDParam := chi.URLParam(r, "tgId")
 	tgID, err := parseTgIDParam(tgIDParam)
 	if err != nil {
+		ur.logger.Error("error parsing user_id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid telegram ID")
 		return
 	}
 
 	var req addBusinessRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ur.logger.Error("error decoding request body", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -263,6 +281,9 @@ func (ur *userRoutes) addBusinessByTgID(w http.ResponseWriter, r *http.Request) 
 
 	updatedUser, err := ur.userService.AddBusinessToUserByTgID(r.Context(), tgID, business)
 	if err != nil {
+		ur.logger.Error("error adding business to user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to add business to user")
 		return
 	}
@@ -293,12 +314,18 @@ func (ur *userRoutes) putByID(w http.ResponseWriter, r *http.Request) {
 	userIDParam := chi.URLParam(r, "userID")
 	userID, err := parseIDParam(userIDParam)
 	if err != nil {
+		ur.logger.Error("error parsing user_id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid user ID")
 		return
 	}
 
 	var req updateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ur.logger.Error("error decoding request body", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -312,6 +339,9 @@ func (ur *userRoutes) putByID(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := ur.userService.PutUserByID(r.Context(), user)
 	if err != nil {
+		ur.logger.Error("error updating whole user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to update user")
 		return
 	}
@@ -334,12 +364,18 @@ func (ur *userRoutes) putByTgID(w http.ResponseWriter, r *http.Request) {
 	tgIDParam := chi.URLParam(r, "tgId")
 	tgID, err := parseTgIDParam(tgIDParam)
 	if err != nil {
+		ur.logger.Error("error parsing tg_id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid telegram ID")
 		return
 	}
 
 	var req updateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ur.logger.Error("error decoding request body", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -352,6 +388,9 @@ func (ur *userRoutes) putByTgID(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := ur.userService.PutUserByTgID(r.Context(), tgID, user)
 	if err != nil {
+		ur.logger.Error("error updating whole user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to update user")
 		return
 	}
@@ -374,12 +413,18 @@ func (ur *userRoutes) patchByID(w http.ResponseWriter, r *http.Request) {
 	userIDParam := chi.URLParam(r, "userID")
 	userID, err := parseIDParam(userIDParam)
 	if err != nil {
+		ur.logger.Error("error parsing user_id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid user ID")
 		return
 	}
 
 	var req updateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ur.logger.Error("error decoding request body", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -393,6 +438,9 @@ func (ur *userRoutes) patchByID(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := ur.userService.PatchUser(r.Context(), user)
 	if err != nil {
+		ur.logger.Error("error patching user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to patch user")
 		return
 	}
@@ -415,18 +463,27 @@ func (ur *userRoutes) patchByTgID(w http.ResponseWriter, r *http.Request) {
 	tgIDParam := chi.URLParam(r, "tgId")
 	tgID, err := parseTgIDParam(tgIDParam)
 	if err != nil {
+		ur.logger.Error("error parsing tg_id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid telegram ID")
 		return
 	}
 
 	var req updateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ur.logger.Error("error decoding request_body", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	userFromDB, err := ur.userService.GetUserByTgID(r.Context(), tgID)
 	if err != nil {
+		ur.logger.Error("error getting user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to get user by Telegram ID")
 		return
 	}
@@ -440,6 +497,9 @@ func (ur *userRoutes) patchByTgID(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := ur.userService.PatchUser(r.Context(), user)
 	if err != nil {
+		ur.logger.Error("error patching user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to patch user")
 		return
 	}
@@ -461,12 +521,18 @@ func (ur *userRoutes) deleteByID(w http.ResponseWriter, r *http.Request) {
 	userIDParam := chi.URLParam(r, "userID")
 	userID, err := parseIDParam(userIDParam)
 	if err != nil {
+		ur.logger.Error("error parsing id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid user ID")
 		return
 	}
 
 	err = ur.userService.DeleteUserByID(r.Context(), userID)
 	if err != nil {
+		ur.logger.Error("error deleting user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to delete user")
 		return
 	}
@@ -488,12 +554,18 @@ func (ur *userRoutes) deleteByTgID(w http.ResponseWriter, r *http.Request) {
 	tgIDParam := chi.URLParam(r, "tgId")
 	tgID, err := parseTgIDParam(tgIDParam)
 	if err != nil {
+		ur.logger.Error("error parsing tg_id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid telegram ID")
 		return
 	}
 
 	err = ur.userService.DeleteUserByTgID(r.Context(), tgID)
 	if err != nil {
+		ur.logger.Error("error deleting user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to delete user")
 		return
 	}

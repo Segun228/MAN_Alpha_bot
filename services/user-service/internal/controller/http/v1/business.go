@@ -6,16 +6,19 @@ import (
 
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/models"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/utils"
 	"github.com/go-chi/chi/v5"
 )
 
 type businessRoutes struct {
 	businessService service.Business
+	logger          utils.Logger
 }
 
-func newBusinessRoutes(r chi.Router, businessService service.Business) {
+func newBusinessRoutes(r chi.Router, businessService service.Business, logger utils.Logger) {
 	br := &businessRoutes{
 		businessService: businessService,
+		logger:          logger,
 	}
 
 	r.Route("/businesses", func(r chi.Router) {
@@ -40,6 +43,9 @@ func newBusinessRoutes(r chi.Router, businessService service.Business) {
 func (br *businessRoutes) getAll(w http.ResponseWriter, r *http.Request) {
 	businesses, err := br.businessService.GetBusinesses(r.Context())
 	if err != nil {
+		br.logger.Error("error getting businesses", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to get businesses")
 		return
 	}
@@ -62,12 +68,18 @@ func (br *businessRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 	businessIDParam := chi.URLParam(r, "businessID")
 	businessID, err := parseIDParam(businessIDParam)
 	if err != nil {
+		br.logger.Error("error parsing id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid business ID")
 		return
 	}
 
 	business, err := br.businessService.GetBusinessByID(r.Context(), businessID)
 	if err != nil {
+		br.logger.Error("error getting business by id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to get business by ID")
 		return
 	}
@@ -89,12 +101,18 @@ func (br *businessRoutes) getByUserID(w http.ResponseWriter, r *http.Request) {
 	userIDParam := chi.URLParam(r, "userID")
 	userID, err := parseIDParam(userIDParam)
 	if err != nil {
+		br.logger.Error("error parsing user_id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid user ID")
 		return
 	}
 
 	businesses, err := br.businessService.GetBusinessesByUserID(r.Context(), userID)
 	if err != nil {
+		br.logger.Error("error getting businesses by user_id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to get businesses by user ID")
 		return
 	}
@@ -116,12 +134,18 @@ func (br *businessRoutes) getOwner(w http.ResponseWriter, r *http.Request) {
 	businessIDParam := chi.URLParam(r, "businessID")
 	businessID, err := parseIDParam(businessIDParam)
 	if err != nil {
+		br.logger.Error("error parsing id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid business ID")
 		return
 	}
 
 	owner, err := br.businessService.GetBusinessOwner(r.Context(), businessID)
 	if err != nil {
+		br.logger.Error("error getting business owner", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to get business owner")
 		return
 	}
@@ -149,12 +173,18 @@ func (br *businessRoutes) put(w http.ResponseWriter, r *http.Request) {
 	businessIDParam := chi.URLParam(r, "businessID")
 	businessID, err := parseIDParam(businessIDParam)
 	if err != nil {
+		br.logger.Error("error parsing id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid business ID")
 		return
 	}
 
 	var req businessUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		br.logger.Error("error updating business", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -190,12 +220,18 @@ func (br *businessRoutes) patch(w http.ResponseWriter, r *http.Request) {
 	businessIDParam := chi.URLParam(r, "businessID")
 	businessID, err := parseIDParam(businessIDParam)
 	if err != nil {
+		br.logger.Error("error parsing id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid business ID")
 		return
 	}
 
 	var req businessUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		br.logger.Error("error decoding request body", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -208,6 +244,9 @@ func (br *businessRoutes) patch(w http.ResponseWriter, r *http.Request) {
 
 	updatedBusiness, err := br.businessService.PatchBusiness(r.Context(), business)
 	if err != nil {
+		br.logger.Error("error patching business", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to patch business")
 		return
 	}
@@ -229,12 +268,18 @@ func (br *businessRoutes) delete(w http.ResponseWriter, r *http.Request) {
 	businessIDParam := chi.URLParam(r, "businessID")
 	businessID, err := parseIDParam(businessIDParam)
 	if err != nil {
+		br.logger.Error("error parsing id", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusBadRequest, "invalid business ID")
 		return
 	}
 
 	err = br.businessService.DeleteBusiness(r.Context(), businessID)
 	if err != nil {
+		br.logger.Error("error deleting businesses", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to delete business")
 		return
 	}
