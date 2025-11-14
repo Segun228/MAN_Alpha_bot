@@ -49,6 +49,15 @@ async def post_user(
                 return data
             else:
                 logging.error(f"Ошибка HTTP: {response.status}")
+                logging.error(
+                    f"Пытались отправить {str({
+                        "telegram_id":telegram_id,
+                        "login":login,
+                        "password":password,
+                        "email":email,
+                        "churned":churned
+                    })}"
+                )
                 try:
                     error_data = await response.json()
                     logging.error(f"Детали ошибки: {error_data}")
