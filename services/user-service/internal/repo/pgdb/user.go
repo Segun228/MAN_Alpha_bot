@@ -164,10 +164,10 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user models.User) (*models.Us
 		Set("churned", user.Churned).
 		Set("is_admin", user.IsAdmin).
 		Where("id = ?", user.ID).
-		Suffix("RETURNING updated_at").
+		Suffix("RETURNING telegram_id, updated_at").
 		ToSql()
 
-	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&user.UpdatedAt)
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&user.TelegramID, &user.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute sql request: %w", err)
