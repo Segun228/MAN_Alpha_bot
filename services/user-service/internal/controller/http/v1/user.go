@@ -7,16 +7,19 @@ import (
 
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/models"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/utils"
 	"github.com/go-chi/chi/v5"
 )
 
 type userRoutes struct {
 	userService service.User
+	logger      utils.Logger
 }
 
-func newUserRoutes(r chi.Router, userService service.User) {
+func newUserRoutes(r chi.Router, userService service.User, logger utils.Logger) {
 	ur := &userRoutes{
 		userService: userService,
+		logger:      logger,
 	}
 	r.Route("/users", func(r chi.Router) {
 		r.Get("/", ur.getAll)
@@ -59,6 +62,9 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 func (ur *userRoutes) getAll(w http.ResponseWriter, r *http.Request) {
 	users, err := ur.userService.GetUsers(r.Context())
 	if err != nil {
+		ur.logger.Error("error getting user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to get users")
 		return
 	}
@@ -171,6 +177,9 @@ func (ur *userRoutes) create(w http.ResponseWriter, r *http.Request) {
 
 	createdUser, err := ur.userService.CreateUser(r.Context(), user)
 	if err != nil {
+		ur.logger.Error("error getting user", map[string]any{
+			"error": err.Error(),
+		})
 		writeError(w, http.StatusInternalServerError, "failed to create user")
 		return
 	}
