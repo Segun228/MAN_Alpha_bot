@@ -335,6 +335,8 @@ func (ur *userRoutes) putByID(w http.ResponseWriter, r *http.Request) {
 		Login:    req.Login,
 		Password: req.Password,
 		Email:    req.Email,
+		IsAdmin:  *req.IsAdmin,
+		Churned:  *req.Churned,
 	}
 
 	updatedUser, err := ur.userService.PutUserByID(r.Context(), user)
@@ -379,11 +381,12 @@ func (ur *userRoutes) putByTgID(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-
 	user := models.User{
 		Login:    req.Login,
 		Password: req.Password,
 		Email:    req.Email,
+		IsAdmin:  *req.IsAdmin,
+		Churned:  *req.Churned,
 	}
 
 	updatedUser, err := ur.userService.PutUserByTgID(r.Context(), tgID, user)
@@ -434,6 +437,8 @@ func (ur *userRoutes) patchByID(w http.ResponseWriter, r *http.Request) {
 		Login:    req.Login,
 		Password: req.Password,
 		Email:    req.Email,
+		IsAdmin:  *req.IsAdmin,
+		Churned:  *req.Churned,
 	}
 
 	updatedUser, err := ur.userService.PatchUser(r.Context(), user)
@@ -493,6 +498,8 @@ func (ur *userRoutes) patchByTgID(w http.ResponseWriter, r *http.Request) {
 		Login:    req.Login,
 		Password: req.Password,
 		Email:    req.Email,
+		IsAdmin:  *req.IsAdmin,
+		Churned:  *req.Churned,
 	}
 
 	updatedUser, err := ur.userService.PatchUser(r.Context(), user)
