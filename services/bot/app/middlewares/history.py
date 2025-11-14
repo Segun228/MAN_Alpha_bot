@@ -23,36 +23,29 @@ class TextMessageLoggerMiddleware(BaseMiddleware):
         try:
             message_data = {
                 "telegram_id": event.from_user.id,
-                "username": event.from_user.username,
                 "text": event.text,
                 "message_id": event.message_id,
                 "timestamp": datetime.datetime.now().isoformat(),
                 "direction": "incoming",
                 "chat_type": event.chat.type
             }
-            
             await self.save_to_db(message_data)
             logging.info(f"Logged user message from {event.from_user.id}")
-            
         except Exception as e:
             logging.error(f"Error logging user message: {e}")
-    
+
     async def log_bot_response(self, event: Message, response: Message) -> None:
         try:
             response_data = {
                 "telegram_id": event.from_user.id,
-                "username": event.from_user.username,
                 "text": response.text,
                 "message_id": response.message_id,
                 "timestamp": datetime.datetime.now().isoformat(),
                 "direction": "outgoing", 
                 "chat_type": event.chat.type,
-                "related_message_id": event.message_id
             }
-            
             await self.save_to_db(response_data)
             logging.info(f"Logged bot response to {event.from_user.id}")
-            
         except Exception as e:
             logging.error(f"Error logging bot response: {e}")
     
