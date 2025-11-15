@@ -41,6 +41,13 @@ services:
       - app-man-network
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -s http://localhost:8082/model_health | grep -q '\"status\":\"ok\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
 
   docs-model:
     build:
@@ -54,6 +61,13 @@ services:
       - app-man-network
     env_file:
       - .env
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:8084/docs_health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
