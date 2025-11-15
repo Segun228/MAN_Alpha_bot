@@ -683,8 +683,6 @@ async def create_business_final(message:Message, state:FSMContext):
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
         await state.clear()
-    finally:
-        await state.clear()
 
 
 
@@ -769,8 +767,6 @@ async def edit_business_final(message:Message, state:FSMContext):
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-    finally:
         await state.clear()
 
 
