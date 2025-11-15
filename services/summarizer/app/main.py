@@ -140,8 +140,8 @@ async def metrics():
 
 
 @app.get("/health")
-async def hellthcheck(request: Request):
-    return {"status": "Summarizer is alive"}
+async def healthcheck(request: Request):
+    return {"status": "ok"}
 
 
 @app.get("/")

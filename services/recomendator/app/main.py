@@ -118,6 +118,6 @@ async def metrics():
 
 
 
-@app.get("/")
+@app.get("/health")
 async def ping(request: Request):
-    return {"status": "Recomendator is alive"}
+    return {"status": "ok"}

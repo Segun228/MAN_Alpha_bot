@@ -391,6 +391,13 @@ services:
       - .env
     networks:
       - app-man-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${SUMMARIZER_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
 
   recomendator:
     image: recomendator:latest
@@ -402,6 +409,13 @@ services:
       - .env
     networks:
       - app-man-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${RECOMENDATOR_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
 
   business_analyzer:
     image: business_analyzer:latest
@@ -413,6 +427,13 @@ services:
       - .env
     networks:
       - app-man-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${BUSINESS_ANALYZER_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
 
   db_service:
     image: db_service:latest
@@ -441,6 +462,13 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${EMAIL_SERVICE_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
 
 
 
