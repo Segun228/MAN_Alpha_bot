@@ -1043,3 +1043,17 @@ async def analyzer_send_request(message:Message, state:FSMContext):
         await state.clear()
 
 
+
+#===========================================================================================================================
+# Chat model
+#===========================================================================================================================
+
+
+
+@router.message()
+async def all_other_messages(message: Message):
+    await message.answer("Неизвестная команда 🧐")
+    photo_data = await get_cat_error_async()
+    if photo_data:
+        photo_to_send = BufferedInputFile(photo_data, filename="cat_error.jpg")
+        await message.bot.send_photo(chat_id=message.chat.id, photo=photo_to_send)
