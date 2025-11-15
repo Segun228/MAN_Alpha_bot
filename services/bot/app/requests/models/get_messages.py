@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 from pprint import pprint
 from typing import Any, List
 
-async def messages(telegram_id, offset = 10)->Any | dict[str, Any] | None | List[dict[str, Any]]:
+async def get_messages(telegram_id, offset = 10, base_url = None)->Any | dict[str, Any] | None | List[dict[str, Any]]:
     load_dotenv()
-    base_url = os.getenv("BASE_DB_SERVICE_URL")
+    if not base_url:
+        base_url = os.getenv("BASE_DB_SERVICE_URL")
     BOT_API_KEY = os.getenv("BOT_API_KEY")
     if not base_url or base_url is None:
         logging.error("No base URL was provided")
@@ -19,10 +20,10 @@ async def messages(telegram_id, offset = 10)->Any | dict[str, Any] | None | List
     if not telegram_id or telegram_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
-    request_url = base_url+f"businesses/{telegram_id}"
+    request_url = base_url+f"messages/{telegram_id}"
     logging.info(f"Sending to {request_url}")
     async with aiohttp.ClientSession() as session:
-        async with session.post(
+        async with session.get(
             request_url, 
             json={
                 "offset":offset
@@ -49,3 +50,15 @@ async def messages(telegram_id, offset = 10)->Any | dict[str, Any] | None | List
 
 
 
+if __name__ == "__main__":
+    async def test_function():
+        test_ids = [6911237041, 123456789, 987654321]
+        for telegram_id in test_ids:
+            print(f"\n=== Тестируем для ID: {telegram_id} ===")
+            try:
+                result = await get_messages(telegram_id, offset=5, base_url="http://localhost:8093/")
+                print("Результат:")
+                pprint(result)
+            except Exception as e:
+                print(f"Ошибка: {e}")
+    asyncio.run(test_function())
