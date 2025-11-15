@@ -71,14 +71,19 @@ async def post_chat_model(
     logging.info(f"Текст: {text}")
     
     async with aiohttp.ClientSession() as session:
-        print(request_url)
+        pprint({
+                "telegram_id": telegram_id,
+                "text": text,
+                "business": business,
+                "context": {"history":final_context}
+            })
         async with session.post(
             request_url,
             json={
                 "telegram_id": telegram_id,
                 "text": text,
                 "business": business,
-                "context": final_context
+                "context": {"history":final_context}
             },
             headers={
                 "X-Bot-Key": BOT_API_KEY,
@@ -107,19 +112,33 @@ if __name__ == "__main__":
         test_cases = [
             {
                 "telegram_id": 6911237041,
-                "text": "Проанализируй мой бизнес и дай рекомендации по увеличению продаж",
-                "business": "Продажа органических продуктов",
+                "text": "расскажи про законность майонезного пирога",
+                "business": "кофейня",
+                "context": {
+                    "history": [
+                        {"role": "assistant", "content": "дико здравствуйте"},
+                        {"role": "user", "content": "хочу кофейню просто пиздец крутую"}
+                    ]
+                },
                 "symbol_threshold": 10,
                 "base_url": "http://localhost:8083/"
             },
             {
-                "telegram_id": 123456789, 
-                "text": "Какие маркетинговые стратегии будут наиболее эффективны?",
-                "business": "Интернет-магазин органики",
+                "telegram_id": 123456789,
+                "text": "напиши для нас пафосный пост в инстаграм про новый капучино",
+                "business": "кофейня",
+                "context": {
+                    "history": [
+                        {"role": "user", "content": "Привет, я владелец кофейны 'Без Ума' в Царицыно"},
+                        {"role": "assistant", "content": "Приветствую, безумный владелец! Царицыно — это вам не Шарицыно."},
+                        {"role": "user", "content": "ахах, точно! наша фишка — бармены с характером и кофе с перцем"}
+                    ]
+                },
                 "symbol_threshold": 5,
                 "base_url": "http://localhost:8083/"
             }
         ]
+            
         
         for i, test_case in enumerate(test_cases, 1):
             print(f"\n--- Тест {i} ---")

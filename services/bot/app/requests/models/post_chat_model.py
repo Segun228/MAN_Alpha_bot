@@ -54,7 +54,7 @@ async def post_chat_model(
                 "telegram_id":telegram_id,
                 "text":text,
                 "business":business,
-                "context": result
+                "context": {'history':result}
             },
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
