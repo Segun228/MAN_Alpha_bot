@@ -109,6 +109,20 @@ services:
     networks:
       - app-man-network
 
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8070:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - app-man-network
+
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -434,6 +448,7 @@ services:
 volumes:
   clickhouse_data:
   postgres-data:
+  pgadmin_data:
   prometheus-data:
   grafana-data:
   clickhouse_config:

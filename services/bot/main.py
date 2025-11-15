@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from app.handlers.router import admin_router, user_router, catcher_router
 from app.middlewares.antiflud import ThrottlingMiddleware
 from app.middlewares.metrics import MetricsMiddleware
+from app.middlewares.history import TextMessageLoggerMiddleware
 
 from app.handlers import admin_handlers
 from app.handlers import user_handlers
@@ -31,14 +32,18 @@ if not BOT_TOKEN:
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
-dp.message.middleware(ThrottlingMiddleware(limit=0.5))
+
+
+dp.update.middleware(MetricsMiddleware())
+
 
 dp.include_router(admin_router)
 dp.include_router(user_router)
 dp.include_router(catcher_router)
 
 
-dp.update.middleware(MetricsMiddleware())
+dp.message.middleware(ThrottlingMiddleware(limit=0.5))
+dp.message.middleware(TextMessageLoggerMiddleware())
 
 async def main():
     logging.info("Starting bot with long polling...")

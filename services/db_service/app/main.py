@@ -166,28 +166,50 @@ async def insert_message(message: MessageRequest):
         )
 
 
-@app.get("/messages/{telegram_id}")
+@app.post("/messages/{telegram_id}")
 async def get_user_mes(
-    request:Request,
+    request: Request,
     telegram_id: int = Path(..., ge=1, description="ID пользователя"),
 ):
     try:
-        offset = request.get("offset")
+        load_dotenv()
+        BOT_API_KEY = os.getenv("BOT_API_KEY")
+        if not BOT_API_KEY:
+            raise ValueError("BOT_API_KEY was not provided in env")
+        
+        headers = request.headers
+        auth_header = headers.get("X-Bot-Key")
+        
+        if not auth_header or auth_header.strip() != BOT_API_KEY.strip():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid API key"
+            )
+        offset = request.query_params.get("offset")
+        if offset:
+            try:
+                offset = int(offset)
+            except ValueError:
+                offset = None
+        else:
+            offset = None
+
         result = get_user_messages(
-            telegram_id = telegram_id,
-            offset = offset
+            telegram_id=telegram_id,
+            offset=offset
         )
         if not result:
-            raise Exception("Error while executing DB querry")
+            return {"status": "success", "data": []}
+        return {"status": "success", "data": result}
+        
     except HTTPException:
         raise
     except Exception as e:
-        logging.exception(f"Error saving message: {e}")
+        logging.exception(f"Error getting messages: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to save message"
+            detail="Failed to get messages"
         )
-
 
 
 

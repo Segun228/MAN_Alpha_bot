@@ -79,6 +79,7 @@ def _insert_message_sync(message: dict, timestamp: datetime):
             str(message.get('chat_type', 'private'))
         ))
         conn.commit()
+        logging.info("Message inserted sucessfully")
     except Exception as e:
         conn.rollback()
         raise e
