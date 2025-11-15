@@ -94,5 +94,5 @@ async def get_business_catalogue(
         for bus in business_list:
             keyboard.add(InlineKeyboardButton(text=f"{bus.get("name", "business")}", callback_data=f"{bus.get("id")}"))
     keyboard.add(InlineKeyboardButton(text="Добавить проект", callback_data=f"create_business"))
-    keyboard.add(InlineKeyboardButton(text="Назад", callback_data="home"))
+    keyboard.add(InlineKeyboardButton(text="Назад", callback_data="main_menu"))
     return keyboard.adjust(1).as_markup()

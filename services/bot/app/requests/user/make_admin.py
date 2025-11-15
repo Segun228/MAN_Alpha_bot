@@ -4,8 +4,10 @@ import os
 import logging
 from dotenv import load_dotenv
 from pprint import pprint
+import logging
 
-async def make_admin(telegram_id, target_user_id=None, value=True):
+
+async def make_admin(telegram_id, target_user_id=None):
     load_dotenv()
     base_url = os.getenv("BASE_URL")
     BOT_API_KEY = os.getenv("BOT_API_KEY")
@@ -21,18 +23,19 @@ async def make_admin(telegram_id, target_user_id=None, value=True):
     
     async with aiohttp.ClientSession() as session:
         async with session.patch(
-            base_url+f"users/tg/{telegram_id}", 
+            base_url+f"users/tg/{target_user_id}", 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
                 "X-User-ID":f"{telegram_id}"
             },
             json={
-                "is_admin":value
+                "is_admin":True
             }
         ) as response:
             if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
-                logging.info("Данные успешно получены!")
+                logging.info("Данные успешно sent!")
+                logging.info(f"Поьзователь {target_user_id} теперь админ")
                 return data
             elif response.status == 404:
                 logging.error("User was not found")

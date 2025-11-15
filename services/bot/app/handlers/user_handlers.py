@@ -463,7 +463,7 @@ async def callback_request_admin(callback: CallbackQuery, state: FSMContext, bot
         tasks = []
         text = f"Пользоватеь с id {user_id} запросил доступ к правам админа"
         for admin in admins:
-            tasks.append(bot.send_message(chat_id=admin, text=text, reply_markup= await inline_keyboards.give_acess(user_id=callback.from_user.id)))
+            tasks.append(bot.send_message(chat_id=admin, text=text, reply_markup= await inline_keyboards.give_acess(user_id=user_id)))
         await callback.message.answer("Права админа запрошены, запрос передан на рассмотрение администраторам")
         await asyncio.gather(*tasks, return_exceptions=True)
     except Exception as e:
@@ -551,10 +551,23 @@ async def get_catalogue_menu(callback:CallbackQuery):
 @router.callback_query(F.data.startswith("business_"))
 async def get_single_business_menu(callback:CallbackQuery):
     try:
-        await callback.message.answer(
-            "Вы можете задать специализированные вопросы:",
-            reply_markup=inline_keyboards.catalogue
+        business_id = int(callback.data.split("_")[1])
+        current_business = await get_business(
+            telegram_id= callback.from_user.id,
+            business_id=business_id
         )
+        if not current_business:
+            await callback.message.answer("Извините, не смогли найти ваш бизнес", reply_markup=inline_keyboards.home)
+            return
+        await callback.message.answer(
+f"""
+<b>🏢 {current_business.get("name")}</b>
+
+<code>┌───────────────────────────────</code>
+<b>📋 Описание:</b>
+{current_business.get("description")}
+<code>└───────────────────────────────</code>
+""")
     except Exception as e:
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
