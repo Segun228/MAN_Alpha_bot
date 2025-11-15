@@ -34,6 +34,11 @@ type (
 	}
 
 	ServicesConfig struct {
+		ChatModelUrl string `mapstructure:"chat_model_url"`
+		DocsModelUrl string `mapstructure:"docs_model_url"`
+		SummModelUrl string `mapstructure:"summ_model_url"`
+		RecsModelUrl string `mapstructure:"recs_model_url"`
+		AnalizerUrl  string `mapstructure:"analizer_url"`
 	}
 )
 

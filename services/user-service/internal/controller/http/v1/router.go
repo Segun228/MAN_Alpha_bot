@@ -23,6 +23,7 @@ func NewRouter(services *service.Services, logger utils.Logger) http.Handler {
 	r.Route("/", func(r chi.Router) {
 		newUserRoutes(r, services.User, logger)
 		newBusinessRoutes(r, services.Business, logger)
+		newModelsRoutes(r, services.Models, logger)
 	})
 
 	return r

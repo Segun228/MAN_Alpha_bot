@@ -61,18 +61,35 @@ type Business interface {
 	DeleteBusiness(ctx context.Context, businessID int) error
 }
 
+type Models interface {
+	AskChatModel(ctx context.Context, input AskChatModelRequest) (string, error)
+	AskDocsMode(ctx context.Context, text string) (string, error)
+	AskSummarizerFirst(ctx context.Context, text string) (string, error)
+	AskSummarizerSecond(ctx context.Context, input SummarizerSecondRequest) (string, error)
+	AskRecsModel(ctx context.Context, input UniversalRequest) (string, error)
+	AskAnalyzer(ctx context.Context, input UniversalRequest, analysisType string) (string, error)
+}
+
 type Services struct {
 	User
 	Business
+	Models
 }
 
 type ServicesDependencies struct {
 	Repos *repo.Repositories
+
+	ChatModelUrl string
+	DocsModelUrl string
+	SummModelUrl string
+	RecsModelUrl string
+	AnalizerUrl  string
 }
 
 func NewServices(deps *ServicesDependencies) *Services {
 	return &Services{
 		User:     NewUserService(deps.Repos.User),
 		Business: NewBusinessService(deps.Repos.Business),
+		Models:   NewModelService(deps.ChatModelUrl, deps.DocsModelUrl, deps.SummModelUrl, deps.RecsModelUrl, deps.AnalizerUrl),
 	}
 }
