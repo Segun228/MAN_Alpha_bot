@@ -13,6 +13,13 @@ main = InlineKeyboardMarkup(
 )
 
 
+main_special = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="Уйти 😢", callback_data="exit_hysteria")],
+    ]
+)
+
+
 def grade_keyboard(
     prefix = "grade"
 ):

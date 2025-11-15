@@ -35,7 +35,9 @@ from app.kafka.utils import build_log_message
 from app.states.states import CreateUser
 
 from app.requests.post.post_user import post_user
+from app.requests.post.post_poll_result import post_poll_result
 from app.states import states
+from app.requests.helpers.get_cat_photo import get_cat_photo
 #===========================================================================================================================
 # Конфигурация основных маршрутов
 #===========================================================================================================================
@@ -329,7 +331,7 @@ async def start_polling_admin(callback: CallbackQuery, state: FSMContext, bot: B
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     successful_sends = sum(1 for r in results if not isinstance(r, TelegramAPIError))
-    failed_sends = len(results) - successful_sends//2
+    failed_sends = (len(results) - successful_sends)//2
 
     await callback.message.answer(
         f"Рассылка завершена.\n✅ Успешно: {successful_sends//2}\n❌ Ошибки: {failed_sends}",
@@ -357,7 +359,7 @@ async def ask_second_question(callback: CallbackQuery, state: FSMContext, bot: B
 
 
 
-@router.callback_query(states.Grades.first)
+@router.callback_query(states.Grades.first, F.data.startswith("service_answer_grade"))
 async def ask_third_question(callback: CallbackQuery, state: FSMContext, bot: Bot):
     try:
         grade = int((callback.data.strip().split("_"))[3])
@@ -374,15 +376,83 @@ async def ask_third_question(callback: CallbackQuery, state: FSMContext, bot: Bo
         await state.clear()
 
 
-@router.callback_query(states.Grades.second)
-async def summarize_results(callback: CallbackQuery, state: FSMContext, bot: Bot):
+@router.callback_query(F.data.startswith("convinience_grade"))
+async def get_message_results(callback: CallbackQuery, state: FSMContext, bot: Bot):
     try:
         convenience_grade = int((callback.data.strip().split("_"))[2])
-        await state.set_state(states.Grades.first)
-        
+        await state.update_data(convenience_grade = convenience_grade)
+        await state.set_state(states.Grades.finish)
         await callback.message.answer(
             text="Спасибо вам большое!\n\nМы обязательно станем лучше!\n\nДержите котика!!!", 
             reply_markup=inline_keyboards.home
+        )
+        await get_cat_photo(
+            bot = bot,
+            chat_id = callback.from_user.id
+        )
+        await callback.message.answer(
+            "Можете нас похвалить, поругать или предложить. А можете и ничего не делать!", 
+            reply_markup=inline_keyboards.main_special
+        )
+        await state.set_state(states.Grades.finish)
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+@router.message(states.Grades.finish)
+async def summarize_results(message: Message, state: FSMContext, bot: Bot):
+    try:
+        data = await state.get_data()
+        feedback = message.text
+        service_grade = data.get("service_grade")
+        model_grade = data.get("model_grade")
+        convenience_grade = data.get("convenience_grade")
+        result = await post_poll_result(
+            telegram_id=message.from_user.id,
+            service_grade=service_grade,
+            model_grade=model_grade,
+            overall_grade=convenience_grade,
+            message=feedback
+        )
+        if result is None:
+            logging.error("Error while sending the result to the server")
+        await message.answer(
+            "Спасибо вам большое! Держите еще котика 🐈"
+        )
+        await get_cat_photo(
+            bot = bot,
+            chat_id = message.from_user.id
+        )
+        await message.answer(
+            "Можем снова приступать к работе!",
+            reply_markup=inline_keyboards.main
+        )
+    except Exception as e:
+        logging.exception(e)
+        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+@router.callback_query(F.data == "exit_hysteria")
+async def get_callback_results(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    try:
+        data = await state.get_data()
+        service_grade = data.get("service_grade")
+        model_grade = data.get("model_grade")
+        convenience_grade = data.get("convenience_grade")
+        result = await post_poll_result(
+            telegram_id=callback.message.from_user.id,
+            service_grade=service_grade,
+            model_grade=model_grade,
+            overall_grade=convenience_grade,
+        )
+        if result is None:
+            logging.error("Error while sending the result to the server")
+        await callback.message.answer(
+            "Можем снова приступать к работе!",
+            reply_markup=inline_keyboards.main
         )
     except Exception as e:
         logging.exception(e)
