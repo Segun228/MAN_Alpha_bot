@@ -166,7 +166,7 @@ async def insert_message(message: MessageRequest):
         )
 
 
-@app.post("/messages/{telegram_id}")
+@app.get("/messages/{telegram_id}")
 async def get_user_mes(
     request: Request,
     telegram_id: int = Path(..., ge=1, description="ID пользователя"),
@@ -202,7 +202,8 @@ async def get_user_mes(
             return {"status": "success", "data": []}
         return {"status": "success", "data": result}
         
-    except HTTPException:
+    except HTTPException as e:
+        logging.error(e)
         raise
     except Exception as e:
         logging.exception(f"Error getting messages: {e}")
