@@ -83,3 +83,16 @@ async def give_acess(user_id):
     keyboard.add(InlineKeyboardButton(text="Разрешить ✅", callback_data=f"access_give_{user_id}"))
     keyboard.add(InlineKeyboardButton(text="Отклонить ❌", callback_data=f"access_reject_{user_id}"))
     return keyboard.adjust(1).as_markup()
+
+
+async def get_business_catalogue(
+    telegram_id,
+    business_list:list|None
+):
+    keyboard = InlineKeyboardBuilder()
+    if business_list:
+        for bus in business_list:
+            keyboard.add(InlineKeyboardButton(text=f"{bus.get("name", "business")}", callback_data=f"{bus.get("id")}"))
+    keyboard.add(InlineKeyboardButton(text="Добавить проект", callback_data=f"create_business"))
+    keyboard.add(InlineKeyboardButton(text="Назад", callback_data="home"))
+    return keyboard.adjust(1).as_markup()
