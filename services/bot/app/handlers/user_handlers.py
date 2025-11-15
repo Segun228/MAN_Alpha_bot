@@ -823,6 +823,25 @@ async def delete_business_confirm(callback:CallbackQuery, state:FSMContext):
 
 
 
+
+@router.callback_query(F.data.startswith("decline_delete_business"))
+async def delete_business_decline(callback:CallbackQuery, state:FSMContext):
+    try:
+        await state.clear()
+        await callback.message.answer(
+            "Удаление успешно отменено!",
+            reply_markup= await inline_keyboards.get_business_catalogue(
+                telegram_id= callback.from_user.id
+            )
+        )
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+
+
 #===========================================================================================================================
 # Lawyer
 #===========================================================================================================================
