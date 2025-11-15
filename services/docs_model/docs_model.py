@@ -140,7 +140,9 @@ async def get_docs_from_category(message, category):
 
 @app.get("/docs_health")
 async def root():  # Для пинга
-    return {"message": "Document model service is running.", "status": "ok"}
+    if api_key and URL:
+        return {"message": "Document model service is running.", "status": "ok"}
+    return {"message": "ChatBot API key or URL not set", "status": "failed"}
 
 
 @app.post("/generate_response", response_model=GenerateResponse)

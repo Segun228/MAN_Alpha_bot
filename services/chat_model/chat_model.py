@@ -128,7 +128,9 @@ async def generate_message(request_data: RequestData):
 
 @app.get("/model_health")
 async def root():
-    return {"message": "Business Assistant API is running", "status": "ok"}
+    if api_key and URL:
+        return {"message": "Business Assistant API is running", "status": "ok"}
+    return {"message": "Business Assistant API key or URL not set", "status": "failed"}
 
 
 if __name__ == "__main__":
