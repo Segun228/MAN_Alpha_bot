@@ -15,6 +15,9 @@ class CreateUser(StatesGroup):
 
 
 class CreateBusiness(StatesGroup):
+    start = State()
+    name = State()
+    description = State()
     username = State()
     email = State()
     password = State()

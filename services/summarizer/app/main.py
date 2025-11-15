@@ -139,6 +139,10 @@ async def metrics():
     )
 
 
+@app.get("/health")
+async def hellthcheck(request: Request):
+    return {"status": "Summarizer is alive"}
+
 
 @app.get("/")
 async def ping(request: Request):

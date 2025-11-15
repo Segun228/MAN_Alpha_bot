@@ -42,6 +42,9 @@ from app.states import states
 from app.requests.get.get_business import get_business
 from app.requests.get.get_users import get_users
 
+from app.requests.post.post_business import post_business
+
+
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
         return ""
@@ -572,6 +575,111 @@ f"""
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
 
+
+
+@router.callback_query(F.data.startswith("create_business"))
+async def create_business_start(callback:CallbackQuery, state:FSMContext):
+    try:
+        await state.set_state(states.CreateBusiness.start)
+        await callback.message.answer(
+            "Введите название вашего бизнеса или стартапа. Постарайтесь дать его емко, чтобы оно отражало действительность",
+        )
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+@router.message(states.CreateBusiness.start)
+async def create_business_name(message:Message, state:FSMContext):
+    try:
+        name = message.text
+        if name is None or not name or not name.strip():
+            await message.answer("Извините, не удалось прочесть название, напишите еще раз")
+            return
+        if len(name) > 500:
+            await message.answer("Название слишком большое, постарайтесь описать его лаконичнее")
+            return
+        await state.update_data(name = name)
+        await state.set_state(states.CreateBusiness.description)
+        await message.answer(
+            """
+            <b>📋 Описание вашего бизнеса</b>
+
+            Пожалуйста, распишите подробно всю информацию о вашем бизнесе. Это поможет нам давать максимально точные и полезные рекомендации.
+
+            <u>Основные разделы для заполнения:</u>
+
+            <b>🏢 Формат бизнеса:</b>
+            • Онлайн/оффлайн/гибридный
+            • B2B/B2C/C2C
+            • Продуктовый/сервисный
+            • Монобизнес/диверсифицированный
+
+            <b>💰 Продукты и монетизация:</b>
+            • Что именно вы продаете (товары/услуги)
+            • Основные источники дохода
+            • Ценовая политика
+            • Целевая аудитория
+
+            <b>💸 Финансовые потоки:</b>
+            • Основные статьи доходов
+            • Ключевые расходы (постоянные и переменные)
+            • Рентабельность
+            • Сезонность бизнеса
+
+            <b>🎯 Проблемы и вызовы:</b>
+            • Текущие трудности
+            • "Узкие места" в процессах
+            • Конкурентные challenges
+            • Внутренние ограничения
+
+            <b>🚀 Цели развития:</b>
+            • <i>Локальные</i> (на 1-6 месяцев)
+            • <i>Стратегические</i> (на 1-3 года)
+            • Ключевые метрики успеха
+
+            <code>─────────────────────</code>
+            <em>Чем детальнее вы опишете каждый пункт, тем более персонализированные рекомендации мы сможем предложить! ✨</em>
+            """,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logging.exception(e)
+        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+@router.message(states.CreateBusiness.description)
+async def create_business_final(message:Message, state:FSMContext):
+    try:
+        description = message.text
+        if description is None or not description or not description.strip():
+            await message.answer("Извините, не удалось прочесть название, напишите еще раз")
+            return
+        if len(description) < 20:
+            await message.answer("Вы недостаточно раскрыли суть бизнеса, опишите подробнее пожалуйста")
+            return
+        if len(description) > 2000:
+            await message.answer("Вы слишком подробно описали ваш бизнес, извините, многа букав не асилили. Сократите пожалуйста")
+            return
+        data = await state.get_data()
+        name = data.get("name", "Ваш бизнес")
+        response = await post_business(
+            telegram_id=message.from_user.id,
+            name = name,
+            description = description
+        )
+        if not response:
+            await message.answer("Извините, не удалось создать модель бизнеса", reply_markup=inline_keyboards.catalogue)
+        else:
+            await message.answer("Модель успешно создана!", reply_markup=inline_keyboards.catalogue)
+    except Exception as e:
+        logging.exception(e)
+        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+    finally:
+        await state.clear()
 
 #===========================================================================================================================
 # Lawyer
