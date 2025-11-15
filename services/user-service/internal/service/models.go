@@ -5,9 +5,51 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
+
+var retryDelays = []time.Duration{
+	5 * time.Second,
+	10 * time.Second,
+}
+
+func doWithRetry(req *http.Request, out any) (*http.Response, error) {
+	var lastErr error
+
+	for attempt := 0; attempt <= len(retryDelays); attempt++ {
+		client := &http.Client{Timeout: 20 * time.Second}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("network error: %w", err)
+		} else {
+			bodyCopy := bytes.Buffer{}
+			_, copyErr := io.Copy(&bodyCopy, resp.Body)
+			resp.Body.Close()
+
+			if copyErr != nil {
+				lastErr = fmt.Errorf("read error: %w", copyErr)
+			} else if bodyCopy.Len() == 0 {
+				lastErr = fmt.Errorf("empty body")
+			} else {
+				if jsonErr := json.Unmarshal(bodyCopy.Bytes(), out); jsonErr != nil {
+					lastErr = fmt.Errorf("invalid json: %w", jsonErr)
+				} else {
+					resp.Body = io.NopCloser(bytes.NewBuffer(bodyCopy.Bytes()))
+					return resp, nil
+				}
+			}
+		}
+
+		if attempt < len(retryDelays) {
+			time.Sleep(retryDelays[attempt])
+		}
+	}
+
+	return nil, fmt.Errorf("request failed after retries: %w", lastErr)
+}
 
 type ModelService struct {
 	ChatModelUrl string
@@ -72,25 +114,12 @@ func (s *ModelService) AskChatModel(ctx context.Context, input AskChatModelReque
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Do(req)
+	var resData ResponseData
+	resp, err := doWithRetry(req, &resData)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("model service returned non-200 status: %d", resp.StatusCode)
-	}
-
-	var resData ResponseData
-	if err := json.NewDecoder(resp.Body).Decode(&resData); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if !resData.Success {
-		return "", fmt.Errorf("model service returned unsuccessful response")
-	}
 
 	return resData.Response, nil
 }
@@ -113,21 +142,12 @@ func (s *ModelService) AskDocsMode(ctx context.Context, text string) (string, er
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Do(req)
+	var raw map[string]any
+	resp, err := doWithRetry(req, &raw)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("docs model service returned non-200 status: %d", resp.StatusCode)
-	}
-
-	var raw map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
 
 	if arr, ok := raw["response"].([]any); ok {
 		out := ""
@@ -175,25 +195,12 @@ func (s *ModelService) AskSummarizerFirst(ctx context.Context, text string) (str
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 20 * time.Second}
-	resp, err := client.Do(req)
+	var out SummarizerResponse
+	resp, err := doWithRetry(req, &out)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("summarizer first model service returned non-200 status: %d", resp.StatusCode)
-	}
-
-	var out SummarizerResponse
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if !out.Success {
-		return "", fmt.Errorf("summarizer first model service returned unsuccessful response")
-	}
 
 	return out.Response, nil
 }
@@ -220,26 +227,12 @@ func (s *ModelService) AskSummarizerSecond(ctx context.Context, input Summarizer
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 20 * time.Second}
-
-	resp, err := client.Do(req)
+	var out SummarizerResponse
+	resp, err := doWithRetry(req, &out)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("summarizer second model service returned non-200 status: %d", resp.StatusCode)
-	}
-
-	var out SummarizerResponse
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if !out.Success {
-		return "", fmt.Errorf("summarizer second model service returned unsuccessful response")
-	}
 
 	return out.Response, nil
 }
@@ -267,25 +260,12 @@ func (s *ModelService) AskRecsModel(ctx context.Context, input UniversalRequest)
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 20 * time.Second}
-	resp, err := client.Do(req)
+	var resData ResponseData
+	resp, err := doWithRetry(req, &resData)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("recommendations model service returned non-200 status: %d", resp.StatusCode)
-	}
-
-	var resData ResponseData
-	if err := json.NewDecoder(resp.Body).Decode(&resData); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if !resData.Success {
-		return "", fmt.Errorf("recommendations model service returned unsuccessful response")
-	}
 
 	return resData.Response, nil
 }
@@ -309,25 +289,12 @@ func (s *ModelService) AskAnalyzer(ctx context.Context, input UniversalRequest, 
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 20 * time.Second}
-	resp, err := client.Do(req)
+	var resData ResponseData
+	resp, err := doWithRetry(req, &resData)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("analyzer model service returned non-200 status: %d", resp.StatusCode)
-	}
-
-	var resData ResponseData
-	if err := json.NewDecoder(resp.Body).Decode(&resData); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if !resData.Success {
-		return "", fmt.Errorf("analyzer model service returned unsuccessful response")
-	}
 
 	return resData.Response, nil
 }
