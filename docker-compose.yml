@@ -8,7 +8,7 @@ services:
     restart: on-failure
     environment:
       - AUTH_JWT_SIGN_KEY=${AUTH_JWT_SIGN_KEY}
-      - AUTH_BOT_KEY=${AUTH_BOT_KEY}
+      - AUTH_BOT_KEY=${BOT_API_KEY}
     ports:
       - "${API_GATEWAY_PORT}:8081"
     networks:
