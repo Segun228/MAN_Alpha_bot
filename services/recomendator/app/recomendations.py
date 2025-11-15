@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 load_dotenv()
 
-api_key = os.getenv("CHAT_MODEL_API_KEY")
+api_key = os.getenv("RECOMENDATOR_API_KEY")
 
 URL = os.getenv("OPENROUTER_URL")
 if not URL:
