@@ -35,6 +35,7 @@ from app.kafka.utils import build_log_message
 from app.states.states import CreateUser
 
 from app.requests.post.post_user import post_user
+from app.states import states
 #===========================================================================================================================
 # Конфигурация основных маршрутов
 #===========================================================================================================================
@@ -288,3 +289,102 @@ async def reject_acess_admin(callback: CallbackQuery, state: FSMContext, bot:Bot
         await bot.send_message(chat_id=int(user_id), text="К сожалению, вам было отказано в предоставлении прав администратора", reply_markup=inline_keyboards.home)
     except Exception as e:
         logging.error(e)
+
+
+
+#===========================================================================================================================
+# Создание опросника
+#===========================================================================================================================
+
+
+@router.callback_query(F.data == "start_polling", IsAdmin())
+async def start_polling_admin(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    await callback.message.answer(
+        "Всем действующим пользователям направлен опросник о качестве взаимодействия с ботом"
+    )
+    await callback.message.answer(
+        "Вы можете увидеть результаты в вашем личном кабинете в дашборде"
+    )
+    users_data = await get_alive(telegram_id=callback.from_user.id)
+
+    if not users_data or not isinstance(users_data, list):
+        await callback.message.answer("Ошибка при рассылке опроса. попробуйте позже.", reply_markup=inline_user_keyboards.home)
+        await state.clear()
+        return
+    tasks = []
+    for user in users_data:
+        user_id = user.get("telegram_id")
+        tasks.extend(
+            (
+                bot.send_message(chat_id=user_id, text="Для улучшения качества работы мы просим вас пройти небольшой опросик (всего 3 вопроса)"),
+                bot.send_message(
+                    chat_id=user_id, 
+                    text="Как вы оцениваете качество ответов модели?", 
+                    reply_markup=inline_keyboards.grade_keyboard(
+                        prefix="model_answer_grade"
+                    ))
+            )
+        )
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    successful_sends = sum(1 for r in results if not isinstance(r, TelegramAPIError))
+    failed_sends = len(results) - successful_sends//2
+
+    await callback.message.answer(
+        f"Рассылка завершена.\n✅ Успешно: {successful_sends//2}\n❌ Ошибки: {failed_sends}",
+        reply_markup=inline_keyboards.main
+    )
+    await state.clear()
+
+
+
+@router.callback_query(F.data.startswith("model_answer_grade"))
+async def ask_second_question(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    try:
+        grade = int((callback.data.strip().split("_"))[3])
+        await state.set_state(states.Grades.first)
+        await state.update_data(model_grade = grade)
+        await callback.message.answer(
+            text="Как вы оцениваете скорость работы сервиса?", 
+            reply_markup=inline_keyboards.grade_keyboard(
+                prefix="service_answer_grade"
+        ))
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+
+@router.callback_query(states.Grades.first)
+async def ask_third_question(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    try:
+        grade = int((callback.data.strip().split("_"))[3])
+        await state.set_state(states.Grades.second)
+        await state.update_data(service_grade = grade)
+        await callback.message.answer(
+            text="Как вы оцениваете общее удобство сервиса?", 
+            reply_markup=inline_keyboards.grade_keyboard(
+                prefix="convinience_grade"
+        ))
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+@router.callback_query(states.Grades.second)
+async def summarize_results(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    try:
+        convenience_grade = int((callback.data.strip().split("_"))[2])
+        await state.set_state(states.Grades.first)
+        
+        await callback.message.answer(
+            text="Спасибо вам большое!\n\nМы обязательно станем лучше!\n\nДержите котика!!!", 
+            reply_markup=inline_keyboards.home
+        )
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()

@@ -53,3 +53,12 @@ class Lawyer(StatesGroup):
 class Summarizer(StatesGroup):
     start = State()
     finish = State()
+
+
+class Grades(StatesGroup):
+    start = State()
+    finish = State()
+    first = State()
+    second = State()
+    third = State()
+
