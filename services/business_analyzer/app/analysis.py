@@ -10,7 +10,7 @@ from app.prompts import PROMPTS
 
 load_dotenv()
 
-api_key = os.getenv("CHAT_MODEL_API_KEY")
+api_key = os.getenv("ANALYSER_API_KEY")
 
 URL = os.getenv("OPENROUTER_URL")
 if not URL:
