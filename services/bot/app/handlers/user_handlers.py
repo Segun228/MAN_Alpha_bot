@@ -39,7 +39,7 @@ import re
 from typing import Optional
 
 from app.states import states
-from app.requests.get.get_business import get_business
+from app.requests.get.get_business import get_business, get_user_business
 from app.requests.get.get_users import get_users
 
 from app.requests.post.post_business import post_business
@@ -551,10 +551,10 @@ async def get_catalogue_menu(callback:CallbackQuery):
 
 
 
-@router.callback_query(F.data.startswith("business_"))
+@router.callback_query(F.data.startswith("retrieve_business_"))
 async def get_single_business_menu(callback:CallbackQuery):
     try:
-        business_id = int(callback.data.split("_")[1])
+        business_id = int(callback.data.split("_")[2])
         current_business = await get_business(
             telegram_id= callback.from_user.id,
             business_id=business_id
@@ -562,15 +562,17 @@ async def get_single_business_menu(callback:CallbackQuery):
         if not current_business:
             await callback.message.answer("Извините, не смогли найти ваш бизнес", reply_markup=inline_keyboards.home)
             return
+        logging.info(str(current_business))
         await callback.message.answer(
 f"""
 <b>🏢 {current_business.get("name")}</b>
 
 <code>┌───────────────────────────────</code>
-<b>📋 Описание:</b>
+<b>📋 Описание:\n</b>
 {current_business.get("description")}
+<b>\n</b>
 <code>└───────────────────────────────</code>
-""")
+""", parse_mode="HTML", reply_markup= await inline_keyboards.get_single_business(telegram_id=callback.from_user.id, business = current_business))
     except Exception as e:
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
@@ -660,7 +662,7 @@ async def create_business_final(message:Message, state:FSMContext):
         if len(description) < 20:
             await message.answer("Вы недостаточно раскрыли суть бизнеса, опишите подробнее пожалуйста")
             return
-        if len(description) > 2000:
+        if len(description) > 3000:
             await message.answer("Вы слишком подробно описали ваш бизнес, извините, многа букав не асилили. Сократите пожалуйста")
             return
         data = await state.get_data()
@@ -671,9 +673,9 @@ async def create_business_final(message:Message, state:FSMContext):
             description = description
         )
         if not response:
-            await message.answer("Извините, не удалось создать модель бизнеса", reply_markup=inline_keyboards.catalogue)
+            await message.answer("Извините, не удалось создать модель бизнеса", reply_markup=inline_keyboards.home)
         else:
-            await message.answer("Модель успешно создана!", reply_markup=inline_keyboards.catalogue)
+            await message.answer("Модель успешно создана!", reply_markup= await inline_keyboards.get_business_catalogue(telegram_id = message.from_user.id))
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)

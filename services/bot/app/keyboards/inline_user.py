@@ -2,6 +2,8 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from typing import Iterable
 from pprint import pprint
+from app.requests.get.get_business import get_business, get_user_business
+import logging
 
 main = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -51,6 +53,19 @@ catalogue = InlineKeyboardMarkup(
 )
 
 
+async def create_catalogue(business_id:int):
+    keyboard= InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📦 Персональный юрист", callback_data=f"personal_lawyer_{business_id}")],
+            [InlineKeyboardButton(text="👤 Генерация идей", callback_data=f"idea_generation_{business_id}")],
+            [InlineKeyboardButton(text="📞 Бизнес-анализ", callback_data=f"business_analysis_{business_id}")],
+            [InlineKeyboardButton(text="👤 Структурирование информации", callback_data=f"information_structure_{business_id}")],
+            [InlineKeyboardButton(text="На главную", callback_data="main_menu")]
+        ]
+    )
+    return keyboard
+
+
 justice = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="📦 Юридическая консультация", callback_data="personal_lawyer_start")],
@@ -87,12 +102,27 @@ async def give_acess(user_id):
 
 async def get_business_catalogue(
     telegram_id,
-    business_list:list|None
+    business_list:list|None = None
 ):
     keyboard = InlineKeyboardBuilder()
-    if business_list:
+    if business_list is None:
+        business_list = await get_user_business(telegram_id=telegram_id)
+    logging.info(business_list)
+    if business_list and isinstance(business_list, (list, tuple)):
         for bus in business_list:
-            keyboard.add(InlineKeyboardButton(text=f"{bus.get("name", "business")}", callback_data=f"{bus.get("id")}"))
+            keyboard.add(InlineKeyboardButton(text=f"{bus.get("name", "business")}", callback_data=f"retrieve_business_{bus.get("id")}"))
     keyboard.add(InlineKeyboardButton(text="Добавить проект", callback_data="create_business"))
+    keyboard.add(InlineKeyboardButton(text="Назад", callback_data="main_menu"))
+    return keyboard.adjust(1).as_markup()
+
+
+
+async def get_single_business(
+    telegram_id,
+    business:dict
+):
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(InlineKeyboardButton(text="Изменить Бизнес", callback_data=f"edit_business_{business.get("id")}"))
+    keyboard.add(InlineKeyboardButton(text="Удалить Бизнес", callback_data=f"delete_business_{business.get("id")}"))
     keyboard.add(InlineKeyboardButton(text="Назад", callback_data="main_menu"))
     return keyboard.adjust(1).as_markup()
