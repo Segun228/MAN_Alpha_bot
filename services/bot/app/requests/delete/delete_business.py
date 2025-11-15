@@ -21,7 +21,7 @@ async def delete_business(telegram_id, business_id):
     logging.info(f"Sending to {base_url+f"businesses/{business_id}/"}")
     async with aiohttp.ClientSession() as session:
         async with session.delete(
-            base_url+f"businesses/{business_id}/", 
+            base_url+f"businesses/{business_id}", 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
                 "Content-Type": "application/json",

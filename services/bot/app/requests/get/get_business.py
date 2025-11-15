@@ -20,13 +20,13 @@ async def get_business(telegram_id, business_id = None)->Any | dict[str, Any] | 
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
     if business_id:
-        request_url = base_url+f"businesses/{business_id}/"
+        request_url = base_url+f"businesses/{business_id}"
     else:
-        request_url = base_url+"businesses/"
+        request_url = base_url+"businesses"
     logging.info(f"Sending to {request_url}")
     async with aiohttp.ClientSession() as session:
         async with session.get(
-            base_url+request_url, 
+            request_url, 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
                 "Content-Type": "application/json",

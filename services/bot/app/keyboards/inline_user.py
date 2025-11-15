@@ -28,6 +28,16 @@ delete_account_confirmation_menu = InlineKeyboardMarkup(
 )
 
 
+async def confirm(        
+    object_id:int,
+    confirm_callback:str,
+    decline_callback:str,
+):
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(InlineKeyboardButton(text="Подтвердить ✅", callback_data=f"{confirm_callback + str(object_id)}"))
+    keyboard.add(InlineKeyboardButton(text="Отклонить ❌", callback_data=f"{decline_callback + str(object_id)}"))
+    return keyboard.adjust(1).as_markup()
+
 
 home = InlineKeyboardMarkup(
     inline_keyboard=[

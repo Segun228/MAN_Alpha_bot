@@ -41,9 +41,9 @@ from typing import Optional
 from app.states import states
 from app.requests.get.get_business import get_business, get_user_business
 from app.requests.get.get_users import get_users
-
+from app.requests.put.put_business import put_business
 from app.requests.post.post_business import post_business
-
+from app.requests.delete.delete_business import delete_business
 
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
@@ -577,6 +577,9 @@ f"""
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
 
+#===========================================================================================================================
+# Business creation
+#===========================================================================================================================
 
 
 @router.callback_query(F.data.startswith("create_business"))
@@ -682,6 +685,147 @@ async def create_business_final(message:Message, state:FSMContext):
         await state.clear()
     finally:
         await state.clear()
+
+
+
+#===========================================================================================================================
+# Business edit
+#===========================================================================================================================
+
+
+@router.callback_query(F.data.startswith("edit_business_"))
+async def edit_business_start(callback:CallbackQuery, state:FSMContext):
+    try:
+        logging.info(callback.data)
+        business_id = int(callback.data.strip().split("_")[2])
+        await state.update_data(business_id = business_id)
+        await state.set_state(states.EditBusiness.start)
+        await callback.message.answer(
+            "Введите новое название вашего бизнеса или стартапа",
+        )
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+@router.message(states.EditBusiness.start)
+async def edit_business_name(message:Message, state:FSMContext):
+    try:
+        name = message.text
+        if name is None or not name or not name.strip():
+            await message.answer("Извините, не удалось прочесть название, напишите еще раз")
+            return
+        if len(name) > 500:
+            await message.answer("Название слишком большое, постарайтесь описать его лаконичнее")
+            return
+        await state.update_data(name = name)
+        await state.set_state(states.EditBusiness.description)
+        await message.answer(
+            """
+            <b>📋 Описание вашего бизнеса</b>
+
+            Пожалуйста, распишите подробно всю информацию о вашем бизнесе. Это поможет нам давать максимально точные и полезные рекомендации.
+
+            <code>─────────────────────</code>
+            <em>Чем детальнее вы опишете каждый пункт, тем более персонализированные рекомендации мы сможем предложить! ✨</em>
+            """,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logging.exception(e)
+        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+@router.message(states.EditBusiness.description)
+async def edit_business_final(message:Message, state:FSMContext):
+    try:
+        description = message.text
+        if description is None or not description or not description.strip():
+            await message.answer("Извините, не удалось прочесть название, напишите еще раз")
+            return
+        if len(description) < 20:
+            await message.answer("Вы недостаточно раскрыли суть бизнеса, опишите подробнее пожалуйста")
+            return
+        if len(description) > 3000:
+            await message.answer("Вы слишком подробно описали ваш бизнес, извините, многа букав не асилили. Сократите пожалуйста")
+            return
+        data = await state.get_data()
+        name = data.get("name", "Ваш бизнес")
+        business_id = data.get("business_id")
+        if business_id is None:
+            raise ValueError("Buisenes id is not loaded")
+        response = await put_business(
+            telegram_id=message.from_user.id,
+            name = name,
+            description = description, 
+            business_id=business_id
+        )
+        if not response:
+            await message.answer("Извините, не удалось изменить модель бизнеса", reply_markup=inline_keyboards.home)
+        else:
+            await message.answer("Модель успешно изменена!", reply_markup= await inline_keyboards.get_business_catalogue(telegram_id = message.from_user.id))
+    except Exception as e:
+        logging.exception(e)
+        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+    finally:
+        await state.clear()
+
+
+
+#===========================================================================================================================
+# Business delete
+#===========================================================================================================================
+
+
+@router.callback_query(F.data.startswith("delete_business_"))
+async def delete_business_start(callback:CallbackQuery, state:FSMContext):
+    try:
+        logging.info(callback.data)
+        business_id = int(callback.data.strip().split("_")[2])
+        await state.update_data(business_id = business_id)
+        await state.set_state(states.EditBusiness.start)
+        await callback.message.answer(
+            "Вы уверены что хотите удалить эту модель бизнеса?",
+            reply_markup= await inline_keyboards.confirm(
+                object_id=business_id,
+                confirm_callback="confirm_delete_business",
+                decline_callback="decline_delete_business"
+            )
+        )
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+
+@router.callback_query(F.data.startswith("confirm_delete_business"))
+async def delete_business_confirm(callback:CallbackQuery, state:FSMContext):
+    try:
+        business_id = (await state.get_data()).get("business_id")
+        response = await delete_business(
+            telegram_id=callback.from_user.id,
+            business_id=business_id
+        )
+        if not response:
+            await callback.message.answer(
+                "Извините, не удалось удалить модель",
+                reply_markup=await inline_keyboards.get_business_catalogue(telegram_id = callback.from_user.id)
+            )
+        else:
+            await callback.message.answer(
+                "Модель успешно удалена",
+                reply_markup=await inline_keyboards.get_business_catalogue(telegram_id = callback.from_user.id)
+            )
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
 
 #===========================================================================================================================
 # Lawyer

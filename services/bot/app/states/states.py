@@ -25,6 +25,18 @@ class CreateBusiness(StatesGroup):
     is_admin = State()
 
 
+
+class EditBusiness(StatesGroup):
+    start = State()
+    name = State()
+    description = State()
+    username = State()
+    email = State()
+    password = State()
+    churned = State()
+    is_admin = State()
+
+
 class Analysys(StatesGroup):
     swot = State()
     pest = State()
