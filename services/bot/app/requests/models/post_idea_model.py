@@ -57,7 +57,8 @@ async def post_idea_model(
                 "telegram_id":telegram_id,
                 "text":text,
                 "business":business,
-                "context": {'history':result}
+                "context": {'history':result},
+                "description": description
             },
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",

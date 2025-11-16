@@ -6,6 +6,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
+ENV LOG_LEVEL=INFO
+ENV PYTHONUNBUFFERED=1
+
 COPY . .
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8087", "--timeout-keep-alive", "160"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8087", "--timeout-keep-alive", "160", "--log-level", "info"]

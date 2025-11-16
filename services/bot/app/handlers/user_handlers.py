@@ -48,6 +48,7 @@ from app.requests.models.post_chat_model import post_chat_model
 from app.requests.models.post_document_model import post_document_model
 from app.requests.models.post_summarize_model import post_summarize_model
 from app.requests.models.post_idea_model import post_idea_model
+from app.requests.models.post_analysis_model import post_analysis_model
 
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
@@ -1040,10 +1041,7 @@ async def idea_generator_finish(callback: CallbackQuery, state: FSMContext):
         
         await callback.message.answer(
             response,
-            reply_markup=await inline_keyboards.get_single_business(
-                telegram_id=callback.from_user.id,
-                business=current_business
-            )
+            reply_markup= inline_keyboards.main
         )
         await state.clear()
         
@@ -1197,7 +1195,7 @@ async def bmc_analysis(callback:CallbackQuery, state:FSMContext):
     try:
         await callback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
         await state.set_state(states.Analysys.swot)
-        await state.update_data(type = "swot")
+        await state.update_data(type = "bmc")
         return
     except Exception as e:
         logging.exception(e)
@@ -1243,6 +1241,7 @@ async def pest_analysis(callback:CallbackQuery, state:FSMContext):
         await state.clear()
 
 
+
 @router.message(states.Analysys.swot)
 async def analyzer_send_request(message:Message, state:FSMContext):
     try:
@@ -1250,17 +1249,67 @@ async def analyzer_send_request(message:Message, state:FSMContext):
         if not user_question or not user_question.strip():
             await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
             return
-        await message.answer("Я вас понял, дайте секунду проанализировать...")
-        data = await state.get_data()
-        analyzys_type = data.get("type")
-        if not analyzys_type:
-            raise ValueError("No type was saved")
-        # TODO
+        await state.update_data(
+            question = user_question
+        )
+        await message.answer(
+            "К какому из ваших проектов относится данный вопрос?",
+            reply_markup=await inline_keyboards.get_precise_catalogue(telegram_id=message.from_user.id)
+        )
+        await state.set_state(states.Analysys.cjm)
+
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
         await state.clear()
 
+
+
+@router.callback_query(F.data.startswith("choose_business_"), states.Analysys.cjm)
+async def business_analysis_finish(callback: CallbackQuery, state: FSMContext):
+    try:
+        await callback.message.answer("Я вас понял, дайте секунду проанализировать...")
+        data = await state.get_data()
+        analyzys_type = data.get("type")
+        if not analyzys_type:
+            raise ValueError("No type was saved")
+
+        question = data.get("question")
+        if not question:
+            raise ValueError("No question was saved")
+
+        business_id = int(callback.data.replace("choose_business_", ""))
+        current_business = await get_business(
+            telegram_id=callback.from_user.id,
+            business_id=business_id
+        )
+        if not current_business:
+            await callback.message.answer("Извините, бот не смог найти ваш бизнес 🥲\n\nПроблема на нашей стороне 👨‍🔧")
+            return
+        await callback.message.answer("Ассистент думает, подождите пожалуйста...")
+        response = await post_analysis_model(
+            telegram_id=callback.from_user.id,
+            text=question,
+            description=current_business.get("description"),
+            business=current_business.get("name"),
+            analysis_type=analyzys_type,
+            offset = 0
+        )
+        logging.info(response)
+        if not response:
+            await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
+            return
+        
+        await callback.message.answer(
+            response,
+            reply_markup= inline_keyboards.main
+        )
+        await state.clear()
+        
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
 
 
 @router.message()
@@ -1311,10 +1360,7 @@ async def chat_model_finish(callback:CallbackQuery, state:FSMContext):
             return
         await callback.message.answer(
             response,
-            reply_markup=await inline_keyboards.get_single_business(
-                telegram_id=callback.from_user.id,
-                business=current_business
-            )
+            reply_markup= inline_keyboards.main
         )
     except Exception as e:
         logging.exception(e)

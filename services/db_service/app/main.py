@@ -185,7 +185,7 @@ async def get_user_mes(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid API key"
             )
-        offset = request.query_params.get("offset")
+        offset = (await request.json()).get("offset")
         if offset:
             try:
                 offset = int(offset)

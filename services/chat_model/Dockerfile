@@ -14,4 +14,4 @@ USER chatbot
 
 
 EXPOSE 8082
-CMD ["uvicorn", "chat_model:app", "--host", "0.0.0.0", "--port", "8082", "--timeout-keep-alive", "160"]
+CMD ["uvicorn", "chat_model:app", "--host", "0.0.0.0", "--port", "8082", "--timeout-keep-alive", "160", "--log-level", "info"]
