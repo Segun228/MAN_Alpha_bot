@@ -12,3 +12,4 @@ auth:
   bot_key: ""
 
 services:
+  user_service_url: "http://user-service:8083"

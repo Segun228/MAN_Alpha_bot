@@ -7,14 +7,7 @@ http_server:
   idle_timeout: 60s
 
 auth:
-  jwt_sign_key: ""
+  bot_key: ""
 
 pg:
-  url: "postgres://user:password123@postgres:5432/db?sslmode=disable"
-
-services:
-  chat_model_url: ""
-  docs_model_url: ""
-  summ_model_url: ""
-  recs_model_url: ""
-  analizer_url: ""
+  url: ""

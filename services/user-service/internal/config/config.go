@@ -15,7 +15,6 @@ type (
 		HttpServer HttpServerConfig `mapstructure:"http_server"`
 		PG         PGConfig         `mapstructure:"pg"`
 		Auth       AuthConfig       `maptructure:"auth"`
-		Services   ServicesConfig   `mapstructure:"services"`
 	}
 
 	HttpServerConfig struct {
@@ -30,15 +29,7 @@ type (
 	}
 
 	AuthConfig struct {
-		JWTSignKey string `mapstructure:"jwt_sign_key"`
-	}
-
-	ServicesConfig struct {
-		ChatModelUrl string `mapstructure:"chat_model_url"`
-		DocsModelUrl string `mapstructure:"docs_model_url"`
-		SummModelUrl string `mapstructure:"summ_model_url"`
-		RecsModelUrl string `mapstructure:"recs_model_url"`
-		AnalizerUrl  string `mapstructure:"analizer_url"`
+		BotKey string `mapstructure:"bot_key"`
 	}
 )
 

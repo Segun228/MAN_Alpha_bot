@@ -32,8 +32,17 @@ func PrometheusMiddleware(m *metrics.Metrics) func(http.Handler) http.Handler {
 }
 
 func (w *statusWriter) WriteHeader(code int) {
-	w.status = code
-	w.ResponseWriter.WriteHeader(code)
+	if w.status == 0 {
+		w.status = code
+		w.ResponseWriter.WriteHeader(code)
+	}
+}
+
+func (w *statusWriter) Write(b []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	return w.ResponseWriter.Write(b)
 }
 
 func CORSMiddleware(allowedOrigins []string) func(next http.Handler) http.Handler {
