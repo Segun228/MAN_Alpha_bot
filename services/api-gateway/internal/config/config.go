@@ -26,8 +26,7 @@ type (
 	}
 
 	AuthConfig struct {
-		JWTSignKey string `mapstructure:"jwt_sign_key"`
-		BotKey     string `mapstructure:"bot_key"`
+		BotKey string `mapstructure:"bot_key"`
 	}
 
 	ServicesConfig struct {

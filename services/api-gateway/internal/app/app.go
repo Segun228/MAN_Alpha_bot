@@ -61,7 +61,7 @@ func Run(configPath string) {
 	// Chi router
 	log.Info("initializing router...")
 	router := chi.NewRouter()
-	v1.NewRouter(router, m, log, srvCfg.AllowedOrigins, authCfg.JWTSignKey, authCfg.BotKey, servicesCfg)
+	v1.NewRouter(router, m, log, srvCfg.AllowedOrigins, authCfg.BotKey, servicesCfg)
 
 	// HTTP Server
 	log.Info("starting http server...")

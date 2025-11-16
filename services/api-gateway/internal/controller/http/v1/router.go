@@ -14,13 +14,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigins []string, jwtSecret string, botSecretKey string, servicesConfig config.ServicesConfig) {
-	auth := NewAuth([]byte(jwtSecret), []byte(botSecretKey))
-
+func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigins []string, botSecretKey string, servicesConfig config.ServicesConfig) {
 	r.Use(CORSMiddleware(allowedOrigins))
 	r.Use(LoggingMiddleware(logger))
 	r.Use(RecoveryMiddleware(logger))
 	r.Use(PrometheusMiddleware(m))
+	r.Use(BotAuthMiddleware(botSecretKey))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -30,12 +29,7 @@ func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigi
 	r.Handle("/metrics", promhttp.Handler())
 
 	r.Route("/api", func(api chi.Router) {
-		// Setting up protected routes
-		api.Group(func(protected chi.Router) {
-			protected.Use(auth.Middleware(logger))
-
-			protected.Mount("/users", createProfixedHandler("/api/users", servicesConfig.UserServiceURL))
-		})
+		api.Mount("/users", createProfixedHandler("/api/users", servicesConfig.UserServiceURL))
 	})
 }
 
