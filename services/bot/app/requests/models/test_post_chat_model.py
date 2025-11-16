@@ -70,7 +70,7 @@ async def post_chat_model(
     logging.info(f"Контекст: {len(final_context)} сообщений")
     logging.info(f"Текст: {text}")
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout = aiohttp.ClientTimeout(total=600)) as session:
         pprint({
                 "telegram_id": telegram_id,
                 "text": text,

@@ -134,14 +134,13 @@ async def get_docs_from_category(message, category):
         "temperature": 1  # Можно поставить выше, пока золотая середина
     }
     try:
-        # Создаем клиентскую сессию с таймаутом
-        timeout = aiohttp.ClientTimeout(total=600)  # 60 секунд на весь запрос
+        timeout = aiohttp.ClientTimeout(total=600)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(URL, headers=headers, json=data) as resp:
                 resp.raise_for_status()  # Проверяем статус ответа
                 response_data = await resp.json()  # Получаем ответ, сразу перегоняем в json
                 
-                return {  # Если всё ок - возвращаем только нужные поля, без лишнего
+                return { 
                     "success": True,
                     "response": response_data["choices"][0]["message"]["content"],
                     "usage": response_data.get("usage", {}),

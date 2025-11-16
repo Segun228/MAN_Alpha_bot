@@ -63,49 +63,57 @@ async def monitor_requests(request: Request, call_next):
 
 
 
-@app.post("/recomedations")
-async def recomedations(request: Request):
+@app.post("/recomendations")
+async def recommendations(request: Request):
     try:
         data = await request.json()
+        telegram_id = data.get("telegram_id")
         context = data.get("context")
-        business = data.get("business", "Малый бизнес")
-        description = data.get("description")
+        
+        if not telegram_id:
+            raise HTTPException(status_code=400, detail="telegram_id is required")
         if not context:
-            raise HTTPException(
-                status_code=400,
-                detail="Empty context given"
-            )
+            raise HTTPException(status_code=400, detail="context is required")
+
+        business = data.get("business", "Малый бизнес")
+        description = data.get("description", "")
+        words_count = data.get("words_count")
+
         await build_log_message(
-            telegram_id = data.get("telegram_id"),
-            action = data.get("action"),
-            source = data.get("source"),
-            payload = data.get("payload"),
-            platform = data.get("platform", "bot"),
-            level = data.get("level", "INFO"),
-            env = data.get("env", "prod"),
-            timestamp = data.get("timestamp", "prod"),
-            request_method = data.get("request_method", "post"),
-            request_body = "ping",
-            response_code = 200,
-            user_id = data.get("user_id"),
-            is_authenticated = True
+            telegram_id=telegram_id,
+            action="get_recommendations",
+            source="recomendations_endpoint", 
+            payload={"business": business, "has_context": bool(context)},
+            platform="bot",
+            level="INFO",
+            env="prod",
+            request_method="POST",
+            request_body=str(data)[:500],
+            response_code=200,
+            user_id=telegram_id,
+            is_authenticated=True
         )
-        summary = await get_summary(
-            context = context,
-            business = business,
-            description = description,
+
+        result = await generate_recomendation( 
+            context=context,
+            business=business,
+            description=description,
+            words_count=words_count
         )
-        result = generate_recomendation(
-            summary = summary,
-            words_count = data.get("words_count", None)
-        )
+
         return JSONResponse(
             content=result,
-            media_type="text/plain"
+            status_code=200
         )
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logging.exception(e)
-        return Response(status_code=500)
+        logging.exception(f"Error in recommendations endpoint: {e}")
+        return JSONResponse(
+            content={"error": "Internal server error"},
+            status_code=500
+        )
 
 
 

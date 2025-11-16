@@ -57,7 +57,7 @@ home_retry = InlineKeyboardMarkup(
 
 retry_keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="🔄 Попробовать снова", callback_data="retry_lawyer_question")],
+                [InlineKeyboardButton(text="🔄 Попробовать снова", callback_data="retry_question")],
                 [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
             ]
         )

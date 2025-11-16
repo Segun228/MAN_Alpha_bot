@@ -28,14 +28,15 @@ async def post_document_model(
     if not telegram_id or telegram_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
-    request_url = base_url + "models/docs"
+    # request_url = base_url + "models/docs"
+    request_url = "http://docs-model:8084/generate_response"
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout = aiohttp.ClientTimeout(total=600)) as session:
         async with session.post(
             request_url,
             json={
                 "telegram_id":telegram_id,
-                "text":text,
+                "question":text,
             },
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
@@ -46,6 +47,12 @@ async def post_document_model(
             if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
                 logging.info("Сообщение модели отправлено!")
+                if hasattr(data, "get"):
+                    data = data.get("response")
+                    return " ".join(data)
+                if isinstance(data, list):
+                    return data[0]
+                logging.info(data)
                 return data
             elif response.status == 404:
                 logging.error("Route was not found")

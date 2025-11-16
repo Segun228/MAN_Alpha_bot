@@ -38,6 +38,8 @@ services:
     build:
       context: ./services/chat_model
     container_name: chat-model
+    ports:
+      - "${CHAT_MODEL_PORT}:${CHAT_MODEL_PORT}"
     restart: on-failure
     environment:
       - OPENROUTER_API_KEY=${CHAT_MODEL_API_KEY}
@@ -58,6 +60,8 @@ services:
     build:
       context: ./services/docs_model
     container_name: docs_model
+    ports:
+      - ${DOCUMENT_MODEL_PORT}:${DOCUMENT_MODEL_PORT}
     restart: on-failure
     environment:
       - OPENROUTER_API_KEY=${CHAT_MODEL_API_KEY}

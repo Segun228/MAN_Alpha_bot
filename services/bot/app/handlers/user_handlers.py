@@ -46,6 +46,8 @@ from app.requests.post.post_business import post_business
 from app.requests.delete.delete_business import delete_business
 from app.requests.models.post_chat_model import post_chat_model
 from app.requests.models.post_document_model import post_document_model
+from app.requests.models.post_summarize_model import post_summarize_model
+from app.requests.models.post_idea_model import post_idea_model
 
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
@@ -909,10 +911,13 @@ async def ask_lawyer_question(message: Message, state: FSMContext):
                 reply_markup=inline_keyboards.home
             )
             return
-        await message.answer(
-            result,
-            reply_markup=inline_keyboards.main
-        )
+        if not isinstance(result, dict):
+            await message.answer(
+                result,
+                reply_markup=inline_keyboards.main
+            )
+        else:
+            raise Exception("eeror while getting te result")
         await state.clear()
         
     except Exception as e:
@@ -924,8 +929,8 @@ async def ask_lawyer_question(message: Message, state: FSMContext):
         await state.set_state(states.Lawyer.start)
 
 
-@router.callback_query(F.data == "retry_lawyer_question", states.Lawyer.start)
-async def retry_lawyer_question(callback: CallbackQuery, state: FSMContext):
+@router.callback_query(F.data == "retry_question", states.Lawyer.start)
+async def retry_question(callback: CallbackQuery, state: FSMContext):
     try:
         await callback.answer("Повторяю запрос...")
         state_data = await state.get_data()
@@ -950,10 +955,13 @@ async def retry_lawyer_question(callback: CallbackQuery, state: FSMContext):
             )
             return
             
-        await callback.message.edit_text(
-            result,
-            reply_markup=inline_keyboards.main
-        )
+        if not isinstance(result, dict):
+            await callback.message.edit_text(
+                result,
+                reply_markup=inline_keyboards.main
+            )
+        else:
+            raise Exception("eeror while getting te result")
         await state.clear()
         
     except Exception as e:
@@ -968,34 +976,81 @@ async def retry_lawyer_question(callback: CallbackQuery, state: FSMContext):
 # Idea Generation
 #===========================================================================================================================
 
-
 @router.callback_query(F.data == "idea_generation")
-async def generate_idea_start(callback:CallbackQuery, state:FSMContext):
+async def generate_idea_start(callback: CallbackQuery, state: FSMContext):
     try:
-        await callback.message.answer(
-            "Подробно опишите боту то, что ему стоило бы знать при генерации решений и идей",
-        )
-        await state.set_state(states.Lawyer.start)
+        await callback.message.answer("Пожалуйста, опишите ваш вопрос или идею для анализа:")
+        await state.set_state(states.Idea.awaiting_question)
     except Exception as e:
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
         await state.clear()
 
-
-@router.message(states.Lawyer.start)
-async def return_generated_ides(message:Message, state:FSMContext):
+@router.message(states.Idea.awaiting_question)
+async def handle_question_input(message: Message, state: FSMContext):
     try:
-        user_question = message.text
-        if not user_question or not user_question.strip():
-            await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
+        question = message.text
+        if not question or len(question.strip()) < 5:
+            await message.answer("Вопрос слишком короткий. Пожалуйста, опишите подробнее:")
             return
-        await message.answer("Я вас понял, дайте секунду подумать...")
+        
+        await state.update_data(question=question)
+        await state.set_state(states.Idea.start)
+        
+        await message.answer(
+            "К какому из ваших проектов относится данный вопрос?",
+            reply_markup=await inline_keyboards.get_precise_catalogue(telegram_id=message.from_user.id)
+        )
+    except Exception as e:
+        logging.exception(e)
+        await message.answer("Извините, произошла ошибка", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+@router.callback_query(F.data.startswith("choose_business_"), states.Idea.start)
+async def idea_generator_finish(callback: CallbackQuery, state: FSMContext):
+    try:
+        data = await state.get_data()
+        question = data.get("question")
+        if not question:
+            await callback.message.answer("Извините, бот забыл про какой бизнес мы говорили 🥲\n\nПроблема на нашей стороне 👨‍🔧")
+            return
+        
+        business_id = int(callback.data.replace("choose_business_", ""))
+        current_business = await get_business(
+            telegram_id=callback.from_user.id,
+            business_id=business_id
+        )
+        if not current_business:
+            await callback.message.answer("Извините, бот не смог найти ваш бизнес 🥲\n\nПроблема на нашей стороне 👨‍🔧")
+            return
+        
+        await callback.message.answer("Ассистент думает, подождите пожалуйста...")
+        response = await post_idea_model(
+            telegram_id=callback.from_user.id,
+            text=question,
+            description=current_business.get("description"),
+            business=current_business.get("name"),
+        )
+        
+        logging.info(response)
+        
+        if not response:
+            await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
+            return
+        
+        await callback.message.answer(
+            response,
+            reply_markup=await inline_keyboards.get_single_business(
+                telegram_id=callback.from_user.id,
+                business=current_business
+            )
+        )
+        await state.clear()
         
     except Exception as e:
         logging.exception(e)
-        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
         await state.clear()
-
 #===========================================================================================================================
 # Summarise
 #===========================================================================================================================
@@ -1018,15 +1073,89 @@ async def get_information_structure(callback:CallbackQuery, state:FSMContext):
 async def summarizer_send_request(message:Message, state:FSMContext):
     try:
         user_question = message.text
+        await state.update_data(
+            user_question = user_question
+        )
         if not user_question or not user_question.strip():
             await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
             return
         await message.answer("Я вас понял, дайте секунду сформулировать...")
-        # TODO
+        result = await post_summarize_model(
+            telegram_id = message.from_user.id,
+            text = user_question
+        )
+        if result is None:
+            await message.answer(
+                "Модель не смогла дать внятного ответа, попробуйте переформулировать...", 
+                reply_markup=inline_keyboards.home
+            )
+            return
+        if not isinstance(result, dict):
+            await message.answer(
+                result,
+                reply_markup=inline_keyboards.main
+            )
+        elif isinstance(result, dict):
+            await message.answer(
+                result.get("response"),
+                reply_markup=inline_keyboards.main
+            )
+        else:
+            logging.info(result)
+        await state.clear()
+        
     except Exception as e:
         logging.exception(e)
-        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await message.answer(
+            "Извините, бот немножко устал, попробуйте позже 😢", 
+            reply_markup=inline_keyboards.retry_keyboard
+        )
+        await state.set_state(states.Summarizer.start)
+
+
+@router.callback_query(F.data == "retry_question", states.Summarizer.start)
+async def retry_summarize_question(callback: CallbackQuery, state: FSMContext):
+    try:
+        await callback.answer("Повторяю запрос...")
+        state_data = await state.get_data()
+        user_question = state_data.get('user_question')
+        
+        if not user_question:
+            await callback.message.answer(
+                "Не удалось найти предыдущий вопрос. Пожалуйста, задайте вопрос заново.",
+                reply_markup=inline_keyboards.home
+            )
+            await state.clear()
+            return
+        await callback.message.edit_text("Повторяю запрос, секунду...")
+        result = await post_summarize_model(
+            telegram_id=callback.from_user.id,
+            text=user_question
+        )
+        if result is None:
+            await callback.message.edit_text(
+                "Модель не смогла дать внятного ответа, попробуйте переформулировать...", 
+                reply_markup=inline_keyboards.home
+            )
+            return
+            
+        if not isinstance(result, dict):
+            await callback.message.edit_text(
+                result,
+                reply_markup=inline_keyboards.main
+            )
+        else:
+            raise Exception("eeror while getting te result")
         await state.clear()
+        
+    except Exception as e:
+        logging.exception(e)
+
+        await callback.message.edit_text(
+            "Снова произошла ошибка. Попробовать еще раз?",
+            reply_markup=inline_keyboards.retry_keyboard
+        )
+
 
 #===========================================================================================================================
 # Business analytics

@@ -84,6 +84,14 @@ class Lawyer(StatesGroup):
     finish = State()
 
 
+
+
+class Idea(StatesGroup):
+    start = State()
+    finish = State()
+    awaiting_question = State()
+
+
 class Summarizer(StatesGroup):
     start = State()
     finish = State()

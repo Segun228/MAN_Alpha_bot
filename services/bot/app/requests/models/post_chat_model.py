@@ -31,8 +31,8 @@ async def post_chat_model(
     if not telegram_id or telegram_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
-    request_url = base_url + "models/chat"
-
+    # request_url = base_url + "models/chat"
+    request_url = "http://chat-model:8082/generate_response"
     history = (await get_messages(
         telegram_id=telegram_id
     ))
@@ -49,7 +49,7 @@ async def post_chat_model(
                 "content":el.get("message").replace('\n', ' ')
             }
         )
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout = aiohttp.ClientTimeout(total=600)) as session:
         async with session.post(
             request_url,
             json={
@@ -67,6 +67,8 @@ async def post_chat_model(
             if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
                 logging.info("Сообщение модели отправлено!")
+                if hasattr(data, "get"):
+                    return data.get("response")
                 return data
             elif response.status == 404:
                 logging.error("Route was not found")

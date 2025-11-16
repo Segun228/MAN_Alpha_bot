@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from pprint import pprint
 from typing import Any, List
 
-async def get_messages(telegram_id, offset = 10, base_url = None)->Any | dict[str, Any] | None | List[dict[str, Any]]:
+async def get_messages(telegram_id, offset = 3, base_url = None)->Any | dict[str, Any] | None | List[dict[str, Any]]:
     load_dotenv()
     if not base_url:
         base_url = os.getenv("BASE_DB_SERVICE_URL")
@@ -22,7 +22,7 @@ async def get_messages(telegram_id, offset = 10, base_url = None)->Any | dict[st
         raise ValueError("No telegram_id was provided")
     request_url = base_url+f"messages/{telegram_id}"
     logging.info(f"Sending to {request_url}")
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout = aiohttp.ClientTimeout(total=600)) as session:
         async with session.get(
             request_url, 
             json={
