@@ -1,0 +1,505 @@
+
+services:
+  api-gateway:
+    build: 
+      context: .
+      dockerfile: ./services/api-gateway/Dockerfile
+    container_name: api-gateway
+    restart: on-failure
+    environment:
+      - AUTH_BOT_KEY=${BOT_API_KEY}
+    ports:
+      - "${API_GATEWAY_PORT}:8081"
+    networks:
+      - app-man-network
+
+  user-service:
+    build: 
+      context: .
+      dockerfile: ./services/user-service/Dockerfile
+    container_name: user-service
+    restart: on-failure
+    depends_on:
+      - postgres
+    environment:
+      - AUTH_BOT_KEY=${BOT_API_KEY}
+      - PG_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DBNAME}?sslmode=disable
+    ports:
+      - "${USER_SERVICE_PORT}:8083"
+    networks:
+      - app-man-network
+
+  chat-model:
+    build:
+      context: ./services/chat_model
+    container_name: chat-model
+    ports:
+      - "${CHAT_MODEL_PORT}:${CHAT_MODEL_PORT}"
+    restart: on-failure
+    environment:
+      - OPENROUTER_API_KEY=${CHAT_MODEL_API_KEY}
+      - OPENROUTER_URL=${OPENROUTER_URL}
+    networks:
+      - app-man-network
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -s http://localhost:8082/model_health | grep -q '\"status\":\"ok\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
+
+  docs-model:
+    build:
+      context: ./services/docs_model
+    container_name: docs_model
+    ports:
+      - ${DOCUMENT_MODEL_PORT}:${DOCUMENT_MODEL_PORT}
+    restart: on-failure
+    environment:
+      - OPENROUTER_API_KEY=${CHAT_MODEL_API_KEY}
+      - OPENROUTER_URL=${OPENROUTER_URL}
+    networks:
+      - app-man-network
+    env_file:
+      - .env
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:8084/docs_health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: clickhouse
+    restart: unless-stopped
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT}:8123"   # HTTP-интерфейс
+      - "${CLICKHOUSE_TCP_PORT}:9000"   # TCP для клиентов
+      - "${CLICKHOUSE_NATIVE_PROTOCOL}:9009"   # Native protocol
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_config:/etc/clickhouse-server
+    environment:
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    networks:
+      - app-man-network
+
+  clickhouse_ui:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse_ui
+    ports:
+      - "${CLICKHOUSE_UI_PORT}:8123"
+    environment:
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_HTTP_PORT=${CLICKHOUSE_HTTP_PORT}
+      - CLICKHOUSE_LISTEN_HOST=0.0.0.0
+    depends_on:
+      - clickhouse
+    networks:
+      - app-man-network
+
+  postgres:
+    image: postgres:14-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DBNAME}
+    ports: 
+      - "${POSTGRES_PORT}:5432"
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DBNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-man-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8070:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - app-man-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    restart: on-failure
+    networks:
+      - app-man-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    ports: 
+      - "${PROMETHEUS_PORT}:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    restart: on-failure
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - app-man-network
+
+  grafana:
+    image: grafana/grafana:10.1.5
+    container_name: grafana
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DBNAME=${POSTGRES_DBNAME}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB}
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+    restart: on-failure
+    volumes:
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./monitoring/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana-dashboards:/etc/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - postgres
+    networks:
+      - app-man-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - app-man-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "${KAFKA_PORT}:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-man-network
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "${KAFDROP_PORT}:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+    networks:
+      - app-man-network
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    ports:
+      - "${LOKI_PORT}:3100"
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yml
+    command: -config.file=/etc/loki/local-config.yml
+    networks:
+      - app-man-network
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - app-man-network
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    ports:
+      - "${NODE_EXPORTER_PORT}:9100"
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - app-man-network
+
+  cadvisor:
+    image: zcube/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "${CADVISOR_EXPORTER_PORT}:8089"
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    networks:
+      - app-man-network
+    env_file:
+      - .env
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka_exporter
+    ports:
+      - "${KAFKA_EXPORTER_PORT}:9308"
+    restart: unless-stopped
+    command:
+      - --kafka.server=${KAFKA_BROKER_URL}
+      - --web.listen-address=:9308
+      - --log.level=info
+    networks:
+      - app-man-network
+    env_file:
+      - .env
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis_exporter
+    ports:
+      - "${REDIS_EXPORTER_PORT}:9121"
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=${REDIS_ADDR}
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+
+  clickhouse-exporter:
+    image: flant/clickhouse-exporter:latest
+    container_name: clickhouse_exporter
+    env_file:
+      - .env
+    ports:
+      - "${CLICKHOUSE_EXPORTER_PORT}:9116"
+    restart: unless-stopped
+    environment:
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_URL=${CLICKHOUSE_URL}
+    networks:
+      - app-man-network
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres_exporter
+    ports:
+      - "${POSTGRES_EXPORTER_PORT}:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DBNAME}?sslmode=disable
+    networks:
+      - app-man-network
+
+  superset:
+    image: apache/superset:latest
+    container_name: superset
+    env_file:
+      - .env
+    environment:
+      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+    ports:
+      - "${SUPERSET_PORT}:8088"
+    volumes:
+      - superset_data:/app/superset_home
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${SUPERSET_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-man-network
+
+  bot:
+    image: bot:latest
+    container_name: bot
+    restart: unless-stopped
+    build: ./services/bot
+    ports:
+      - "${BOT_PORT}:8080"
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+
+  logs:
+    image: logs:latest
+    build: ./services/logs
+    container_name: logs
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - ${LOGGING_PORT}:8002
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+
+  summarizer:
+    image: summarizer:latest
+    build: ./services/summarizer
+    container_name: summarizer
+    ports:
+      - ${SUMMARIZER_PORT}:${SUMMARIZER_PORT}
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${SUMMARIZER_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
+
+  recomendator:
+    image: recomendator:latest
+    build: ./services/recomendator
+    container_name: recomendator
+    ports:
+      - ${RECOMENDATOR_PORT}:${RECOMENDATOR_PORT}
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${RECOMENDATOR_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
+
+  business_analyzer:
+    image: business_analyzer:latest
+    build: ./services/business_analyzer
+    container_name: business_analyzer
+    ports:
+      - ${BUSINESS_ANALYZER_PORT}:${BUSINESS_ANALYZER_PORT}
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${BUSINESS_ANALYZER_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
+
+  db_service:
+    image: db_service:latest
+    build: ./services/db_service
+    container_name: db_service
+    ports:
+      - ${DB_SERVICE_PORT}:${DB_SERVICE_PORT}
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  email_service:
+    image: email_service:latest
+    build: ./services/email_service
+    container_name: email_service
+    ports:
+      - ${EMAIL_SERVICE_PORT}:${EMAIL_SERVICE_PORT}
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${EMAIL_SERVICE_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
+
+
+
+
+volumes:
+  clickhouse_data:
+  postgres-data:
+  pgadmin_data:
+  prometheus-data:
+  grafana-data:
+  clickhouse_config:
+  superset_data:
+
+networks:
+  app-man-network:
+    driver: bridge

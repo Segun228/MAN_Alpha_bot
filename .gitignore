@@ -1,5 +1,4 @@
-# 📜 Log-files 
-logs  
+# 📜 Log-files  
 venv
 *.log  
 npm-debug.log*  
@@ -94,8 +93,4 @@ pip
 =======
 *.sw?
 
-
-*.json
 *.csv
-*.xlsx
-
