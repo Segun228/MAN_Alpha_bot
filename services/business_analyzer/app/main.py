@@ -119,7 +119,7 @@ async def cjm_analysis(request: Request):
         context = data.get("context")
         business = data.get("business", "Малый бизнес")
         description = data.get("description")
-        if not context:
+        if context is None:
             raise HTTPException(
                 status_code=400,
                 detail="Empty context given"

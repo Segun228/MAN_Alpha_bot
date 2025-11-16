@@ -1044,9 +1044,6 @@ async def analyzer_send_request(message:Message, state:FSMContext):
 
 
 
-#===========================================================================================================================
-# Chat model
-#===========================================================================================================================
 
 
 
@@ -1057,3 +1054,10 @@ async def all_other_messages(message: Message):
     if photo_data:
         photo_to_send = BufferedInputFile(photo_data, filename="cat_error.jpg")
         await message.bot.send_photo(chat_id=message.chat.id, photo=photo_to_send)
+
+
+
+@router.message()
+async def all_other_messages(message: Message):
+    await message.answer("Перенаправляем ваш запрос к нашему чат-ассистенту...")
+    question = message.text()
