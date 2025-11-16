@@ -140,6 +140,6 @@ async def metrics():
     )
 
 
-@app.get("/")
+@app.get("/health")
 def ping():
-    return {"status": "Email sender is alive"}
+    return {"status": "ok"}

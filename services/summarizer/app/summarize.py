@@ -4,71 +4,118 @@ import logging
 import requests
 from fastapi import HTTPException
 from dotenv import load_dotenv
+import aiohttp
+from aiohttp import ClientTimeout
 
 
 load_dotenv()
 
-api_key = os.getenv("CHAT_MODEL_API_KEY")
+api_key = os.getenv("SUMMARIZER_API_KEY")
 URL = os.getenv("OPENROUTER_URL")
 
 if not URL:
     raise ValueError("URL route is not set in .env")
 
 
-def summarize_text(data:dict):
+
+async def summarize_text(data: dict):
+    logger = logging.getLogger(__name__)
+    
     try:
         text = data.get("text")
         words_count = data.get("words_count")
         words_count_prompt = ""
+
         if text is None:
+            logger.warning("Summarize text called with None text")
             raise HTTPException(status_code=400, detail="Invalid text field given")
+
         if not text.strip():
+            logger.warning("Summarize text called with empty text")
             raise HTTPException(status_code=400, detail="Empty text given")
+        
+        logger.info(f"Starting text summarization, text length: {len(text)}, words_count: {words_count}")
+
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://your-app.com",
             "X-Title": "chatbot",
         }
+
         if words_count:
-            words_count_prompt = f"Уложись в {words_count} слов."
+            words_count_prompt = f" Уложись в {words_count} слов."
+            logger.debug(f"Words count constraint: {words_count}")
+        
         system_message = {
             "role": "system",
-            "content": "Ты опытный аналитик. Твоя задача выделить все основные тезисы и важные факты из текста. Суммаризируй текст и распиши каждый выбранный пункт. Будь максимально точен и объективен, сохрани все ключевые моменты, исключи воду и повторения." + words_count_prompt
+            "content": (
+                "Ты опытный аналитик. Твоя задача выделить все основные тезисы и важные факты из текста. "
+                "Суммаризируй текст и распиши каждый выбранный пункт. "
+                "Будь максимально точен и объективен, сохрани все ключевые моменты, исключи воду и повторения."
+                + words_count_prompt
+            )
         }
+
         user_message = {
             "role": "user", 
             "content": f"Вот текст для анализа: {text}"
         }
-        data = {
+
+        payload = {
             "model": "meta-llama/llama-3.1-8b-instruct",
             "messages": [system_message, user_message],
             "temperature": 0.7
         }
+        
         if not URL:
+            logger.error("URL is not set in environment variables")
             raise ValueError("URL route is not set in .env")
-        resp = requests.post(URL, headers=headers, json=data)
-        resp.raise_for_status()
-        response_data = resp.json()
-        return {
-            "success": True,
-            "response": response_data["choices"][0]["message"]["content"],
-            "usage": response_data.get("usage", {}),
-            "model": response_data.get("model")
-        }
-    except requests.exceptions.RequestException as e:
-        logging.error(f"API request failed: {e}")
-        raise HTTPException(status_code=502, detail="External API error")
+
+        timeout = ClientTimeout(total=600)
+        logger.debug(f"Sending request to {URL} with timeout {timeout.total}s")
+        
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(URL, headers=headers, json=payload) as response:
+                
+                response.raise_for_status()
+                response_data = await response.json()
+                
+                logger.info("Text summarization completed successfully")
+                logger.debug(f"API response received, usage: {response_data.get('usage', {})}")
+                
+                return {
+                    "success": True,
+                    "response": response_data["choices"][0]["message"]["content"],
+                    "usage": response_data.get("usage", {}),
+                    "model": response_data.get("model")
+                }
+                
+    except aiohttp.ServerTimeoutError:
+        logger.error("API request timeout exceeded")
+        raise HTTPException(status_code=504, detail="External API timeout")
+        
+    except aiohttp.ServerDisconnectedError:
+        logger.error("API server disconnected during request")
+        raise HTTPException(status_code=502, detail="External API disconnected")
+        
     except KeyError as e:
-        logging.error(f"Invalid API response format: {e}")
-        raise HTTPException(status_code=502, detail="Invalid API response")
+        logger.error(f"Invalid API response format: {e}", exc_info=True)
+        raise HTTPException(status_code=502, detail="Invalid API response format")
+        
+    except aiohttp.ClientError as e:
+        logger.error(f"API request failed: {e}", exc_info=True)
+        raise HTTPException(status_code=502, detail=f"External API error: {str(e)}")
+        
+    except HTTPException:
+        raise
+        
     except Exception as e:
-        logging.error(f"Unexpected error in summarize_text: {e}")
+        logger.error(f"Unexpected error in summarize_text: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-
-def summarize_dialog(data: dict):
+async def summarize_dialog(data: dict):
     try:
         text = data.get("text", "")
         context = data.get("context")

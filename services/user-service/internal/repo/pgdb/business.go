@@ -77,6 +77,7 @@ func (r *BusinessRepo) GetBusinessesByUserID(ctx context.Context, userID int) ([
 	if err != nil {
 		return nil, fmt.Errorf("failed to query row: %w", err)
 	}
+	defer rows.Close()
 
 	var businesses []models.Business
 	for rows.Next() {

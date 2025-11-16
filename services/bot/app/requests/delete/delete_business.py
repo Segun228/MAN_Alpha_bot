@@ -18,10 +18,10 @@ async def delete_business(telegram_id, business_id):
     if not telegram_id or telegram_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
-    
+    logging.info(f"Sending to {base_url+f"businesses/{business_id}/"}")
     async with aiohttp.ClientSession() as session:
         async with session.delete(
-            base_url+f"businesses/{business_id}/", 
+            base_url+f"businesses/{business_id}", 
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
                 "Content-Type": "application/json",

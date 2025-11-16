@@ -63,10 +63,11 @@ async def monitor_requests(request: Request, call_next):
 
 
 
-@app.post("/swot-analysis")
+@app.post("/swot")
 async def swot_analysis(request: Request):
     try:
         data = await request.json()
+        logging.info(data)
         context = data.get("context")
         business = data.get("business", "Малый бизнес")
         description = data.get("description")
@@ -90,21 +91,18 @@ async def swot_analysis(request: Request):
             user_id = data.get("user_id"),
             is_authenticated = True
         )
-        summary = (await get_summary(
-            context = context,
-            business = business,
-            description = description,
-        )).get("response")
-        logging.info(summary)
-        result = generate_analysis(
-            summary = summary,
+
+        result = await generate_analysis(
             words_count = data.get("words_count", None),
-            type = "swot"
+            analysis_type = "swot",
+            description=description,
+            business = business,
+            context = context
         )
         logging.info(result)
         return JSONResponse(
             content=result,
-            media_type="text/plain"
+            media_type="application/json"
         )
     except Exception as e:
         logging.exception(e)
@@ -112,14 +110,14 @@ async def swot_analysis(request: Request):
 
 
 
-@app.post("/customer-journey-map")
+@app.post("/cjm")
 async def cjm_analysis(request: Request):
     try:
         data = await request.json()
         context = data.get("context")
         business = data.get("business", "Малый бизнес")
         description = data.get("description")
-        if not context:
+        if context is None:
             raise HTTPException(
                 status_code=400,
                 detail="Empty context given"
@@ -139,19 +137,17 @@ async def cjm_analysis(request: Request):
             user_id = data.get("user_id"),
             is_authenticated = True
         )
-        summary = (await get_summary(
-            context = context,
-            business = business,
-            description = description,
-        )).get("response")
-        result = generate_analysis(
-            summary = summary,
+
+        result = await generate_analysis(
             words_count = data.get("words_count", None),
-            type = "cjm"
+            analysis_type = "cjm",
+            description=description,
+            business = business,
+            context = context
         )
         return JSONResponse(
             content=result,
-            media_type="text/plain"
+            media_type="application/json"
         )
     except Exception as e:
         logging.exception(e)
@@ -185,19 +181,17 @@ async def business_model_canvas_analysis(request: Request):
             user_id = data.get("user_id"),
             is_authenticated = True
         )
-        summary = (await get_summary(
-            context = context,
-            business = business,
-            description = description,
-        )).get("response")
-        result = generate_analysis(
-            summary = summary,
+
+        result = await generate_analysis(
             words_count = data.get("words_count", None),
-            type = "bmc"
+            analysis_type = "bmc",
+            description=description,
+            business = business,
+            context = context
         )
         return JSONResponse(
             content=result,
-            media_type="text/plain"
+            media_type="application/json"
         )
     except Exception as e:
         logging.exception(e)
@@ -231,19 +225,17 @@ async def value_proposition_canvas_analysis(request: Request):
             user_id = data.get("user_id"),
             is_authenticated = True
         )
-        summary = (await get_summary(
-            context = context,
-            business = business,
-            description = description,
-        )).get("response")
-        result = generate_analysis(
-            summary = summary,
+
+        result = await generate_analysis(
             words_count = data.get("words_count", None),
-            type = "vpc"
+            analysis_type = "vpc",
+            description=description,
+            business = business,
+            context = context
         )
         return JSONResponse(
             content=result,
-            media_type="text/plain"
+            media_type="application/json"
         )
     except Exception as e:
         logging.exception(e)
@@ -277,19 +269,17 @@ async def pest_analysis(request: Request):
             user_id = data.get("user_id"),
             is_authenticated = True
         )
-        summary = (await get_summary(
-            context = context,
-            business = business,
-            description = description,
-        )).get("response")
-        result = generate_analysis(
-            summary = summary,
+
+        result = await generate_analysis(
             words_count = data.get("words_count", None),
-            type = "pest"
+            analysis_type = "pest",
+            description=description,
+            business = business,
+            context = context
         )
         return JSONResponse(
             content=result,
-            media_type="text/plain"
+            media_type="application/json"
         )
     except Exception as e:
         logging.exception(e)
@@ -302,11 +292,11 @@ async def pest_analysis(request: Request):
 async def metrics():
     return Response(
         content=generate_latest(REGISTRY),
-        media_type="text/plain"
+        media_type="application/json"
     )
 
 
 
-@app.get("/")
+@app.get("/health")
 async def ping(request: Request):
-    return {"status": "Business analyzer is alive"}
+    return {"status": "ok"}

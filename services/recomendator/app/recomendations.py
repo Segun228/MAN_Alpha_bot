@@ -5,10 +5,11 @@ import requests
 from fastapi import HTTPException
 from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
+import aiohttp
 
 load_dotenv()
 
-api_key = os.getenv("CHAT_MODEL_API_KEY")
+api_key = os.getenv("RECOMENDATOR_API_KEY")
 
 URL = os.getenv("OPENROUTER_URL")
 if not URL:
@@ -17,78 +18,83 @@ if not api_key:
     raise ValueError("API key is not set in .env")
 
 
-def generate_recomendation(summary, words_count = None):
+
+async def generate_recomendation(context, business, description, words_count=None):
     try:
-        words_count_prompt = ""
-        if summary is None:
-            raise HTTPException(status_code=400, detail="Invalid context field given")
+        if not context:
+            raise HTTPException(status_code=400, detail="Invalid context provided")
+
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://your-app.com",
             "X-Title": "chatbot",
         }
-        if words_count:
-            words_count_prompt = f"Уложись в {words_count} слов."
+
+        words_count_prompt = f" Уложись в {words_count} слов." if words_count else ""
+
         system_message = {
             "role": "system",
-            "content": """
-        Ты опытный бизнес-аналитик. Проанализируй суммаризацию диалога с владельцем бизнеса.
+            "content": f"""
+Ты бизнес-аналитик. Проанализируй диалог с владельцем бизнеса и предложи конкретные идеи для развития.
 
-        ЗАДАЧА:
-        Основываясь на истории диалога, предложи клиенту идеи для развития его бизнеса, возможные инициативы для развития или внедрение новых фичей или проектов, чтобы сделать проект перспективнее и прибыльнее
+{business} {description}
 
-        ТРЕБОВАНИЯ:
-        - Используй только информацию из суммаризации
-        - Не придумывай информацию которой нет в исходных данных  
-        - Действуй в рамках законодательства РФ
-        - Будь объективен и критически оценивай каждую идею
-        - Избегай общих фраз, только конкретные предложения
-        - Пиши меньше воды
-        - Предлагай оригинальные идеи
+Требования:
+- Используй только информацию из диалога
+- Конкретные предложения, без воды
+- В рамках законодательства РФ
+{words_count_prompt}
 
-        ФОРМАТ ОТВЕТА:
+Формат:
 
-        1. КЛЮЧЕВЫЕ ИДЕИ И ИНИЦИАТИВЫ:
-        - Идея 1 с обоснованием
-        - Идея 2 с обоснованием
-        - Идея 3 с обоснованием
+1. ИДЕИ:
+- Идея 1 + обоснование
+- Идея 2 + обоснование  
+- Идея 3 + обоснование
 
-        3. РЕКОМЕНДАЦИИ К РЕАЛИЗАЦИИ:
-        - Рекомендация 1 с конкретными шагами
-        - Рекомендация 2 с конкретными шагами
-        - Рекомендация 3 с конкретными шагами
-        """ + (words_count_prompt if words_count_prompt else "")
+2. РЕАЛИЗАЦИЯ:
+- Шаг 1 (конкретные действия)
+- Шаг 2 (конкретные действия)
+- Шаг 3 (конкретные действия)
+"""
         }
-        user_message = {
-            "role": "user", 
-            "content": f"Дай мне интересные рекомендации или идеи для развития: {str(summary)}"
-        }
-        data = {
+
+        messages = [system_message]
+        
+        if context.get("history"):
+            messages.extend(context["history"])
+        else:
+            messages.extend(context)
+
+        payload = {
             "model": "meta-llama/llama-3.1-8b-instruct",
-            "messages": [system_message, user_message],
+            "messages": messages,
             "temperature": 0.7
         }
+
         if not URL:
             raise ValueError("URL route is not set in .env")
-        resp = requests.post(URL, headers=headers, json=data)
-        resp.raise_for_status()
-        response_data = resp.json()
-        return {
-            "success": True,
-            "response": response_data["choices"][0]["message"]["content"],
-            "usage": response_data.get("usage", {}),
-            "model": response_data.get("model")
-        }
-    except requests.exceptions.RequestException as e:
+
+        timeout = aiohttp.ClientTimeout(total=60)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(URL, headers=headers, json=payload) as resp:
+                resp.raise_for_status()
+                response_data = await resp.json()
+
+                return {
+                    "success": True,
+                    "response": response_data["choices"][0]["message"]["content"],
+                    "usage": response_data.get("usage", {}),
+                    "model": response_data.get("model")
+                }
+
+    except aiohttp.ClientError as e:
         logging.error(f"API request failed: {e}")
         raise HTTPException(status_code=502, detail="External API error")
     except KeyError as e:
         logging.error(f"Invalid API response format: {e}")
-        raise HTTPException(status_code=502, detail="Invalid API response")
+        raise HTTPException(status_code=502, detail="Invalid API response format")
     except Exception as e:
-        logging.error(f"Unexpected error in summarize_text: {e}")
+        logging.error(f"Unexpected error in generate_recomendation: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
-
-

@@ -29,6 +29,7 @@ func (r *UserRepo) GetUsers(ctx context.Context) ([]models.User, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var users []models.User
 	for rows.Next() {
@@ -79,6 +80,35 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID int) (*models.User, e
 		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
+	sql, args, _ = r.Builder.
+		Select("id, name, description, user_id").
+		From("businesses").
+		Where("user_id = ?", user.ID).
+		ToSql()
+
+	rows, err := r.Pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query row: %w", err)
+	}
+	defer rows.Close()
+
+	var businesses []models.Business
+	for rows.Next() {
+		var business models.Business
+		err := rows.Scan(
+			&business.ID,
+			&business.Name,
+			&business.Description,
+			&business.UserID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+		businesses = append(businesses, business)
+	}
+
+	user.Businesses = businesses
+
 	return &user, nil
 }
 
@@ -108,6 +138,35 @@ func (r *UserRepo) GetUserByTgID(ctx context.Context, tgID int64) (*models.User,
 		}
 		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
+
+	sql, args, _ = r.Builder.
+		Select("id, name, description, user_id").
+		From("businesses").
+		Where("user_id = ?", user.ID).
+		ToSql()
+
+	rows, err := r.Pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query row: %w", err)
+	}
+	defer rows.Close()
+
+	var businesses []models.Business
+	for rows.Next() {
+		var business models.Business
+		err := rows.Scan(
+			&business.ID,
+			&business.Name,
+			&business.Description,
+			&business.UserID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+		businesses = append(businesses, business)
+	}
+
+	user.Businesses = businesses
 
 	return &user, nil
 }
@@ -164,10 +223,10 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user models.User) (*models.Us
 		Set("churned", user.Churned).
 		Set("is_admin", user.IsAdmin).
 		Where("id = ?", user.ID).
-		Suffix("RETURNING updated_at").
+		Suffix("RETURNING telegram_id, updated_at").
 		ToSql()
 
-	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&user.UpdatedAt)
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&user.TelegramID, &user.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute sql request: %w", err)

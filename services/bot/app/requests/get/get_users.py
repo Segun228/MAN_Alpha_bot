@@ -20,6 +20,7 @@ async def get_users(telegram_id, tg_id=None):
         request_url = base_url+f"users/tg/{tg_id}"
     else:
         request_url = base_url+"users/"
+    logging.info(f"Sending to {request_url}")
     async with aiohttp.ClientSession() as session:
         async with session.get(
             request_url, 

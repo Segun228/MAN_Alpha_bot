@@ -3,7 +3,8 @@ import logging
 import os
 import re
 from contextlib import asynccontextmanager
-
+from aiohttp import ClientTimeout
+import aiohttp
 import requests
 import uvicorn
 from dotenv import load_dotenv
@@ -16,6 +17,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
+timeout = ClientTimeout(total=360)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -78,22 +80,31 @@ async def get_labels(message):
         data = {
             "model": "meta-llama/llama-3.1-8b-instruct",
             "messages": messages,
-            "temperature": 0.1  # Можно поэксперементировать, пока жесткая граница
+            "temperature": 0.1  # Можно поэкспериментировать, пока жесткая граница
         }
-        resp = requests.post(URL, headers=headers, json=data)
-        resp.raise_for_status()
-        response_data = resp.json()  # Получаем ответ, сразу перегоняем в json
-        return {  # Если всё ок - возвращаем только нужные поля, без лишнего
-            "success": True,
-            "response": response_data["choices"][0]["message"]["content"],
-            "usage": response_data.get("usage", {}),
-            "model": response_data.get("model")
-        }
-    except requests.exceptions.RequestException as e:  # Отлов ошибок, стоит докрутить лог
+
+        timeout = aiohttp.ClientTimeout(
+            total=2100,
+            sock_connect=300,
+            sock_read=1800
+        )
+
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(URL, headers=headers, json=data) as resp:
+                resp.raise_for_status()
+                response_data = await resp.json()
+                return {
+                    "success": True,
+                    "response": response_data["choices"][0]["message"]["content"],
+                    "usage": response_data.get("usage", {}),
+                    "model": response_data.get("model")
+                }
+    except aiohttp.ClientResponseError as e:
+        raise HTTPException(status_code=e.status, detail=f"Ошибка при запросе к OpenRouter: {e.message}")
+    except aiohttp.ClientError as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при запросе к OpenRouter: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Неожиданная ошибка: {str(e)}")
-
 
 async def get_docs_from_category(message, category):
     headers = {  # Прокидываем в заголовке ключик, служебную информацию
@@ -123,24 +134,29 @@ async def get_docs_from_category(message, category):
         "temperature": 1  # Можно поставить выше, пока золотая середина
     }
     try:
-        resp = requests.post(URL, headers=headers, json=data)
-        resp.raise_for_status()
-        response_data = resp.json()  # Получаем ответ, сразу перегоняем в json
-        return {  # Если всё ок - возвращаем только нужные поля, без лишнего
-            "success": True,
-            "response": response_data["choices"][0]["message"]["content"],
-            "usage": response_data.get("usage", {}),
-            "model": response_data.get("model")
-        }
-    except requests.exceptions.RequestException as e:  # Отлов ошибок, стоит докрутить лог
+        timeout = aiohttp.ClientTimeout(total=600)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(URL, headers=headers, json=data) as resp:
+                resp.raise_for_status()  # Проверяем статус ответа
+                response_data = await resp.json()  # Получаем ответ, сразу перегоняем в json
+                
+                return { 
+                    "success": True,
+                    "response": response_data["choices"][0]["message"]["content"],
+                    "usage": response_data.get("usage", {}),
+                    "model": response_data.get("model")
+                }
+                
+    except aiohttp.ClientError as e:  # Отлов ошибок, стоит докрутить лог
         raise HTTPException(status_code=500, detail=f"Ошибка при запросе к OpenRouter: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Неожиданная ошибка: {str(e)}")
 
-
 @app.get("/docs_health")
 async def root():  # Для пинга
-    return {"message": "Document model service is running.", "status": "ok"}
+    if api_key and URL:
+        return {"message": "Document model service is running.", "status": "ok"}
+    return {"message": "ChatBot API key or URL not set", "status": "failed"}
 
 
 @app.post("/generate_response", response_model=GenerateResponse)

@@ -8,7 +8,7 @@ services:
     restart: on-failure
     environment:
       - AUTH_JWT_SIGN_KEY=${AUTH_JWT_SIGN_KEY}
-      - AUTH_BOT_KEY=${AUTH_BOT_KEY}
+      - AUTH_BOT_KEY=${BOT_API_KEY}
     ports:
       - "${API_GATEWAY_PORT}:8081"
     networks:
@@ -25,6 +25,11 @@ services:
     environment:
       - AUTH_JWT_SIGN_KEY=${AUTH_JWT_SIGN_KEY}
       - AUTH_BOT_KEY=${AUTH_BOT_KEY}
+      - SERVICES_CHAT_MODEL_URL=http://chat-model:8082
+      - SERVICES_DOCS_MODEL_URL=http://docs-model:8084
+      - SERVICES_SUMM_MODEL_URL=http://summarizer:${SUMMARIZER_PORT}
+      - SERVICES_RECS_MODEL_URL=http://recomendator:${RECOMENDATOR_PORT}
+      - SERVICES_ANALIZER_URL=http://business_analyzer:${BUSINESS_ANALYZER_PORT}
     ports:
       - "${USER_SERVICE_PORT}:8083"
     networks:
@@ -34,6 +39,8 @@ services:
     build:
       context: ./services/chat_model
     container_name: chat-model
+    ports:
+      - "${CHAT_MODEL_PORT}:${CHAT_MODEL_PORT}"
     restart: on-failure
     environment:
       - OPENROUTER_API_KEY=${CHAT_MODEL_API_KEY}
@@ -42,11 +49,20 @@ services:
       - app-man-network
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -s http://localhost:8082/model_health | grep -q '\"status\":\"ok\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
 
   docs-model:
     build:
       context: ./services/docs_model
     container_name: docs_model
+    ports:
+      - ${DOCUMENT_MODEL_PORT}:${DOCUMENT_MODEL_PORT}
     restart: on-failure
     environment:
       - OPENROUTER_API_KEY=${CHAT_MODEL_API_KEY}
@@ -55,6 +71,13 @@ services:
       - app-man-network
     env_file:
       - .env
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:8084/docs_health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
@@ -98,7 +121,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DBNAME}
     ports: 
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     restart: always
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -107,6 +130,20 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-man-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8070:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
     networks:
       - app-man-network
 
@@ -378,6 +415,13 @@ services:
       - .env
     networks:
       - app-man-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${SUMMARIZER_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
 
   recomendator:
     image: recomendator:latest
@@ -389,6 +433,13 @@ services:
       - .env
     networks:
       - app-man-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${RECOMENDATOR_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
 
   business_analyzer:
     image: business_analyzer:latest
@@ -400,10 +451,56 @@ services:
       - .env
     networks:
       - app-man-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${BUSINESS_ANALYZER_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
+
+  db_service:
+    image: db_service:latest
+    build: ./services/db_service
+    container_name: db_service
+    ports:
+      - ${DB_SERVICE_PORT}:${DB_SERVICE_PORT}
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  email_service:
+    image: email_service:latest
+    build: ./services/email_service
+    container_name: email_service
+    ports:
+      - ${EMAIL_SERVICE_PORT}:${EMAIL_SERVICE_PORT}
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${EMAIL_SERVICE_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
+
+
+
 
 volumes:
   clickhouse_data:
   postgres-data:
+  pgadmin_data:
   prometheus-data:
   grafana-data:
   clickhouse_config:

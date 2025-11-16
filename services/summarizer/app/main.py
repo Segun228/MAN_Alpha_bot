@@ -83,7 +83,7 @@ async def summarize_text_route(request: Request):
             user_id = data.get("user_id"),
             is_authenticated = True
         )
-        result = summarize_text(
+        result = await summarize_text(
             data = data
         )
         return JSONResponse(
@@ -115,7 +115,7 @@ async def summarize_dialog_route(request: Request):
             user_id = data.get("user_id"),
             is_authenticated = True
         )
-        result = summarize_dialog(
+        result = await summarize_dialog(
             data = data
         )
         return JSONResponse(
@@ -138,6 +138,10 @@ async def metrics():
         media_type="text/plain"
     )
 
+
+@app.get("/health")
+async def healthcheck(request: Request):
+    return {"status": "ok"}
 
 
 @app.get("/")

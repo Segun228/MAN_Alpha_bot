@@ -8,7 +8,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 async def put_business(
     telegram_id,
-    busines_id,
     name,
     description,
     business_id
@@ -25,13 +24,13 @@ async def put_business(
     if not telegram_id or telegram_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
-    if not busines_id or busines_id is None:
+    if not business_id or business_id is None:
         logging.error("No base telegram_id was provided")
         raise ValueError("No telegram_id was provided")
-    request_url = f"businesses/{business_id}/"
+    request_url = f"businesses/{business_id}"
     async with aiohttp.ClientSession() as session:
-        async with session.post(
-            request_url,
+        async with session.put(
+            base_url + request_url,
             json={
                 "telegram_id":telegram_id,
                 "name":name,
