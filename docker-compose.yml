@@ -7,7 +7,6 @@ services:
     container_name: api-gateway
     restart: on-failure
     environment:
-      - AUTH_JWT_SIGN_KEY=${AUTH_JWT_SIGN_KEY}
       - AUTH_BOT_KEY=${BOT_API_KEY}
     ports:
       - "${API_GATEWAY_PORT}:8081"
