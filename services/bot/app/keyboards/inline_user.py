@@ -8,6 +8,7 @@ import logging
 main = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="Каталог 📦", callback_data="catalogue")],
+        [InlineKeyboardButton(text="ИИ-инструменты", callback_data="ai_menu")],
         [InlineKeyboardButton(text="👤 Аккаунт", callback_data="account_menu")],
         [InlineKeyboardButton(text="📞 Контакты", callback_data="contacts")]
     ]
@@ -44,6 +45,23 @@ home = InlineKeyboardMarkup(
         [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")],
     ]
 )
+
+
+home_retry = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="Попробовать еще", callback_data="retry_send_lawyer")],
+        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")],
+    ]
+)
+
+
+retry_keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="🔄 Попробовать снова", callback_data="retry_lawyer_question")],
+                [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
+            ]
+        )
+
 
 restart = InlineKeyboardMarkup(
     inline_keyboard=[

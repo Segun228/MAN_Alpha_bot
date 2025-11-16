@@ -8,4 +8,4 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 COPY . .
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8086", "--timeout-keep-alive", "60"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8086", "--timeout-keep-alive", "160"]

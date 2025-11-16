@@ -45,7 +45,7 @@ from app.requests.put.put_business import put_business
 from app.requests.post.post_business import post_business
 from app.requests.delete.delete_business import delete_business
 from app.requests.models.post_chat_model import post_chat_model
-
+from app.requests.models.post_document_model import post_document_model
 
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
@@ -142,7 +142,7 @@ async def callback_start_admin(callback: CallbackQuery, state: FSMContext):
         await state.update_data(telegram_id = data.get("telegram_id"))
         await callback.message.reply("Приветствую, Пользователь! 👋")
         await callback.message.answer("Я ваш личный бизнес асистент")
-        await callback.message.answer(welcome_text, parse_mode="HTML")
+        await callback.message.answer(welcome_text, parse_mode="HTML", reply_markup=inline_keyboards.main)
         await build_log_message(
             telegram_id=callback.from_user.id,
             action="inline",
@@ -511,6 +511,25 @@ async def delete_account_callback(callback: CallbackQuery, state: FSMContext):
 
 
 #===========================================================================================================================
+# AI инструменты меню
+#===========================================================================================================================
+
+
+@router.callback_query(F.data == "ai_menu")
+async def get_ai_catalogue_menu(callback:CallbackQuery):
+    try:
+        await callback.message.answer(
+            "Какие ИИ инструменты вам интересны?",
+            reply_markup=inline_keyboards.catalogue
+        )
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+
+
+
+
+#===========================================================================================================================
 # Каталог
 #===========================================================================================================================
 
@@ -859,6 +878,9 @@ async def get_justice_menu(callback:CallbackQuery, state:FSMContext):
         await callback.message.answer(
             "Подробно опишите интересующий вас вопрос боту. Здесь вам необходимо описать его ОЧЕНЬ точно, так как бот может не понять вольностей интерпритации",
         )
+        await callback.message.answer(
+            "Операция очень тяжелая, при ошибке нажмите 'Повторить'",
+        )
         await state.set_state(states.Lawyer.start)
     except Exception as e:
         logging.exception(e)
@@ -866,30 +888,92 @@ async def get_justice_menu(callback:CallbackQuery, state:FSMContext):
         await state.clear()
 
 @router.message(states.Lawyer.start)
-async def ask_lawyer_question(message:Message, state:FSMContext):
+async def ask_lawyer_question(message: Message, state: FSMContext):
     try:
         user_question = message.text
         if not user_question or not user_question.strip():
             await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
             return
+        
         await message.answer("Я вас понял, дайте секунду подумать...")
-        # TODO
+        await state.update_data(user_question=user_question)
+        
+        result = await post_document_model(
+            telegram_id=message.from_user.id,
+            text=user_question
+        )
+        
+        if result is None:
+            await message.answer(
+                "Модель не смогла дать внятного ответа, попробуйте переформулировать...", 
+                reply_markup=inline_keyboards.home
+            )
+            return
+        await message.answer(
+            result,
+            reply_markup=inline_keyboards.main
+        )
+        await state.clear()
+        
     except Exception as e:
         logging.exception(e)
-        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
+        await message.answer(
+            "Извините, бот немножко устал, попробуйте позже 😢", 
+            reply_markup=inline_keyboards.retry_keyboard
+        )
+        await state.set_state(states.Lawyer.start)
 
+
+@router.callback_query(F.data == "retry_lawyer_question", states.Lawyer.start)
+async def retry_lawyer_question(callback: CallbackQuery, state: FSMContext):
+    try:
+        await callback.answer("Повторяю запрос...")
+        state_data = await state.get_data()
+        user_question = state_data.get('user_question')
+        
+        if not user_question:
+            await callback.message.answer(
+                "Не удалось найти предыдущий вопрос. Пожалуйста, задайте вопрос заново.",
+                reply_markup=inline_keyboards.home
+            )
+            await state.clear()
+            return
+        await callback.message.edit_text("Повторяю запрос, секунду...")
+        result = await post_document_model(
+            telegram_id=callback.from_user.id,
+            text=user_question
+        )
+        if result is None:
+            await callback.message.edit_text(
+                "Модель не смогла дать внятного ответа, попробуйте переформулировать...", 
+                reply_markup=inline_keyboards.home
+            )
+            return
+            
+        await callback.message.edit_text(
+            result,
+            reply_markup=inline_keyboards.main
+        )
+        await state.clear()
+        
+    except Exception as e:
+        logging.exception(e)
+
+        await callback.message.edit_text(
+            "Снова произошла ошибка. Попробовать еще раз?",
+            reply_markup=inline_keyboards.retry_keyboard
+        )
 
 #===========================================================================================================================
 # Idea Generation
 #===========================================================================================================================
 
 
-@router.callback_query(F.data == "personal_lawyer")
+@router.callback_query(F.data == "idea_generation")
 async def generate_idea_start(callback:CallbackQuery, state:FSMContext):
     try:
         await callback.message.answer(
-            "Подробно опишите интересующий вас вопрос боту. Здесь вам необходимо описать его ОЧЕНЬ точно, так как бот может не понять вольностей интерпритации",
+            "Подробно опишите боту то, что ему стоило бы знать при генерации решений и идей",
         )
         await state.set_state(states.Lawyer.start)
     except Exception as e:
@@ -906,7 +990,7 @@ async def return_generated_ides(message:Message, state:FSMContext):
             await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
             return
         await message.answer("Я вас понял, дайте секунду подумать...")
-        # TODO
+        
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)

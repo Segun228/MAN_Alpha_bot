@@ -8,6 +8,8 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+import aiohttp
+import logging
 
 load_dotenv()
 
@@ -109,22 +111,36 @@ async def generate_message(request_data: RequestData):
             "messages": messages,
             "temperature": 0.7
         }
+
         if not URL:
             raise ValueError("URL route is not set in .env")
-        resp = requests.post(URL, headers=headers, json=data)  # Отправляем запрос по api
-        resp.raise_for_status()
-        response_data = resp.json()
+
+        timeout = aiohttp.ClientTimeout(
+            total=300,  
+            connect=300,
+            sock_connect=300,
+            sock_read=300,
+        )
+
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(URL, headers=headers, json=data) as resp:
+                resp.raise_for_status()
+                response_data = await resp.json()
+
         return {
             "success": True,
             "response": response_data["choices"][0]["message"]["content"],
             "usage": response_data.get("usage", {}),
             "model": response_data.get("model")
         }
-    except requests.exceptions.RequestException as e:  # Отлавливаем стандартную ошибку
-        raise HTTPException(status_code=500, detail=f"Ошибка при запросе к OpenRouter: {str(e)}")
-    except Exception as e:  # Отлавливаем остальные ошибки, чтобы сервис не падал, а информативно выводил ошибки
-        raise HTTPException(status_code=500, detail=f"Неожиданная ошибка: {str(e)}")
 
+    except aiohttp.ClientError as e:
+        logging.exception(e)
+        raise HTTPException(status_code=500, detail=f"Ошибка при запросе к OpenRouter: {str(e)}")
+
+    except Exception as e:
+        logging.exception(e)
+        raise HTTPException(status_code=500, detail=f"Неожиданная ошибка: {str(e)}")
 
 @app.get("/model_health")
 async def root():
