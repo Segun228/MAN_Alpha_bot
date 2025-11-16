@@ -24,7 +24,6 @@ func NewRouter(services *service.Services, logger utils.Logger, botApiKey string
 		r.Use(BotAuthMiddleware(botApiKey))
 		newUserRoutes(r, services.User, logger)
 		newBusinessRoutes(r, services.Business, logger)
-		newModelsRoutes(r, services.Models, logger)
 	})
 
 	return r

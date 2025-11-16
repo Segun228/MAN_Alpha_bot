@@ -23,13 +23,8 @@ services:
     depends_on:
       - postgres
     environment:
-      - AUTH_JWT_SIGN_KEY=${AUTH_JWT_SIGN_KEY}
-      - AUTH_BOT_KEY=${AUTH_BOT_KEY}
-      - SERVICES_CHAT_MODEL_URL=http://chat-model:8082
-      - SERVICES_DOCS_MODEL_URL=http://docs-model:8084
-      - SERVICES_SUMM_MODEL_URL=http://summarizer:${SUMMARIZER_PORT}
-      - SERVICES_RECS_MODEL_URL=http://recomendator:${RECOMENDATOR_PORT}
-      - SERVICES_ANALIZER_URL=http://business_analyzer:${BUSINESS_ANALYZER_PORT}
+      - AUTH_BOT_KEY=${BOT_API_KEY}
+      - PG_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DBNAME}?sslmode=disable
     ports:
       - "${USER_SERVICE_PORT}:8083"
     networks:

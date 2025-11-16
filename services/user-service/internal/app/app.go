@@ -61,12 +61,6 @@ func Run(configPath string) {
 
 	deps := service.ServicesDependencies{
 		Repos: repositories,
-
-		ChatModelUrl: cfg.Services.ChatModelUrl,
-		DocsModelUrl: cfg.Services.DocsModelUrl,
-		SummModelUrl: cfg.Services.SummModelUrl,
-		RecsModelUrl: cfg.Services.RecsModelUrl,
-		AnalizerUrl:  cfg.Services.AnalizerUrl,
 	}
 	services := service.NewServices(&deps)
 
