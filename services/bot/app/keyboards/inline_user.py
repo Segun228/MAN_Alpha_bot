@@ -127,6 +127,21 @@ async def get_business_catalogue(
 
 
 
+async def get_precise_catalogue(
+    telegram_id,
+    business_list:list|None = None
+):
+    keyboard = InlineKeyboardBuilder()
+    if business_list is None:
+        business_list = await get_user_business(telegram_id=telegram_id)
+    logging.info(business_list)
+    if business_list and isinstance(business_list, (list, tuple)):
+        for bus in business_list:
+            keyboard.add(InlineKeyboardButton(text=f"{bus.get("name", "business")}", callback_data=f"choose_business_{bus.get("id")}"))
+    keyboard.add(InlineKeyboardButton(text="Назад", callback_data="main_menu"))
+    return keyboard.adjust(1).as_markup()
+
+
 async def get_single_business(
     telegram_id,
     business:dict

@@ -12,6 +12,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 async def post_chat_model(
     telegram_id,
     text=None,
+    description=None,
     business=None,
     context=None,
     symbol_threshold = 20,
@@ -32,11 +33,12 @@ async def post_chat_model(
         raise ValueError("No telegram_id was provided")
     request_url = base_url + "models/chat"
 
-    history = await get_messages(
+    history = (await get_messages(
         telegram_id=telegram_id
-    )
+    ))
     if not history:
         raise ValueError("Could not get history from the server")
+    history = history.get("data")
     result = []
     for el in history:
         if not el.get("message") or len(el.get("message")) < symbol_threshold:

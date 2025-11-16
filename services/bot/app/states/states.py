@@ -14,6 +14,40 @@ class CreateUser(StatesGroup):
     is_admin = State()
 
 
+class ChatModelAsk(StatesGroup):
+    start = State()
+    first = State()
+    second = State()
+    third = State()
+    finish = State()
+    handle = State()
+
+class SummarizeModelAsk(StatesGroup):
+    start = State()
+    first = State()
+    second = State()
+    third = State()
+    finish = State()
+    handle = State()
+
+class DocumentModelAsk(StatesGroup):
+    start = State()
+    first = State()
+    second = State()
+    third = State()
+    finish = State()
+    handle = State()
+
+
+class AnalyserModelAsk(StatesGroup):
+    start = State()
+    first = State()
+    second = State()
+    third = State()
+    finish = State()
+    handle = State()
+
+
 class CreateBusiness(StatesGroup):
     start = State()
     name = State()

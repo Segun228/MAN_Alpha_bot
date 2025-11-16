@@ -44,6 +44,8 @@ from app.requests.get.get_users import get_users
 from app.requests.put.put_business import put_business
 from app.requests.post.post_business import post_business
 from app.requests.delete.delete_business import delete_business
+from app.requests.models.post_chat_model import post_chat_model
+
 
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
@@ -679,6 +681,7 @@ async def create_business_final(message:Message, state:FSMContext):
             await message.answer("Извините, не удалось создать модель бизнеса", reply_markup=inline_keyboards.home)
         else:
             await message.answer("Модель успешно создана!", reply_markup= await inline_keyboards.get_business_catalogue(telegram_id = message.from_user.id))
+        await state.clear()
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
@@ -764,6 +767,7 @@ async def edit_business_final(message:Message, state:FSMContext):
             await message.answer("Извините, не удалось изменить модель бизнеса", reply_markup=inline_keyboards.home)
         else:
             await message.answer("Модель успешно изменена!", reply_markup= await inline_keyboards.get_business_catalogue(telegram_id = message.from_user.id))
+        await state.clear()
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
@@ -816,6 +820,7 @@ async def delete_business_confirm(callback:CallbackQuery, state:FSMContext):
                 "Модель успешно удалена",
                 reply_markup=await inline_keyboards.get_business_catalogue(telegram_id = callback.from_user.id)
             )
+        await state.clear()
     except Exception as e:
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
@@ -834,6 +839,7 @@ async def delete_business_decline(callback:CallbackQuery, state:FSMContext):
                 telegram_id= callback.from_user.id
             )
         )
+        await state.clear()
     except Exception as e:
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
@@ -1044,20 +1050,60 @@ async def analyzer_send_request(message:Message, state:FSMContext):
 
 
 
-
-
-
 @router.message()
-async def all_other_messages(message: Message):
-    await message.answer("Неизвестная команда 🧐")
-    photo_data = await get_cat_error_async()
-    if photo_data:
-        photo_to_send = BufferedInputFile(photo_data, filename="cat_error.jpg")
-        await message.bot.send_photo(chat_id=message.chat.id, photo=photo_to_send)
+async def chat_model_answer(message: Message, state:FSMContext, threshold = 5):
+    try:
+        await message.answer("Перенаправляем ваш запрос к нашему чат-ассистенту...")
+        question = message.text
+        if not question or len(question) < threshold:
+            await message.answer("Неизвестная команда 🧐")
+            await message.answer("Если вы хотите что-то спросить у чат-бота, раскройте более подробно свой вопрос пожалуйста")
+        await state.set_state(states.ChatModelAsk.start)
+        await state.update_data(question = question)
+        await message.answer(
+            "К какому из ваших проектов относится данный вопрос?\n\nЭто нужно нам для более точного понимания ваших потребностей...",
+            reply_markup= await inline_keyboards.get_precise_catalogue(telegram_id=message.from_user.id)
+        )
+    except Exception as e:
+        logging.exception(e)
+        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
 
-
-
-@router.message()
-async def all_other_messages(message: Message):
-    await message.answer("Перенаправляем ваш запрос к нашему чат-ассистенту...")
-    question = message.text()
+@router.callback_query(F.data.startswith("choose_business_"), states.ChatModelAsk.start)
+async def chat_model_finish(callback:CallbackQuery, state:FSMContext):
+    try:
+        data = await state.get_data()
+        question = data.get("question")
+        if not question:
+            await callback.message.answer("Извините, бот забыл про какой бизнес мы говорили 🥲\n\nПроблема на нашей стороне 👨‍🔧")
+            raise ValueError("Error while memorising the question")
+        business_id = int(callback.data.strip().split("_")[2])
+        current_business = await get_business(
+            telegram_id=callback.from_user.id,
+            business_id=business_id
+        )
+        if not current_business:
+            await callback.message.answer("Извините, бот не смог найти ваш бизнес 🥲\n\nПроблема на нашей стороне 👨‍🔧")
+            raise ValueError("Error while memorising the question")
+        await callback.message.answer("Ассистент думает, подождите пожалуйста...")
+        response = await post_chat_model(
+            telegram_id=callback.from_user.id,
+            text = question,
+            description = current_business.get("description"),
+            business = current_business.get("name"),
+        )
+        logging.info(response)
+        if not response:
+            await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
+            return
+        await callback.message.answer(
+            response,
+            reply_markup=await inline_keyboards.get_single_business(
+                telegram_id=callback.from_user.id,
+                business=current_business
+            )
+        )
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
