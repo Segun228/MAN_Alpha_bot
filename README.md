@@ -1,3 +1,25 @@
+# Man Alpha Hach Bot
+
+![Go](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![ClickHouse](https://img.shields.io/badge/ClickHouse-FFCC01?style=for-the-badge&logo=clickhouse&logoColor=black)
+![Swagger](https://img.shields.io/badge/Swagger-OpenAPI-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
+![Loki](https://img.shields.io/badge/Loki-5A5A5A?style=for-the-badge&logo=grafana&logoColor=white)
+![Promtail](https://img.shields.io/badge/Promtail-5A5A5A?style=for-the-badge&logo=grafana&logoColor=white)
+![Node Exporter](https://img.shields.io/badge/Node_Exporter-CC0000?style=for-the-badge&logo=prometheus&logoColor=white)
+![cAdvisor](https://img.shields.io/badge/cAdvisor-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Kafka](https://img.shields.io/badge/Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white)
+![Zookeeper](https://img.shields.io/badge/Zookeeper-FF6A00?style=for-the-badge&logo=apache&logoColor=white)
+![Kafdrop](https://img.shields.io/badge/Kafdrop-000000?style=for-the-badge)
+![OpenRouter](https://img.shields.io/badge/OpenRouter-0A0A0A?style=for-the-badge&logo=openai&logoColor=white)
+![Status](https://img.shields.io/badge/Status-In_Development-blue?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
+
 <h1>📌 Описание</h1>
 Проект являетеся реализацией цифрового ассистента владельца Среднего или Малого бизнеса, который может ускорить решение
 повседневных задач, дать идею по развитию или помочь в поиске нормативного документа. Система построена на микросервисной
