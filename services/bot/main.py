@@ -11,6 +11,7 @@ from app.middlewares.metrics import MetricsMiddleware
 from app.middlewares.history import TextMessageLoggerMiddleware
 from app.middlewares.length import MessageLengthMiddleware
 from app.middlewares.swear import SwearMiddleware
+from app.middlewares.security import SecurityMiddleware
 
 from app.handlers import admin_handlers
 from app.handlers import user_handlers
@@ -48,6 +49,7 @@ dp.message.middleware(ThrottlingMiddleware(limit=0.5))
 dp.message.middleware(TextMessageLoggerMiddleware())
 dp.message.middleware(MessageLengthMiddleware())
 dp.message.middleware(SwearMiddleware())
+dp.message.middleware(SecurityMiddleware())
 
 async def main():
     logging.info("Starting bot with long polling...")

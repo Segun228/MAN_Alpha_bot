@@ -212,11 +212,21 @@ async def admin_user_enter_email(message: Message, state: FSMContext):
 @router.message(CreateUser.email)
 async def admin_user_enter_password(message: Message, state: FSMContext):
     try:
-        password = message.text
-        if password:
-            password = password.strip()
-        await state.update_data(password = password)
-        await message.answer("Пароль получен!")
+        try:
+            password = message.text.strip() if message.text else ""
+            await state.update_data(password=password)
+            hidden_password = "•" * len(password) if password else "не указан"
+            await message.answer(f"✅ Пароль получен: {hidden_password}")
+            try:
+                await message.delete()
+            except Exception as e:
+                logging.exception(e)
+                try:
+                    await message.edit_text("🔒 [пароль скрыт]")
+                except Exception as e:
+                    logging.exception(e)
+        except Exception as e:
+            logging.exception(e)
         data = await state.get_data()
         login = data.get("login")
         email = data.get("email")

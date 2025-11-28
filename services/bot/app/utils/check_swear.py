@@ -277,7 +277,7 @@ SWEAR_FILTER_WORDS = {
 def chech_swearing_number(message:str):
     if not message or not message.strip():
         return 0
-    words = message.split()
+    words = message.lower().split()
     total_counter = 0
     for word in words:
         if word in SWEAR_FILTER_WORDS:
