@@ -1,4 +1,6 @@
 import re
+import logging
+
 
 INJECTION_PHRASES = {
     'игнорируй', 'забудь', 'проигнорируй', 'не обращай внимания',
@@ -20,7 +22,6 @@ INJECTION_PHRASES = {
     'сними ограничения', 'убери фильтры', 'отключи безопасность',
     'я разработчик', 'я тестировщик', 'я админ',
     'для отладки', 'для тестирования системы',
-    'пожалуйста', 'пжлст', 'плз', 'прошу тебя',
     
     'dan', 'дэн', 'do anything now',
     'jailbreak', 'джейлбрейк', 'взлом',
@@ -57,10 +58,10 @@ INJECTION_KEYWORDS = {
     'игнорируй', 'забудь', 'проигнорируй', 'прекрати', 'остановись', 'хватит', 'перестань',
     'сбрось', 'сброс', 'обнули', 'рестарт', 'перезапуск', 'отключи', 'выключи',
     
-    'действуй', 'веди', 'представь', 'притворись', 'изобрази',
+    'представь', 'притворись', 'изобрази',
     
     'промпт', 'промт', 'инструкция', 'правила', 'конфигурация', 'настройки',
-    'покажи', 'выведи', 'скажи', 'напиши', 'расскажи', 'открой',
+    'покажи', 'выведи', 'открой',
     
     'тест', 'эксперимент', 'учёба', 'исследование', 'отладка', 'тестирование',
     'сними', 'убери', 'отключи', 'отмени', 'отмени', 'игнор', 'обойди',
@@ -91,12 +92,13 @@ def check_prompt_number(message: str):
     message_lower = message.lower()
     total_counter = 0
     
-    word_pattern = r'\b(' + '|'.join(map(re.escape, INJECTION_KEYWORDS)) + r')\b'
-    word_matches = re.findall(word_pattern, message_lower)
-    total_counter += len(word_matches)
+    for word in message_lower.strip().split():
+        if word in INJECTION_KEYWORDS:
+            total_counter += 1
 
     for phrase in INJECTION_PHRASES:
         if phrase in message_lower:
+            logging.error(f"Recieved prohibited phrase {phrase}")
             total_counter += 1
     
     return total_counter

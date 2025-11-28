@@ -49,6 +49,9 @@ from app.requests.models.post_document_model import post_document_model
 from app.requests.models.post_summarize_model import post_summarize_model
 from app.requests.models.post_idea_model import post_idea_model
 from app.requests.models.post_analysis_model import post_analysis_model
+from app.utils.reaction_handler import ReactionManager
+
+reactioner = ReactionManager()
 
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
@@ -164,12 +167,17 @@ async def callback_start_admin(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message(CreateUser.start_creating)
-async def start_admin_user_create(message: Message, state: FSMContext):
+async def start_admin_user_create(message: Message, state: FSMContext, bot:Bot):
     try:
         login = message.text
         if login:
             login = login.strip()
         await state.update_data(login = login)
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🤝"
+        )
         await message.answer("Имя получено!")
         await message.answer("Введите ваше почту")
         await state.set_state(CreateUser.login)
@@ -690,8 +698,13 @@ async def create_business_name(message:Message, state:FSMContext):
 
 
 @router.message(states.CreateBusiness.description)
-async def create_business_final(message:Message, state:FSMContext):
+async def create_business_final(message:Message, state:FSMContext, bot:Bot):
     try:
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="❤️"
+        )
         description = message.text
         if description is None or not description or not description.strip():
             await message.answer("Извините, не удалось прочесть название, напишите еще раз")
@@ -1253,7 +1266,7 @@ async def pest_analysis(callback:CallbackQuery, state:FSMContext):
 
 
 @router.message(states.Analysys.swot)
-async def analyzer_send_request(message:Message, state:FSMContext):
+async def analyzer_send_request(message:Message, state:FSMContext, bot:Bot):
     try:
         user_question = message.text
         if not user_question or not user_question.strip():
@@ -1265,6 +1278,11 @@ async def analyzer_send_request(message:Message, state:FSMContext):
         await message.answer(
             "К какому из ваших проектов относится данный вопрос?",
             reply_markup=await inline_keyboards.get_precise_catalogue(telegram_id=message.from_user.id)
+        )
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🤔"
         )
         await state.set_state(states.Analysys.cjm)
 
@@ -1323,7 +1341,7 @@ async def business_analysis_finish(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message()
-async def chat_model_answer(message: Message, state:FSMContext, threshold = 5):
+async def chat_model_answer(message:Message, state:FSMContext, bot:Bot, threshold = 5):
     try:
         await message.answer("Перенаправляем ваш запрос к нашему чат-ассистенту...")
         question = message.text
@@ -1335,6 +1353,11 @@ async def chat_model_answer(message: Message, state:FSMContext, threshold = 5):
         await message.answer(
             "К какому из ваших проектов относится данный вопрос?\n\nЭто нужно нам для более точного понимания ваших потребностей...",
             reply_markup= await inline_keyboards.get_precise_catalogue(telegram_id=message.from_user.id)
+        )
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🤔"
         )
     except Exception as e:
         logging.exception(e)

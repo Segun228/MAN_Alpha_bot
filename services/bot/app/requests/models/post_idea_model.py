@@ -39,7 +39,8 @@ async def post_idea_model(
     ))
     if not history:
         raise ValueError("Could not get history from the server")
-    history = history.get("data")
+    if isinstance(history, dict):
+        history = history.get("data")
     result = []
     for el in history:
         if not el.get("message") or len(el.get("message")) < symbol_threshold:
