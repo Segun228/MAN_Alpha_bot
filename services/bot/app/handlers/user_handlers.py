@@ -98,7 +98,7 @@ welcome_text = """
 """
 
 @router.message(CommandStart())
-async def cmd_start_admin(message: Message, state: FSMContext):
+async def cmd_start_admin(message: Message, state: FSMContext, bot:Bot):
     try:
         data = await login(telegram_id=message.from_user.id)
         if data is None:
@@ -111,6 +111,11 @@ async def cmd_start_admin(message: Message, state: FSMContext):
             await message.answer("Ой, вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
             await message.answer("Введите ваше имя")
             return
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🤝"
+        )
         await state.update_data(telegram_id = data.get("telegram_id"))
         await message.reply("Приветствую, Пользователь! 👋")
         await message.answer("Я ваш личный бизнес асистент")
@@ -195,11 +200,16 @@ async def start_admin_user_create(message: Message, state: FSMContext, bot:Bot):
 
 
 @router.message(CreateUser.login)
-async def admin_user_enter_email(message: Message, state: FSMContext):
+async def admin_user_enter_email(message: Message, state: FSMContext, bot:Bot):
     try:
         email = message.text
         if email:
             email = email.strip()
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="✍️"
+        )
         await state.update_data(email = email)
         await message.answer("Почта получена!")
         await message.answer("Введите ваш пароль")
@@ -265,13 +275,18 @@ async def admin_user_enter_password(message: Message, state: FSMContext):
 
 
 @router.message(Command("help"))
-async def cmd_help(message: Message):
+async def cmd_help(message: Message, bot:Bot):
     try:
         await build_log_message(
             telegram_id=message.from_user.id,
             action="command", 
             source="command",
             payload="help"
+        )
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="❤️‍🔥"
         )
         help_text = """
     <b>🤖 Бизнес-Аналитик AI</b> - ваш персональный помощник в развитии бизнеса!
@@ -311,7 +326,7 @@ async def cmd_help(message: Message):
 
 
 @router.message(Command("contacts"))
-async def cmd_contacts(message: Message):
+async def cmd_contacts(message: Message, bot:Bot):
     try:
         await build_log_message(
             telegram_id=message.from_user.id,
@@ -345,6 +360,11 @@ async def cmd_contacts(message: Message):
     <b>📧 Альтернативные способы связи:</b>
     Для срочных вопросов используйте Telegram
     """
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🧑‍💻"
+        )
         contacts_text = (
             contacts_text
         )
@@ -358,7 +378,7 @@ async def cmd_contacts(message: Message):
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
 
 @router.message(Command("info"))
-async def cmd_info(message: Message):
+async def cmd_info(message: Message, bot:Bot):
     try:
         await build_log_message(
             telegram_id=message.from_user.id,
@@ -366,7 +386,11 @@ async def cmd_info(message: Message):
             source="command",
             payload="info"
         )
-        
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="✍️"
+        )
         info_text = """
     <b>🏢 О Business Analyst AI</b>
 
@@ -638,7 +662,7 @@ async def create_business_start(callback:CallbackQuery, state:FSMContext):
 
 
 @router.message(states.CreateBusiness.start)
-async def create_business_name(message:Message, state:FSMContext):
+async def create_business_name(message:Message, state:FSMContext, bot:Bot):
     try:
         name = message.text
         if name is None or not name or not name.strip():
@@ -647,6 +671,11 @@ async def create_business_name(message:Message, state:FSMContext):
         if len(name) > 500:
             await message.answer("Название слишком большое, постарайтесь описать его лаконичнее")
             return
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🫡"
+        )
         await state.update_data(name = name)
         await state.set_state(states.CreateBusiness.description)
         await message.answer(
@@ -703,7 +732,7 @@ async def create_business_final(message:Message, state:FSMContext, bot:Bot):
         await reactioner.add_reaction(
             bot=bot,
             message=message,
-            emoji="❤️"
+            emoji="✍️"
         )
         description = message.text
         if description is None or not description or not description.strip():
@@ -756,7 +785,7 @@ async def edit_business_start(callback:CallbackQuery, state:FSMContext):
 
 
 @router.message(states.EditBusiness.start)
-async def edit_business_name(message:Message, state:FSMContext):
+async def edit_business_name(message:Message, state:FSMContext, bot:Bot):
     try:
         name = message.text
         if name is None or not name or not name.strip():
@@ -765,6 +794,11 @@ async def edit_business_name(message:Message, state:FSMContext):
         if len(name) > 500:
             await message.answer("Название слишком большое, постарайтесь описать его лаконичнее")
             return
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🤝"
+        )
         await state.update_data(name = name)
         await state.set_state(states.EditBusiness.description)
         await message.answer(
@@ -785,9 +819,14 @@ async def edit_business_name(message:Message, state:FSMContext):
 
 
 @router.message(states.EditBusiness.description)
-async def edit_business_final(message:Message, state:FSMContext):
+async def edit_business_final(message:Message, state:FSMContext, bot:Bot):
     try:
         description = message.text
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🔥"
+        )
         if description is None or not description or not description.strip():
             await message.answer("Извините, не удалось прочесть название, напишите еще раз")
             return
@@ -914,9 +953,14 @@ async def get_justice_menu(callback:CallbackQuery, state:FSMContext):
         await state.clear()
 
 @router.message(states.Lawyer.start)
-async def ask_lawyer_question(message: Message, state: FSMContext):
+async def ask_lawyer_question(message: Message, state: FSMContext, bot:Bot):
     try:
         user_question = message.text
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🔥"
+        )
         if not user_question or not user_question.strip():
             await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
             return
@@ -1091,7 +1135,7 @@ async def get_information_structure(callback:CallbackQuery, state:FSMContext):
 
 
 @router.message(states.Summarizer.start)
-async def summarizer_send_request(message:Message, state:FSMContext):
+async def summarizer_send_request(message:Message, state:FSMContext, bot:Bot):
     try:
         user_question = message.text
         await state.update_data(
@@ -1101,6 +1145,11 @@ async def summarizer_send_request(message:Message, state:FSMContext):
             await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
             return
         await message.answer("Я вас понял, дайте секунду сформулировать...")
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="✍️"
+        )
         result = await post_summarize_model(
             telegram_id = message.from_user.id,
             text = user_question
