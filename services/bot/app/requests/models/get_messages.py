@@ -37,7 +37,7 @@ async def get_messages(telegram_id, offset = 3, base_url = None)->Any | dict[str
             if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
                 data = data.get("data")
-                logging.info(f"Данные успешно получены! {data}")
+                logging.info("Данные успешно получены!")
                 if len(data) > offset:
                     return data[:offset]
                 return data

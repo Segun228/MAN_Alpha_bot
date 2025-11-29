@@ -95,7 +95,8 @@ async def defend_prompt(request: Request):
             prompt=prompt,
             words_count=words_count
         )
-
+        logging.info(f"Request {prompt} is {'safe' if result.get('is_safe') else 'NOT safe'}")
+        logging.info(f"{result.get('is_safe')}")
         return JSONResponse(
             content=result,
             status_code=200

@@ -234,7 +234,6 @@ async def admin_user_enter_password(message: Message, state: FSMContext):
             password = message.text.strip() if message.text else ""
             await state.update_data(password=password)
             hidden_password = "•" * len(password) if password else "не указан"
-            await message.answer(f"✅ Пароль получен: {hidden_password}")
             try:
                 await message.delete()
             except Exception as e:
@@ -243,6 +242,10 @@ async def admin_user_enter_password(message: Message, state: FSMContext):
                     await message.edit_text("🔒 [пароль скрыт]")
                 except Exception as e:
                     logging.exception(e)
+            if len(password) < 6:
+                await message.answer("Извините, ваш пароль слишком короткий! Сделайте его больше 6 символов пожалуйста...")
+                return
+            await message.answer(f"✅ Пароль получен: {hidden_password}")
         except Exception as e:
             logging.exception(e)
         data = await state.get_data()
@@ -493,6 +496,7 @@ async def main_menu_callback(callback: CallbackQuery):
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
 
+
 #===========================================================================================================================
 # Взаимодействие с аккаунтом
 #===========================================================================================================================
@@ -628,7 +632,6 @@ async def get_single_business_menu(callback:CallbackQuery):
         if not current_business:
             await callback.message.answer("Извините, не смогли найти ваш бизнес", reply_markup=inline_keyboards.home)
             return
-        logging.info(str(current_business))
         await callback.message.answer(
 f"""
 <b>🏢 {current_business.get("name")}</b>
@@ -771,7 +774,6 @@ async def create_business_final(message:Message, state:FSMContext, bot:Bot):
 @router.callback_query(F.data.startswith("edit_business_"))
 async def edit_business_start(callback:CallbackQuery, state:FSMContext):
     try:
-        logging.info(callback.data)
         business_id = int(callback.data.strip().split("_")[2])
         await state.update_data(business_id = business_id)
         await state.set_state(states.EditBusiness.start)
@@ -867,7 +869,6 @@ async def edit_business_final(message:Message, state:FSMContext, bot:Bot):
 @router.callback_query(F.data.startswith("delete_business_"))
 async def delete_business_start(callback:CallbackQuery, state:FSMContext):
     try:
-        logging.info(callback.data)
         business_id = int(callback.data.strip().split("_")[2])
         await state.update_data(business_id = business_id)
         await state.set_state(states.EditBusiness.start)
@@ -1100,8 +1101,6 @@ async def idea_generator_finish(callback: CallbackQuery, state: FSMContext):
             business=current_business.get("name"),
         )
         
-        logging.info(response)
-        
         if not response:
             await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
             return
@@ -1170,8 +1169,6 @@ async def summarizer_send_request(message:Message, state:FSMContext, bot:Bot):
                 result.get("response"),
                 reply_markup=inline_keyboards.main
             )
-        else:
-            logging.info(result)
         await state.clear()
         
     except Exception as e:
@@ -1372,7 +1369,6 @@ async def business_analysis_finish(callback: CallbackQuery, state: FSMContext):
             analysis_type=analyzys_type,
             offset = 0
         )
-        logging.info(response)
         if not response:
             await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
             return
@@ -1436,7 +1432,6 @@ async def chat_model_finish(callback:CallbackQuery, state:FSMContext):
             description = current_business.get("description"),
             business = current_business.get("name"),
         )
-        logging.info(response)
         if not response:
             await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
             return

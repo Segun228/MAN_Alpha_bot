@@ -12,6 +12,7 @@ from app.middlewares.history import TextMessageLoggerMiddleware
 from app.middlewares.length import MessageLengthMiddleware
 from app.middlewares.swear import SwearMiddleware
 from app.middlewares.security import SecurityMiddleware
+from app.middlewares.defender import DefenderMiddleware
 
 from app.handlers import admin_handlers
 from app.handlers import user_handlers
@@ -45,6 +46,7 @@ dp.include_router(user_router)
 dp.include_router(catcher_router)
 
 
+dp.message.middleware(DefenderMiddleware())
 dp.message.middleware(ThrottlingMiddleware(limit=0.5))
 dp.message.middleware(TextMessageLoggerMiddleware())
 dp.message.middleware(MessageLengthMiddleware())

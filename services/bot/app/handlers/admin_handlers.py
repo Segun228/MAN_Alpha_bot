@@ -276,7 +276,6 @@ async def give_acess_admin(callback: CallbackQuery, state: FSMContext, bot:Bot):
             logging.error("Ошибка предоставления доступа")
             await bot.send_message(chat_id=int(user_id), text="К сожалению, вам было отказано в предоставлении прав администратора", reply_markup=inline_keyboards.home)
         else:
-            logging.info(response)
             await callback.message.answer("Права администратора были успешно предоставлены", reply_markup=inline_keyboards.home)
             await bot.send_message(chat_id=user_id, text="Вам были предоставлены права администратора", reply_markup=inline_keyboards.home)
     except Exception as e:
@@ -432,6 +431,7 @@ async def summarize_results(message: Message, state: FSMContext, bot: Bot):
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+    finally:
         await state.clear()
 
 

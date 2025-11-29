@@ -19,7 +19,7 @@ if not api_key:
 
 
 
-async def check_prompt(prompt, words_count=None):
+async def check_prompt(prompt, words_count=None)->dict:
     try:
         if not prompt:
             raise HTTPException(status_code=400, detail="Invalid prompt provided")
