@@ -1,17 +1,18 @@
 FROM python:3.11-slim
 
-# --- Системные зависимости ---
-RUN apt-get update && apt-get install -y git && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    libstdc++6 \
+    libgomp1 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# --- Обновление pip ---
 RUN pip install --upgrade pip
 
-# --- Установка зависимостей ---
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
+
 RUN pip install \
     fastapi \
-    uvicorn \
-    torch \
+    uvicorn[standard] \
     transformers \
     accelerate \
     sentencepiece \
