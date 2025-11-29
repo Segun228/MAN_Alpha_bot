@@ -1,4 +1,4 @@
-from app.handlers.router import admin_router as router
+from app.handlers.router import user_router as router
 import logging
 import re
 import zipfile
