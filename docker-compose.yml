@@ -417,6 +417,24 @@ services:
       start_period: 40s
       start_interval: 5s
 
+  defender:
+    image: defender:latest
+    build: ./services/defender
+    container_name: defender
+    ports:
+      - ${DEFENDER_PORT}:${DEFENDER_PORT}
+    env_file:
+      - .env
+    networks:
+      - app-man-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -s http://localhost:${DEFENDER_PORT}/health | grep -q '\"status\":\"ok\"'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      start_interval: 5s
+
   recomendator:
     image: recomendator:latest
     build: ./services/recomendator
