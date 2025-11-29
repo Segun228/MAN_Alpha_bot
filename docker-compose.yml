@@ -13,6 +13,22 @@ services:
     networks:
       - app-man-network
 
+  model-service:
+    build:
+      context: .
+      dockerfile: ./services/model/Dockerfile
+    container_name: model-service
+    restart: on-failure
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+    volumes:
+      - hf-model-cache:/root/.cache/huggingface
+    ports:
+      - "${MODEL_PORT}:8095"
+    networks:
+      - app-man-network
+
+  
   user-service:
     build: 
       context: .
@@ -291,7 +307,6 @@ services:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     privileged: true
     networks:
@@ -499,6 +514,7 @@ volumes:
   grafana-data:
   clickhouse_config:
   superset_data:
+  hf-model-cache:
 
 networks:
   app-man-network:
