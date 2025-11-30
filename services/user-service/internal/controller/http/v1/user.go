@@ -2,7 +2,6 @@ package v1
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/models"
@@ -37,20 +36,6 @@ func newUserRoutes(r chi.Router, userService service.User, logger utils.Logger) 
 	})
 }
 
-func writeError(w http.ResponseWriter, status int, msg string) {
-	w.Header().Set("Content-Type", "application/json")
-
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
-}
-
-func writeJSON(w http.ResponseWriter, status int, data any) {
-	w.Header().Set("Content-Type", "application/json")
-
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(data)
-}
-
 // @Summary Get all users
 // @Description Получить список всех пользователей
 // @Tags users
@@ -70,24 +55,6 @@ func (ur *userRoutes) getAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, users)
-}
-
-func parseIDParam(idParam string) (int, error) {
-	var id int
-	_, err := fmt.Sscanf(idParam, "%d", &id)
-	if err != nil {
-		return 0, err
-	}
-	return id, nil
-}
-
-func parseTgIDParam(tgIDParam string) (int64, error) {
-	var tgID int64
-	_, err := fmt.Sscanf(tgIDParam, "%d", &tgID)
-	if err != nil {
-		return 0, err
-	}
-	return tgID, nil
 }
 
 // @Summary Get user by ID
