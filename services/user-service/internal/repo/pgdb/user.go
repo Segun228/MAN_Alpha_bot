@@ -193,6 +193,21 @@ func (r *UserRepo) CreateUser(ctx context.Context, user models.User) (*models.Us
 }
 
 func (r *UserRepo) AddBusinessToUser(ctx context.Context, userID int, business models.Business) (*models.User, error) {
+	checkUserSql, checkUserArgs, _ := r.Builder.
+		Select("id").
+		From("users").
+		Where("id = ?", userID).
+		ToSql()
+
+	var id int
+	err := r.Pool.QueryRow(ctx, checkUserSql, checkUserArgs...).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoerrors.ErrOwnerNotFound
+		}
+		return nil, fmt.Errorf("failed to execute sql request: %w", err)
+	}
+
 	sql, args, _ := r.Builder.
 		Insert("businesses").
 		Columns("name", "description", "user_id").
@@ -200,7 +215,7 @@ func (r *UserRepo) AddBusinessToUser(ctx context.Context, userID int, business m
 		Suffix("RETURNING id").
 		ToSql()
 
-	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&business.ID)
+	err = r.Pool.QueryRow(ctx, sql, args...).Scan(&business.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute sql request: %w", err)
 	}
@@ -215,6 +230,21 @@ func (r *UserRepo) AddBusinessToUser(ctx context.Context, userID int, business m
 }
 
 func (r *UserRepo) UpdateUser(ctx context.Context, user models.User) (*models.User, error) {
+	checkUserSql, checkUserArgs, _ := r.Builder.
+		Select("id").
+		From("users").
+		Where("id = ?", user.ID).
+		ToSql()
+
+	var id int
+	err := r.Pool.QueryRow(ctx, checkUserSql, checkUserArgs...).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoerrors.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to execute sql request: %w", err)
+	}
+
 	sql, args, _ := r.Builder.
 		Update("users").
 		Set("login", user.Login).
@@ -226,7 +256,7 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user models.User) (*models.Us
 		Suffix("RETURNING telegram_id, updated_at").
 		ToSql()
 
-	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&user.TelegramID, &user.UpdatedAt)
+	err = r.Pool.QueryRow(ctx, sql, args...).Scan(&user.TelegramID, &user.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute sql request: %w", err)
@@ -236,12 +266,27 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user models.User) (*models.Us
 }
 
 func (r *UserRepo) DeleteUser(ctx context.Context, userID int) error {
+	checkUserSql, checkUserArgs, _ := r.Builder.
+		Select("id").
+		From("users").
+		Where("id = ?", userID).
+		ToSql()
+
+	var id int
+	err := r.Pool.QueryRow(ctx, checkUserSql, checkUserArgs...).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return repoerrors.ErrNotFound
+		}
+		return fmt.Errorf("failed to execute sql request: %w", err)
+	}
+
 	sql, args, _ := r.Builder.
 		Delete("users").
 		Where("id = ?", userID).
 		ToSql()
 
-	_, err := r.Pool.Exec(ctx, sql, args...)
+	_, err = r.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("failed to execute sql request: %w", err)
 	}

@@ -98,13 +98,28 @@ func (r *ReportsRepo) GetReportByID(ctx context.Context, reportID int) (*models.
 }
 
 func (r *ReportsRepo) CreateReport(ctx context.Context, report models.Report) (*models.Report, error) {
+	checkSql, checkArgs, _ := r.Builder.
+		Select("id").
+		From("users").
+		Where("id = ?", report.UserID).
+		ToSql()
+
+	var id int
+	err := r.Pool.QueryRow(ctx, checkSql, checkArgs...).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoerrors.ErrOwnerNotFound
+		}
+		return nil, err
+	}
+
 	sql, args, _ := r.Builder.
 		Insert("reports").
 		Columns("user_id", "name", "users", "customers", "avp", "apc", "tms", "cogs", "cogs1s", "fc", "rr", "agr").
 		Values(report.UserID, report.Name, report.Users, report.Customers, report.AVP, report.APC, report.TMS, report.COGS, report.COGS1s, report.FC, report.RR, report.AGR).
 		Suffix("RETURNING id, created_at, updated_at").
 		ToSql()
-	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
+	err = r.Pool.QueryRow(ctx, sql, args...).Scan(
 		&report.ID,
 		&report.CreatedAt,
 		&report.UpdatedAt,
@@ -117,6 +132,21 @@ func (r *ReportsRepo) CreateReport(ctx context.Context, report models.Report) (*
 }
 
 func (r *ReportsRepo) UpdateReport(ctx context.Context, report models.Report) (*models.Report, error) {
+	checkSql, checkArgs, _ := r.Builder.
+		Select("id").
+		From("users").
+		Where("id = ?", report.UserID).
+		ToSql()
+
+	var id int
+	err := r.Pool.QueryRow(ctx, checkSql, checkArgs...).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoerrors.ErrOwnerNotFound
+		}
+		return nil, err
+	}
+
 	sql, args, _ := r.Builder.
 		Update("reports").
 		Set("name", report.Name).
@@ -134,7 +164,7 @@ func (r *ReportsRepo) UpdateReport(ctx context.Context, report models.Report) (*
 		Where("id = ?", report.ID).
 		Suffix("RETURNING updated_at").
 		ToSql()
-	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&report.UpdatedAt)
+	err = r.Pool.QueryRow(ctx, sql, args...).Scan(&report.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoerrors.ErrNotFound
@@ -147,11 +177,26 @@ func (r *ReportsRepo) UpdateReport(ctx context.Context, report models.Report) (*
 }
 
 func (r *ReportsRepo) DeleteReport(ctx context.Context, reportID int) error {
+	checkSql, checkArgs, _ := r.Builder.
+		Select("id").
+		From("reports").
+		Where("id = ?", reportID).
+		ToSql()
+
+	var id int
+	err := r.Pool.QueryRow(ctx, checkSql, checkArgs...).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return repoerrors.ErrNotFound
+		}
+		return err
+	}
+
 	sql, args, _ := r.Builder.
 		Delete("reports").
 		Where("id = ?", reportID).
 		ToSql()
 
-	_, err := r.Pool.Exec(ctx, sql, args...)
+	_, err = r.Pool.Exec(ctx, sql, args...)
 	return err
 }
