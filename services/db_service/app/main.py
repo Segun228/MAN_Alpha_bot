@@ -16,9 +16,11 @@ from typing import Optional, Literal
 from prometheus_client import Counter, Histogram
 from datetime import datetime
 from app.postgres_grade_client import _insert_grade_sync
-from app.postgres_message_client import _insert_message_sync, get_user_messages
+from app.postgres_message_client import _insert_message_sync, get_user_messages, get_user_messages_csv
 import uuid
 from contextvars import ContextVar
+from fastapi.responses import StreamingResponse
+import io
 
 load_dotenv()
 
@@ -238,7 +240,6 @@ async def get_user_mes(
             
         logging.info(f"🔑 [{request_id}] API key validation successful for user: {telegram_id}")
             
-        # Get offset from request body
         try:
             request_body = await request.json()
             offset = request_body.get("offset")
@@ -275,13 +276,19 @@ async def get_user_mes(
 
 
 
+def bytesio_to_generator(bytes_io: io.BytesIO, chunk_size: int = 8192):
+    """Преобразует BytesIO в генератор chunks"""
+    bytes_io.seek(0)
+    while chunk := bytes_io.read(chunk_size):
+        yield chunk
+
 @app.get("/messages/{telegram_id}/csv")
-async def get_user_mes(
+async def get_user_messsages_csv(
     request: Request,
     telegram_id: int = Path(..., ge=1, description="ID пользователя"),
 ):
     request_id = request_id_var.get()
-    logging.info(f"🔍 [{request_id}] Getting messages for user: {telegram_id}")
+    logging.info(f"🔍 [{request_id}] Getting CSV messages for user: {telegram_id}")
     
     try:
         load_dotenv()
@@ -302,7 +309,6 @@ async def get_user_mes(
             
         logging.info(f"🔑 [{request_id}] API key validation successful for user: {telegram_id}")
             
-        # Get offset from request body
         try:
             request_body = await request.json()
             offset = request_body.get("offset")
@@ -314,27 +320,29 @@ async def get_user_mes(
         except Exception as e:
             logging.warning(f"⚠️ [{request_id}] Error parsing request body: {e}")
             offset = None
-
-        result = get_user_messages(
-            telegram_id=telegram_id,
-            offset=offset
-        )
-        
-        if not result:
-            logging.info(f"📭 [{request_id}] No messages found for user: {telegram_id}")
-            return {"status": "success", "data": []}
             
-        logging.info(f"✅ [{request_id}] Found {len(result)} messages for user: {telegram_id}")
-        return {"status": "success", "data": result}
+        csv_bytesio = get_user_messages_csv(telegram_id, offset)
+        logging.info(f"📊 [{request_id}] CSV data generated successfully")
+        
+        filename = f"messages_{telegram_id}.csv"
+        
+        return StreamingResponse(
+            bytesio_to_generator(csv_bytesio),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "X-Request-ID": request_id
+            }
+        )
         
     except HTTPException as e:
         logging.error(f"🚫 [{request_id}] HTTPException for user {telegram_id}: {e.detail}")
         raise
     except Exception as e:
-        logging.error(f"❌ [{request_id}] Error getting messages for user {telegram_id}: {e}", exc_info=True)
+        logging.error(f"❌ [{request_id}] Error getting CSV for user {telegram_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get messages"
+            detail="Failed to get messages CSV"
         )
 
 
