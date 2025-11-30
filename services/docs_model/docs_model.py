@@ -100,9 +100,9 @@ async def get_labels(message):
                     "model": response_data.get("model")
                 }
     except aiohttp.ClientResponseError as e:
-        raise HTTPException(status_code=e.status, detail=f"Ошибка при запросе к OpenRouter: {e.message}")
+        raise HTTPException(status_code=e.status, detail=f"Ошибка при запросе: {e.message}")
     except aiohttp.ClientError as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при запросе к OpenRouter: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при запросе: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Неожиданная ошибка: {str(e)}")
 
@@ -148,7 +148,7 @@ async def get_docs_from_category(message, category):
                 }
                 
     except aiohttp.ClientError as e:  # Отлов ошибок, стоит докрутить лог
-        raise HTTPException(status_code=500, detail=f"Ошибка при запросе к OpenRouter: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при запросе: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Неожиданная ошибка: {str(e)}")
 

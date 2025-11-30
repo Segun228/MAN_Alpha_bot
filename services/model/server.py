@@ -51,7 +51,7 @@ try:
     tokenizer = AutoTokenizer.from_pretrained(
         MODEL_NAME,
         trust_remote_code=True,
-        use_auth_token=hf_token
+        token=hf_token
     )
     print("Loading model")
     model = AutoModelForCausalLM.from_pretrained(
@@ -87,6 +87,7 @@ async def retrieve_model(model_id: str):
 
 @app.post("/api/v1/chat/completions", response_model=ChatCompletionResponse)
 async def openai_chat_completions(req: ChatCompletionRequest):
+    print(hf_token)
     try:
         messages = [{"role": m.role, "content": m.content} for m in req.messages]
         prompt = tokenizer.apply_chat_template(
@@ -134,12 +135,12 @@ async def openai_chat_completions(req: ChatCompletionRequest):
 
 @app.get("/")
 async def root():
-    if api_key and URL and hf_token:
+    if hf_token:
         return {"message": "Local OpenAI-Compatible API running", "status": "ok"}
-    return {"message": "Business Assistant API key or URL not set", "status": "failed"}
+    return {"message": "Business Assistant HF token", "status": "failed"}
 
 @app.get("/health")
-async def health_check():
-    if api_key and URL and hf_token:
+async def health():
+    if hf_token:
         return {"message": "Local OpenAI-Compatible API running", "status": "ok"}
-    return {"message": "Business Assistant API key or URL not set", "status": "failed"}
+    return {"message": "Business Assistant HF token", "status": "failed"}

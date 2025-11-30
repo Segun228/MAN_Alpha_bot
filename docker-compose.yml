@@ -36,6 +36,8 @@ services:
       - "${MODEL_PORT}:8095"
     networks:
       - app-man-network
+    env_file:
+      - .env
 
   
   user-service:
