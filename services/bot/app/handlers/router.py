@@ -10,4 +10,4 @@ catcher_router = Router(name="catcher")
 
 
 llm_router.message.middleware(DefenderMiddleware())
-llm_router.message.middleware(TextMessageLoggerMiddleware())
+# llm_router.message.middleware(TextMessageLoggerMiddleware())

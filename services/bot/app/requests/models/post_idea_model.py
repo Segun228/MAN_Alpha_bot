@@ -17,7 +17,9 @@ async def post_idea_model(
     business=None,
     context=None,
     symbol_threshold = 20,
-    base_url = None
+    base_url = None,
+    business_id = None,
+    offset = 5
 ):
     load_dotenv()
     if base_url is None or not base_url:
@@ -36,11 +38,14 @@ async def post_idea_model(
     request_url = "http://recomendator:8085/recomendations"
     history = (await get_messages(
         telegram_id=telegram_id,
+        business_id=business_id,
+        offset = offset
     ))
     if not history:
-        raise ValueError("Could not get history from the server")
+        logging.info("The history has been received empty")
+        history = []
     if isinstance(history, dict):
-        history = history.get("data")
+        history = history.get("data", [])
     result = []
     for el in history:
         if not el.get("message") or len(el.get("message")) < symbol_threshold:

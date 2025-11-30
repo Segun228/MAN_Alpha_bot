@@ -10,6 +10,7 @@ async def post_message(
     timestamp,
     direction,
     chat_type,
+    business_id: int|None = None
 ):
     load_dotenv()
     base_url = os.getenv("BASE_DB_SERVICE_URL")
@@ -37,6 +38,7 @@ async def post_message(
                 "message": text,
                 "direction": direction,
                 "chat_type": chat_type,
+                "business_id": business_id,
                 "timestamp": timestamp.isoformat() if hasattr(timestamp, 'isoformat') else str(timestamp)
             },
             headers={
@@ -56,7 +58,8 @@ async def post_message(
                     "message": text,
                     "direction": direction,
                     "chat_type": chat_type,
-                    "timestamp": timestamp
+                    "timestamp": timestamp,
+                    "business_id" : business_id
                 }
                 
                 try:

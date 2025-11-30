@@ -50,10 +50,51 @@ from app.requests.models.post_summarize_model import post_summarize_model
 from app.requests.models.post_idea_model import post_idea_model
 from app.requests.models.post_analysis_model import post_analysis_model
 from app.utils.reaction_handler import ReactionManager
-from app.middlewares.history import BotReplyLogger
+from app.middlewares.history import BotReplyLogger, UserMessageLogger
 
 replier = BotReplyLogger()
+requester = UserMessageLogger()
 reactioner = ReactionManager()
+
+
+import re
+
+def replace_bold_only(text: str) -> str:
+    """
+    Заменяет только **жирный** на <b>жирный</b>
+    Остальной текст остается как есть
+    """
+    if not text:
+        return text
+    
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    
+    return text
+
+def safe_bold_replace(text: str) -> str:
+    """
+    Безопасная замена с проверкой баланса тегов
+    """
+    try:
+        text = text.replace('&', '&amp;')
+        text = text.replace('<', '&lt;') 
+        text = text.replace('>', '&gt;')
+        
+        html_text = replace_bold_only(text)
+        open_tags = html_text.count('<b>')
+        close_tags = html_text.count('</b>')
+        
+        if open_tags != close_tags:
+            logging.warning("Несбалансированные <b> теги, возвращаем оригинал")
+            return text
+            
+        return html_text
+        
+    except Exception as e:
+        logging.error(f"Ошибка замены жирного текста: {e}")
+        return text
+
+
 
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
@@ -117,12 +158,18 @@ async def ask_lawyer_question(message: Message, state: FSMContext, bot:Bot):
             return
         if not isinstance(result, dict):
             await message.answer(
-                result,
-                reply_markup=inline_keyboards.main
+                safe_bold_replace(result),
+                reply_markup=inline_keyboards.main,
+                parse_mode="html"
+            )
+            await requester.log_user_message(
+                telegram_id=message.from_user.id,
+                text=user_question,
+                message_id=message.message_id,
             )
             await replier.log_bot_response(
                 telegram_id=message.from_user.id,
-                text=result
+                text=result,
             )
         else:
             raise Exception("Error while getting te result")
@@ -165,8 +212,18 @@ async def retry_question(callback: CallbackQuery, state: FSMContext):
             
         if not isinstance(result, dict):
             await callback.message.edit_text(
-                result,
-                reply_markup=inline_keyboards.main
+                safe_bold_replace(result),
+                reply_markup=inline_keyboards.main,
+                parse_mode='html'
+            )
+            await requester.log_user_message(
+                telegram_id=callback.from_user.id,
+                text=user_question,
+                message_id=callback.from_user.id,
+            )
+            await replier.log_bot_response(
+                telegram_id=callback.from_user.id,
+                text=result
             )
         else:
             raise Exception("eeror while getting te result")
@@ -238,17 +295,26 @@ async def idea_generator_finish(callback: CallbackQuery, state: FSMContext):
             text=question,
             description=current_business.get("description"),
             business=current_business.get("name"),
+            business_id=current_business.get("id"),
         )
         if not response:
             await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
             return
         await callback.message.answer(
-            response,
-            reply_markup= inline_keyboards.main
+            safe_bold_replace(str(response)),
+            reply_markup= inline_keyboards.main,
+            parse_mode='html'
+        )
+        await requester.log_user_message(
+            telegram_id=callback.from_user.id,
+            text=question,
+            message_id=callback.from_user.id,
+            business_id=business_id
         )
         await replier.log_bot_response(
             telegram_id=callback.from_user.id,
-            text=str(response)
+            text=str(response),
+            business_id = business_id 
         )
         await state.clear()
         
@@ -302,8 +368,14 @@ async def summarizer_send_request(message:Message, state:FSMContext, bot:Bot):
             return
         if not isinstance(result, dict):
             await message.answer(
-                result,
-                reply_markup=inline_keyboards.main
+                safe_bold_replace(result),
+                reply_markup=inline_keyboards.main,
+                parse_mode='html'
+            )
+            await requester.log_user_message(
+                telegram_id=message.from_user.id,
+                text=user_question,
+                message_id=message.message_id,
             )
             await replier.log_bot_response(
                 telegram_id=message.from_user.id,
@@ -311,8 +383,14 @@ async def summarizer_send_request(message:Message, state:FSMContext, bot:Bot):
             )
         elif isinstance(result, dict):
             await message.answer(
-                result.get("response"),
-                reply_markup=inline_keyboards.main
+                safe_bold_replace(result.get("response", "Извините, модель не смогла дать внятного ответа 😭")),
+                reply_markup=inline_keyboards.main,
+                parse_mode='html'
+            )
+            await requester.log_user_message(
+                telegram_id=message.from_user.id,
+                text=user_question,
+                message_id=message.message_id,
             )
             await replier.log_bot_response(
                 telegram_id=message.from_user.id,
@@ -357,8 +435,18 @@ async def retry_summarize_question(callback: CallbackQuery, state: FSMContext):
             
         if not isinstance(result, dict):
             await callback.message.edit_text(
-                result,
-                reply_markup=inline_keyboards.main
+                safe_bold_replace(result),
+                reply_markup=inline_keyboards.main,
+                parse_mode='html'
+            )
+            await requester.log_user_message(
+                telegram_id=callback.from_user.id,
+                text=user_question,
+                message_id=callback.from_user.id,
+            )
+            await replier.log_bot_response(
+                telegram_id=callback.from_user.id,
+                text=str(result),
             )
         else:
             raise Exception("eeror while getting te result")
@@ -516,18 +604,27 @@ async def business_analysis_finish(callback: CallbackQuery, state: FSMContext):
             description=current_business.get("description"),
             business=current_business.get("name"),
             analysis_type=analyzys_type,
-            offset = 0
+            offset = 0,
+            business_id = business_id
         )
         if not response:
             await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
             return
         await callback.message.answer(
-            response,
-            reply_markup= inline_keyboards.main
+            safe_bold_replace(str(response)),
+            reply_markup= inline_keyboards.main,
+            parse_mode='html'
+        )
+        await requester.log_user_message(
+            telegram_id=callback.from_user.id,
+            text=question,
+            message_id=callback.from_user.id,
+            business_id=business_id
         )
         await replier.log_bot_response(
             telegram_id=callback.from_user.id,
-            text=str(response)
+            text=str(response),
+            business_id=business_id
         )
         await state.clear()
         
@@ -583,18 +680,27 @@ async def chat_model_finish(callback:CallbackQuery, state:FSMContext):
             text = question,
             description = current_business.get("description"),
             business = current_business.get("name"),
+            business_id = current_business.get("id"),
             offset=5
         )
         if not response:
             await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
             return
         await callback.message.answer(
-            response,
-            reply_markup= inline_keyboards.main
+            safe_bold_replace(str(response)),
+            reply_markup= inline_keyboards.main,
+            parse_mode='html'
+        )
+        await requester.log_user_message(
+            telegram_id=callback.from_user.id,
+            text=question,
+            message_id=callback.from_user.id,
+            business_id=business_id
         )
         await replier.log_bot_response(
             telegram_id=callback.from_user.id,
-            text=str(response)
+            text=str(response),
+            business_id=business_id
         )
     except Exception as e:
         logging.exception(e)

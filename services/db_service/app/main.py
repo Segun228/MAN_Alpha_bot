@@ -133,6 +133,7 @@ class MessageRequest(BaseModel):
     direction: Literal['question', 'answer']
     message: str
     chat_type: str = "private"
+    business_id:int|None = None
 
 
 @app.post("/grades")
@@ -187,7 +188,8 @@ async def insert_message(message: MessageRequest):
             'message_id': message.message_id,
             'direction': message.direction,
             'message': message.message,
-            'chat_type': message.chat_type
+            'chat_type': message.chat_type,
+            'business_id': message.business_id
         }
         
         logging.info(f"💬 [{request_id}] Message data: {message_data}")
@@ -243,6 +245,7 @@ async def get_user_mes(
         try:
             request_body = await request.json()
             offset = request_body.get("offset")
+            business_id = request_body.get("business_id")
             if offset:
                 offset = int(offset)
                 logging.info(f"📄 [{request_id}] Using offset: {offset}")
@@ -254,7 +257,8 @@ async def get_user_mes(
 
         result = get_user_messages(
             telegram_id=telegram_id,
-            offset=offset
+            offset=offset,
+            business_id=business_id
         )
         
         if not result:

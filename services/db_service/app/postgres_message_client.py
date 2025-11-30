@@ -71,15 +71,16 @@ def _insert_message_sync(message: dict, timestamp: datetime):
     try:
         cursor.execute("""
             INSERT INTO Messages (
-                timestamp, telegram_id, message_id, direction, message, chat_type
-            ) VALUES (%s, %s, %s, %s, %s, %s)
+                timestamp, telegram_id, message_id, direction, message, chat_type, business_id
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (
             timestamp,
             safe_int(message.get('telegram_id')),
             safe_int(message.get('message_id')),
             str(message.get('direction', 'question')),
             str(message.get('message', '')),
-            str(message.get('chat_type', 'private'))
+            str(message.get('chat_type', 'private')),
+            message.get('business_id'),
         ))
         conn.commit()
         logging.info("Message inserted sucessfully")
@@ -92,7 +93,11 @@ def _insert_message_sync(message: dict, timestamp: datetime):
 
 
 
-def get_user_messages(telegram_id: int, offset: int|None = None):
+def get_user_messages(
+    telegram_id: int, 
+    offset: int|None = None, 
+    business_id: int|None = None
+):
     conn = psycopg2.connect(
         host=POSTGRES_HOST,
         port=POSTGRES_PORT,
@@ -102,21 +107,38 @@ def get_user_messages(telegram_id: int, offset: int|None = None):
     )
     cursor = conn.cursor()
     try:
-        if offset:
-            cursor.execute("""
-                SELECT timestamp, telegram_id, message_id, direction, message, chat_type
-                FROM Messages
-                WHERE telegram_id = %s
-                ORDER BY timestamp DESC
-                offset %s
-            """, (telegram_id, offset))
+        if business_id:
+            if offset:
+                cursor.execute("""
+                    SELECT timestamp, telegram_id, message_id, direction, message, chat_type
+                    FROM Messages
+                    WHERE telegram_id = %s AND business_id = %s
+                    ORDER BY timestamp DESC
+                    offset %s
+                """, (telegram_id, business_id, offset))
+            else:
+                cursor.execute("""
+                    SELECT timestamp, telegram_id, message_id, direction, message, chat_type
+                    FROM Messages
+                    WHERE telegram_id = %s AND business_id = %s
+                    ORDER BY timestamp DESC
+                """, (telegram_id, business_id))
         else:
-            cursor.execute("""
-                SELECT timestamp, telegram_id, message_id, direction, message, chat_type
-                FROM Messages
-                WHERE telegram_id = %s
-                ORDER BY timestamp DESC
-            """, (telegram_id,))
+            if offset:
+                cursor.execute("""
+                    SELECT timestamp, telegram_id, message_id, direction, message, chat_type
+                    FROM Messages
+                    WHERE telegram_id = %s
+                    ORDER BY timestamp DESC
+                    offset %s
+                """, (telegram_id, offset))
+            else:
+                cursor.execute("""
+                    SELECT timestamp, telegram_id, message_id, direction, message, chat_type
+                    FROM Messages
+                    WHERE telegram_id = %s
+                    ORDER BY timestamp DESC
+                """, (telegram_id,))
         rows = cursor.fetchall()
         messages = []
         for row in rows:
@@ -169,7 +191,7 @@ def get_user_messages_csv(telegram_id: int, offset: int|None = None)->io.BytesIO
         rows = cursor.fetchall()
         
         output = io.StringIO()
-        writer = csv.writer(output)
+        writer = csv.writer(output, delimiter=';')
         
         writer.writerow(['timestamp', 'telegram_id', 'message_id', 'direction', 'message', 'chat_type'])
         
