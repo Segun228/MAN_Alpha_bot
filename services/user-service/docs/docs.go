@@ -263,6 +263,270 @@ const docTemplate = `{
                 }
             }
         },
+        "/reports": {
+            "get": {
+                "description": "Получить список всех отчетов",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "Get all reports",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Создать новый отчет",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "Create a new report",
+                "parameters": [
+                    {
+                        "description": "Report to create",
+                        "name": "report",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_controller_http_v1.reportCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reports/{reportID}": {
+            "put": {
+                "description": "Частичное обновление отчета по ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "Patch report by ID (partial)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID отчета",
+                        "name": "reportID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Report fields to update",
+                        "name": "report",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_controller_http_v1.reportUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Удалить отчет по ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "Delete report by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID отчета",
+                        "name": "reportID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Обновить отчет по ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "Update report by ID (full)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID отчета",
+                        "name": "reportID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Report fields to update",
+                        "name": "report",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_controller_http_v1.reportUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "description": "Получить список всех пользователей",
@@ -900,7 +1164,57 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "userID": {
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report": {
+            "type": "object",
+            "properties": {
+                "agr": {
+                    "type": "number"
+                },
+                "apc": {
+                    "type": "integer"
+                },
+                "avp": {
+                    "type": "number"
+                },
+                "cogs": {
+                    "type": "number"
+                },
+                "cogs1s": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "customers": {
+                    "type": "integer"
+                },
+                "fc": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rr": {
+                    "type": "number"
+                },
+                "tms": {
+                    "type": "number"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "users": {
                     "type": "integer"
                 }
             }
@@ -917,7 +1231,7 @@ const docTemplate = `{
                 "churned": {
                     "type": "boolean"
                 },
-                "createdAt": {
+                "created_at": {
                     "type": "string"
                 },
                 "email": {
@@ -926,7 +1240,7 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "isAdmin": {
+                "is_admin": {
                     "type": "boolean"
                 },
                 "login": {
@@ -935,10 +1249,10 @@ const docTemplate = `{
                 "password": {
                     "type": "string"
                 },
-                "telegramID": {
+                "telegram_id": {
                     "type": "integer"
                 },
-                "updatedAt": {
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -978,6 +1292,85 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "telegram_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_controller_http_v1.reportCreateRequest": {
+            "type": "object",
+            "properties": {
+                "agr": {
+                    "type": "number"
+                },
+                "apc": {
+                    "type": "integer"
+                },
+                "avp": {
+                    "type": "number"
+                },
+                "cogs": {
+                    "type": "number"
+                },
+                "cogs1s": {
+                    "type": "number"
+                },
+                "customers": {
+                    "type": "integer"
+                },
+                "fc": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rr": {
+                    "type": "number"
+                },
+                "tms": {
+                    "type": "number"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "users": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_controller_http_v1.reportUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "agr": {
+                    "type": "number"
+                },
+                "apc": {
+                    "type": "integer"
+                },
+                "avp": {
+                    "type": "number"
+                },
+                "cogs": {
+                    "type": "number"
+                },
+                "cogs1s": {
+                    "type": "number"
+                },
+                "customers": {
+                    "type": "integer"
+                },
+                "fc": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rr": {
+                    "type": "number"
+                },
+                "tms": {
+                    "type": "number"
+                },
+                "users": {
                     "type": "integer"
                 }
             }
