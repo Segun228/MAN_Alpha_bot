@@ -18,3 +18,21 @@ CREATE TABLE businesses (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE reports (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id),
+    name VARCHAR(255) NOT NULL,
+    users INT NOT NULL,
+    customers INT NOT NULL,
+    avp FLOAT NOT NULL,
+    apc INT NOT NULL,
+    tms FLOAT NOT NULL,
+    cogs FLOAT NOT NULL,
+    cogs1s FLOAT NOT NULL,
+    fc FLOAT NOT NULL,
+    rr FLOAT NOT NULL,
+    agr FLOAT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
