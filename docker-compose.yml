@@ -12,7 +12,16 @@ services:
       - "${API_GATEWAY_PORT}:8081"
     networks:
       - app-man-network
-
+  speech-service:
+    build: 
+      context: .
+      dockerfile: ./services/stt/Dockerfile
+    container_name: speech-service
+    restart: on-failure
+    ports:
+      - "${STT_PORT}:8096"
+    networks:
+      - app-man-network
   model-service:
     build:
       context: .
