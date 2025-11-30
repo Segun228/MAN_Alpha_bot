@@ -49,7 +49,6 @@ dp.include_router(catcher_router)
 
 
 dp.message.middleware(ThrottlingMiddleware(limit=0.5))
-dp.message.middleware(TextMessageLoggerMiddleware())
 dp.message.middleware(MessageLengthMiddleware())
 dp.message.middleware(SwearMiddleware())
 dp.message.middleware(SecurityMiddleware())

@@ -16,7 +16,8 @@ async def post_chat_model(
     business=None,
     context=None,
     symbol_threshold = 20,
-    base_url = None
+    base_url = None,
+    offset:int|None = None
 ):
     load_dotenv()
     if base_url is None or not base_url:
@@ -34,7 +35,8 @@ async def post_chat_model(
     # request_url = base_url + "models/chat"
     request_url = "http://chat-model:8082/generate_response"
     history = (await get_messages(
-        telegram_id=telegram_id
+        telegram_id=telegram_id,
+        offset = offset
     ))
     if not history:
         raise ValueError("Could not get history from the server")

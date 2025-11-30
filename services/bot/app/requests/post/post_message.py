@@ -58,7 +58,6 @@ async def post_message(
                     "chat_type": chat_type,
                     "timestamp": timestamp
                 }
-                logging.error(f"Request body: {request_body}")
                 
                 try:
                     error_data = await response.json()

@@ -50,7 +50,9 @@ from app.requests.models.post_summarize_model import post_summarize_model
 from app.requests.models.post_idea_model import post_idea_model
 from app.requests.models.post_analysis_model import post_analysis_model
 from app.utils.reaction_handler import ReactionManager
+from app.middlewares.history import BotReplyLogger
 
+replier = BotReplyLogger()
 reactioner = ReactionManager()
 
 def escape_markdown_v2(text: str, version: int = 2) -> str:
@@ -118,8 +120,12 @@ async def ask_lawyer_question(message: Message, state: FSMContext, bot:Bot):
                 result,
                 reply_markup=inline_keyboards.main
             )
+            await replier.log_bot_response(
+                telegram_id=message.from_user.id,
+                text=result
+            )
         else:
-            raise Exception("eeror while getting te result")
+            raise Exception("Error while getting te result")
         await state.clear()
         
     except Exception as e:
@@ -233,14 +239,16 @@ async def idea_generator_finish(callback: CallbackQuery, state: FSMContext):
             description=current_business.get("description"),
             business=current_business.get("name"),
         )
-        
         if not response:
             await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
             return
-        
         await callback.message.answer(
             response,
             reply_markup= inline_keyboards.main
+        )
+        await replier.log_bot_response(
+            telegram_id=callback.from_user.id,
+            text=str(response)
         )
         await state.clear()
         
@@ -297,10 +305,18 @@ async def summarizer_send_request(message:Message, state:FSMContext, bot:Bot):
                 result,
                 reply_markup=inline_keyboards.main
             )
+            await replier.log_bot_response(
+                telegram_id=message.from_user.id,
+                text=str(result)
+            )
         elif isinstance(result, dict):
             await message.answer(
                 result.get("response"),
                 reply_markup=inline_keyboards.main
+            )
+            await replier.log_bot_response(
+                telegram_id=message.from_user.id,
+                text=str(result)
             )
         await state.clear()
         
@@ -505,10 +521,13 @@ async def business_analysis_finish(callback: CallbackQuery, state: FSMContext):
         if not response:
             await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
             return
-        
         await callback.message.answer(
             response,
             reply_markup= inline_keyboards.main
+        )
+        await replier.log_bot_response(
+            telegram_id=callback.from_user.id,
+            text=str(response)
         )
         await state.clear()
         
@@ -564,6 +583,7 @@ async def chat_model_finish(callback:CallbackQuery, state:FSMContext):
             text = question,
             description = current_business.get("description"),
             business = current_business.get("name"),
+            offset=5
         )
         if not response:
             await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
@@ -571,6 +591,10 @@ async def chat_model_finish(callback:CallbackQuery, state:FSMContext):
         await callback.message.answer(
             response,
             reply_markup= inline_keyboards.main
+        )
+        await replier.log_bot_response(
+            telegram_id=callback.from_user.id,
+            text=str(response)
         )
     except Exception as e:
         logging.exception(e)
