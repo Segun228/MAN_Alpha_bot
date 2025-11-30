@@ -76,7 +76,7 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
     container_name: clickhouse
-    restart: unless-stopped
+    restart: on-failure
     ports:
       - "${CLICKHOUSE_HTTP_PORT}:8123"   # HTTP-интерфейс
       - "${CLICKHOUSE_TCP_PORT}:9000"   # TCP для клиентов
@@ -95,6 +95,7 @@ services:
   clickhouse_ui:
     image: clickhouse/clickhouse-server:latest
     container_name: clickhouse_ui
+    restart: on-failure
     ports:
       - "${CLICKHOUSE_UI_PORT}:8123"
     environment:
@@ -140,6 +141,7 @@ services:
       - pgadmin_data:/var/lib/pgadmin
     networks:
       - app-man-network
+    restart: on-failure
 
   redis:
     image: redis:7-alpine
@@ -154,6 +156,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
 
   prometheus:
     image: prom/prometheus:v2.47.0
@@ -241,6 +244,8 @@ services:
       KAFKA_BROKERCONNECT: kafka:9092
     networks:
       - app-man-network
+    restart: on-failure
+    
 
   loki:
     image: grafana/loki:2.9.0
@@ -252,6 +257,8 @@ services:
     command: -config.file=/etc/loki/local-config.yml
     networks:
       - app-man-network
+    restart: on-failure
+    
 
   promtail:
     image: grafana/promtail:2.9.0
@@ -262,13 +269,15 @@ services:
     command: -config.file=/etc/promtail/config.yml
     networks:
       - app-man-network
+    restart: on-failure
+
 
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node_exporter
     ports:
       - "${NODE_EXPORTER_PORT}:9100"
-    restart: unless-stopped
+    restart: on-failure
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -281,12 +290,13 @@ services:
     networks:
       - app-man-network
 
+
   cadvisor:
     image: zcube/cadvisor:latest
     container_name: cadvisor
     ports:
       - "${CADVISOR_EXPORTER_PORT}:8089"
-    restart: unless-stopped
+    restart: on-failure
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -304,7 +314,7 @@ services:
     container_name: kafka_exporter
     ports:
       - "${KAFKA_EXPORTER_PORT}:9308"
-    restart: unless-stopped
+    restart: on-failure
     command:
       - --kafka.server=${KAFKA_BROKER_URL}
       - --web.listen-address=:9308
@@ -319,7 +329,7 @@ services:
     container_name: redis_exporter
     ports:
       - "${REDIS_EXPORTER_PORT}:9121"
-    restart: unless-stopped
+    restart: on-failure
     environment:
       - REDIS_ADDR=${REDIS_ADDR}
     env_file:
@@ -334,7 +344,7 @@ services:
       - .env
     ports:
       - "${CLICKHOUSE_EXPORTER_PORT}:9116"
-    restart: unless-stopped
+    restart: on-failure
     environment:
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
@@ -345,6 +355,7 @@ services:
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: postgres_exporter
+    restart: on-failure
     ports:
       - "${POSTGRES_EXPORTER_PORT}:9187"
     environment:
@@ -355,6 +366,7 @@ services:
   superset:
     image: apache/superset:latest
     container_name: superset
+    restart: on-failure
     env_file:
       - .env
     environment:
@@ -376,7 +388,7 @@ services:
   bot:
     image: bot:latest
     container_name: bot
-    restart: unless-stopped
+    restart: on-failure
     build: ./services/bot
     ports:
       - "${BOT_PORT}:8080"
@@ -385,10 +397,12 @@ services:
     networks:
       - app-man-network
 
+
   logs:
     image: logs:latest
     build: ./services/logs
     container_name: logs
+    restart: on-failure
     depends_on:
       kafka:
         condition: service_healthy
@@ -403,12 +417,16 @@ services:
     image: summarizer:latest
     build: ./services/summarizer
     container_name: summarizer
+    restart: on-failure
     ports:
       - ${SUMMARIZER_PORT}:${SUMMARIZER_PORT}
     env_file:
       - .env
     networks:
       - app-man-network
+    depends_on:
+      kafka:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "curl -f -s http://localhost:${SUMMARIZER_PORT}/health | grep -q '\"status\":\"ok\"'" ]
       interval: 30s
@@ -421,6 +439,7 @@ services:
     image: defender:latest
     build: ./services/defender
     container_name: defender
+    restart: on-failure
     ports:
       - ${DEFENDER_PORT}:${DEFENDER_PORT}
     env_file:
@@ -434,11 +453,15 @@ services:
       retries: 3
       start_period: 40s
       start_interval: 5s
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   recomendator:
     image: recomendator:latest
     build: ./services/recomendator
     container_name: recomendator
+    restart: on-failure
     ports:
       - ${RECOMENDATOR_PORT}:${RECOMENDATOR_PORT}
     env_file:
@@ -452,11 +475,15 @@ services:
       retries: 3
       start_period: 40s
       start_interval: 5s
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   business_analyzer:
     image: business_analyzer:latest
     build: ./services/business_analyzer
     container_name: business_analyzer
+    restart: on-failure
     ports:
       - ${BUSINESS_ANALYZER_PORT}:${BUSINESS_ANALYZER_PORT}
     env_file:
@@ -470,11 +497,15 @@ services:
       retries: 3
       start_period: 40s
       start_interval: 5s
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   db_service:
     image: db_service:latest
     build: ./services/db_service
     container_name: db_service
+    restart: on-failure
     ports:
       - ${DB_SERVICE_PORT}:${DB_SERVICE_PORT}
     env_file:
@@ -489,6 +520,7 @@ services:
     image: email_service:latest
     build: ./services/email_service
     container_name: email_service
+    restart: on-failure
     ports:
       - ${EMAIL_SERVICE_PORT}:${EMAIL_SERVICE_PORT}
     env_file:
