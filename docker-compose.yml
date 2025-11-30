@@ -13,7 +13,7 @@ services:
     networks:
       - app-man-network
 
-  user-service:
+  user-service: ### gateway
     build: 
       context: .
       dockerfile: ./services/user-service/Dockerfile
@@ -29,7 +29,7 @@ services:
     networks:
       - app-man-network
 
-  chat-model:
+  chat-model: ### gateway
     build:
       context: ./services/chat_model
     container_name: chat-model
@@ -51,7 +51,7 @@ services:
       start_period: 40s
       start_interval: 5s
 
-  docs-model:
+  docs-model: ### gateway
     build:
       context: ./services/docs_model
     container_name: docs_model
@@ -73,7 +73,7 @@ services:
       start_period: 40s
       start_interval: 5s
 
-  clickhouse:
+  clickhouse: ### cut public port
     image: clickhouse/clickhouse-server:24.8
     container_name: clickhouse
     restart: on-failure
@@ -92,21 +92,21 @@ services:
     networks:
       - app-man-network
 
-  clickhouse_ui:
-    image: clickhouse/clickhouse-server:latest
-    container_name: clickhouse_ui
-    restart: on-failure
-    ports:
-      - "${CLICKHOUSE_UI_PORT}:8123"
-    environment:
-      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
-      - CLICKHOUSE_HTTP_PORT=${CLICKHOUSE_HTTP_PORT}
-      - CLICKHOUSE_LISTEN_HOST=0.0.0.0
-    depends_on:
-      - clickhouse
-    networks:
-      - app-man-network
+  # clickhouse_ui:
+  #   image: clickhouse/clickhouse-server:latest
+  #   container_name: clickhouse_ui
+  #   restart: on-failure
+  #   ports:
+  #     - "${CLICKHOUSE_UI_PORT}:8123"
+  #   environment:
+  #     - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+  #     - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+  #     - CLICKHOUSE_HTTP_PORT=${CLICKHOUSE_HTTP_PORT}
+  #     - CLICKHOUSE_LISTEN_HOST=0.0.0.0
+  #   depends_on:
+  #     - clickhouse
+  #   networks:
+  #     - app-man-network
 
   postgres:
     image: postgres:14-alpine
@@ -128,37 +128,37 @@ services:
     networks:
       - app-man-network
 
-  pgadmin:
-    image: dpage/pgadmin4
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "8070:80"
-    depends_on:
-      - postgres
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - app-man-network
-    restart: on-failure
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@admin.com
+  #     PGADMIN_DEFAULT_PASSWORD: admin
+  #   ports:
+  #     - "8070:80"
+  #   depends_on:
+  #     - postgres
+  #   volumes:
+  #     - pgadmin_data:/var/lib/pgadmin
+  #   networks:
+  #     - app-man-network
+  #   restart: on-failure
 
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "${REDIS_PORT}:6379"
-    restart: on-failure
-    networks:
-      - app-man-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: redis
+  #   ports:
+  #     - "${REDIS_PORT}:6379"
+  #   restart: on-failure
+  #   networks:
+  #     - app-man-network
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
 
-  prometheus:
+  prometheus: ### cut public port
     image: prom/prometheus:v2.47.0
     container_name: prometheus
     ports: 
@@ -172,7 +172,7 @@ services:
     networks:
       - app-man-network
 
-  grafana:
+  grafana: ### gateway?
     image: grafana/grafana:10.1.5
     container_name: grafana
     ports:
@@ -207,7 +207,7 @@ services:
     networks:
       - app-man-network
 
-  kafka:
+  kafka: ### cut public port
     image: confluentinc/cp-kafka:7.3.0
     container_name: kafka
     depends_on:
@@ -232,22 +232,22 @@ services:
     networks:
       - app-man-network
 
-  kafdrop:
-    image: obsidiandynamics/kafdrop:latest
-    container_name: kafdrop
-    depends_on:
-      kafka:
-        condition: service_healthy
-    ports:
-      - "${KAFDROP_PORT}:9000"
-    environment:
-      KAFKA_BROKERCONNECT: kafka:9092
-    networks:
-      - app-man-network
-    restart: on-failure
+  # kafdrop: 
+  #   image: obsidiandynamics/kafdrop:latest
+  #   container_name: kafdrop
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   ports:
+  #     - "${KAFDROP_PORT}:9000"
+  #   environment:
+  #     KAFKA_BROKERCONNECT: kafka:9092
+  #   networks:
+  #     - app-man-network
+  #   restart: on-failure
     
 
-  loki:
+  loki: ### cut public port
     image: grafana/loki:2.9.0
     container_name: loki
     ports:
@@ -260,7 +260,7 @@ services:
     restart: on-failure
     
 
-  promtail:
+  promtail: 
     image: grafana/promtail:2.9.0
     container_name: promtail
     volumes:
@@ -272,7 +272,7 @@ services:
     restart: on-failure
 
 
-  node-exporter:
+  node-exporter: ### cut public port
     image: prom/node-exporter:latest
     container_name: node_exporter
     ports:
@@ -291,7 +291,7 @@ services:
       - app-man-network
 
 
-  cadvisor:
+  cadvisor: ### cut public port
     image: zcube/cadvisor:latest
     container_name: cadvisor
     ports:
@@ -309,7 +309,7 @@ services:
     env_file:
       - .env
 
-  kafka-exporter:
+  kafka-exporter: ### cut public port
     image: danielqsj/kafka-exporter:latest
     container_name: kafka_exporter
     ports:
@@ -324,20 +324,20 @@ services:
     env_file:
       - .env
 
-  redis-exporter:
-    image: oliver006/redis_exporter:latest
-    container_name: redis_exporter
-    ports:
-      - "${REDIS_EXPORTER_PORT}:9121"
-    restart: on-failure
-    environment:
-      - REDIS_ADDR=${REDIS_ADDR}
-    env_file:
-      - .env
-    networks:
-      - app-man-network
+  # redis-exporter:
+  #   image: oliver006/redis_exporter:latest
+  #   container_name: redis_exporter
+  #   ports:
+  #     - "${REDIS_EXPORTER_PORT}:9121"
+  #   restart: on-failure
+  #   environment:
+  #     - REDIS_ADDR=${REDIS_ADDR}
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - app-man-network
 
-  clickhouse-exporter:
+  clickhouse-exporter: ### cut public port
     image: flant/clickhouse-exporter:latest
     container_name: clickhouse_exporter
     env_file:
@@ -352,7 +352,7 @@ services:
     networks:
       - app-man-network
 
-  postgres-exporter:
+  postgres-exporter: ### cut public port
     image: prometheuscommunity/postgres-exporter:latest
     container_name: postgres_exporter
     restart: on-failure
@@ -363,29 +363,29 @@ services:
     networks:
       - app-man-network
 
-  superset:
-    image: apache/superset:latest
-    container_name: superset
-    restart: on-failure
-    env_file:
-      - .env
-    environment:
-      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
-    ports:
-      - "${SUPERSET_PORT}:8088"
-    volumes:
-      - superset_data:/app/superset_home
-    depends_on:
-      - postgres
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${SUPERSET_PORT}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - app-man-network
+  # superset:
+  #   image: apache/superset:latest
+  #   container_name: superset
+  #   restart: on-failure
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+  #   ports:
+  #     - "${SUPERSET_PORT}:8088"
+  #   volumes:
+  #     - superset_data:/app/superset_home
+  #   depends_on:
+  #     - postgres
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:${SUPERSET_PORT}/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   networks:
+  #     - app-man-network
 
-  bot:
+  bot: ### cut public port
     image: bot:latest
     container_name: bot
     restart: on-failure
@@ -398,7 +398,7 @@ services:
       - app-man-network
 
 
-  logs:
+  logs: ### cut public port
     image: logs:latest
     build: ./services/logs
     container_name: logs
@@ -413,7 +413,7 @@ services:
     networks:
       - app-man-network
 
-  summarizer:
+  summarizer: ### gateway
     image: summarizer:latest
     build: ./services/summarizer
     container_name: summarizer
@@ -435,7 +435,7 @@ services:
       start_period: 40s
       start_interval: 5s
 
-  defender:
+  defender: ### gateway
     image: defender:latest
     build: ./services/defender
     container_name: defender
@@ -457,7 +457,7 @@ services:
       kafka:
         condition: service_healthy
 
-  recomendator:
+  recomendator: ### gateway
     image: recomendator:latest
     build: ./services/recomendator
     container_name: recomendator
@@ -479,7 +479,7 @@ services:
       kafka:
         condition: service_healthy
 
-  business_analyzer:
+  business_analyzer: ### gateway
     image: business_analyzer:latest
     build: ./services/business_analyzer
     container_name: business_analyzer
@@ -501,7 +501,7 @@ services:
       kafka:
         condition: service_healthy
 
-  db_service:
+  db_service: ### gateway
     image: db_service:latest
     build: ./services/db_service
     container_name: db_service
@@ -516,7 +516,7 @@ services:
       kafka:
         condition: service_healthy
 
-  email_service:
+  email_service: ### gateway
     image: email_service:latest
     build: ./services/email_service
     container_name: email_service
@@ -544,11 +544,11 @@ services:
 volumes:
   clickhouse_data:
   postgres-data:
-  pgadmin_data:
+  # pgadmin_data:
   prometheus-data:
   grafana-data:
   clickhouse_config:
-  superset_data:
+  # superset_data:
 
 networks:
   app-man-network:
