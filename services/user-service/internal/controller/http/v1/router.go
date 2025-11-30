@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 
 	_ "github.com/Segun228/MAN_Alpha_bot/services/user-service/docs"
@@ -27,7 +28,26 @@ func NewRouter(services *service.Services, logger utils.Logger, botApiKey string
 		r.Use(BotAuthMiddleware(botApiKey))
 		newUserRoutes(r, services.User, logger)
 		newBusinessRoutes(r, services.Business, logger)
+		newReportRoutes(r, services.Reports, logger)
 	})
 
 	return r
+}
+
+func parseIDParam(idParam string) (int, error) {
+	var id int
+	_, err := fmt.Sscanf(idParam, "%d", &id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func parseTgIDParam(tgIDParam string) (int64, error) {
+	var tgID int64
+	_, err := fmt.Sscanf(tgIDParam, "%d", &tgID)
+	if err != nil {
+		return 0, err
+	}
+	return tgID, nil
 }

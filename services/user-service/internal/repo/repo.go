@@ -27,14 +27,24 @@ type Business interface {
 	DeleteBusiness(ctx context.Context, businessID int) error
 }
 
+type Reports interface {
+	GetReports(ctx context.Context) ([]models.Report, error)
+	GetReportByID(ctx context.Context, reportID int) (*models.Report, error)
+	CreateReport(ctx context.Context, report models.Report) (*models.Report, error)
+	UpdateReport(ctx context.Context, report models.Report) (*models.Report, error)
+	DeleteReport(ctx context.Context, reportID int) error
+}
+
 type Repositories struct {
 	User
 	Business
+	Reports
 }
 
 func NewRepositories(pg *postgres.Postgres) *Repositories {
 	return &Repositories{
 		User:     pgdb.NewUserRepo(pg),
 		Business: pgdb.NewBusinessRepo(pg),
+		Reports:  pgdb.NewReportsRepo(pg),
 	}
 }
