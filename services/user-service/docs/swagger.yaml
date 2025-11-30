@@ -502,6 +502,42 @@ paths:
       summary: Patch report by ID (partial)
       tags:
       - reports
+  /reports/tg/{tgID}:
+    get:
+      consumes:
+      - application/json
+      description: Получить все отчеты пользователя по Telegram ID
+      parameters:
+      - description: Telegram User ID
+        format: int64
+        in: path
+        name: tgID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get reports by user Telegram ID
+      tags:
+      - reports
   /users:
     get:
       consumes:

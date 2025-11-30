@@ -9,11 +9,13 @@ import (
 
 type ReportService struct {
 	reportRepo repo.Reports
+	userRepo   repo.User
 }
 
-func NewReportsService(reportRepo repo.Reports) *ReportService {
+func NewReportsService(reportRepo repo.Reports, userRepo repo.User) *ReportService {
 	return &ReportService{
 		reportRepo: reportRepo,
+		userRepo:   userRepo,
 	}
 }
 
@@ -23,6 +25,15 @@ func (s *ReportService) GetReports(ctx context.Context) ([]models.Report, error)
 
 func (s *ReportService) GetReportByID(ctx context.Context, reportID int) (*models.Report, error) {
 	return s.reportRepo.GetReportByID(ctx, reportID)
+}
+
+func (s *ReportService) GetReportsByTgID(ctx context.Context, tgID int64) ([]models.Report, error) {
+	user, err := s.userRepo.GetUserByTgID(ctx, tgID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.reportRepo.GetByReportsUserID(ctx, user.ID)
 }
 
 func (s *ReportService) CreateReport(ctx context.Context, report ReportCreateInput) (*models.Report, error) {

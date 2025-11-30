@@ -95,6 +95,7 @@ type ReportUpdateInput struct {
 type Reports interface {
 	GetReports(ctx context.Context) ([]models.Report, error)
 	GetReportByID(ctx context.Context, reportID int) (*models.Report, error)
+	GetReportsByTgID(ctx context.Context, tgID int64) ([]models.Report, error)
 	CreateReport(ctx context.Context, report ReportCreateInput) (*models.Report, error)
 	PutReport(ctx context.Context, report ReportUpdateInput) (*models.Report, error)
 	PathcReport(ctx context.Context, report ReportUpdateInput) (*models.Report, error)
@@ -115,6 +116,6 @@ func NewServices(deps *ServicesDependencies) *Services {
 	return &Services{
 		User:     NewUserService(deps.Repos.User),
 		Business: NewBusinessService(deps.Repos.Business),
-		Reports:  NewReportsService(deps.Repos.Reports),
+		Reports:  NewReportsService(deps.Repos.Reports, deps.Repos.User),
 	}
 }
