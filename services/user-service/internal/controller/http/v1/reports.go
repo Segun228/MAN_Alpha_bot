@@ -101,6 +101,7 @@ func (rr *reportRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 // @Param tgID path int64 true "Telegram User ID"
 // @Success 200 {array} models.Report
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /reports/tg/{tgID} [get]
 func (rr *reportRoutes) getByUserTgID(w http.ResponseWriter, r *http.Request) {
@@ -113,12 +114,18 @@ func (rr *reportRoutes) getByUserTgID(w http.ResponseWriter, r *http.Request) {
 
 	reports, err := rr.reportService.GetReportsByTgID(r.Context(), tgID)
 	if err != nil {
-		rr.logger.Error("error getting reports by user tgID", map[string]any{
-			"tg_id": tgID,
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to get reports by user tgID")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			rr.logger.Error("error getting reports by user tgID", map[string]any{
+				"tg_id": tgID,
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to get reports by user tgID")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, reports)
@@ -176,11 +183,17 @@ func (rr *reportRoutes) create(w http.ResponseWriter, r *http.Request) {
 
 	createdReport, err := rr.reportService.CreateReport(r.Context(), report)
 	if err != nil {
-		rr.logger.Error("error creating report", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to create report")
-		return
+		switch err {
+		case repoerrors.ErrOwnerNotFound:
+			writeError(w, http.StatusBadRequest, "user not found")
+			return
+		default:
+			rr.logger.Error("error creating report", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to create report")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusCreated, createdReport)
@@ -374,6 +387,7 @@ func (rr *reportRoutes) put(w http.ResponseWriter, r *http.Request) {
 // @Param reportID path int true "ID отчета"
 // @Success 204
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /reports/{reportID} [delete]
 func (rr *reportRoutes) delete(w http.ResponseWriter, r *http.Request) {
@@ -386,12 +400,18 @@ func (rr *reportRoutes) delete(w http.ResponseWriter, r *http.Request) {
 
 	err = rr.reportService.DeleteReport(r.Context(), reportID)
 	if err != nil {
-		rr.logger.Error("error deleting report", map[string]any{
-			"report_id": reportID,
-			"error":     err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to delete report")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "report not found")
+			return
+		default:
+			rr.logger.Error("error deleting report", map[string]any{
+				"report_id": reportID,
+				"error":     err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to delete report")
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)

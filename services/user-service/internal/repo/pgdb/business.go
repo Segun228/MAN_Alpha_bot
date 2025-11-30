@@ -2,10 +2,13 @@ package pgdb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/models"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo/repoerrors"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/postgres"
+	"github.com/jackc/pgx/v5"
 )
 
 type BusinessRepo struct {
@@ -60,6 +63,10 @@ func (r *BusinessRepo) GetBusinessByID(ctx context.Context, businessID int) (*mo
 		&business.UserID,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoerrors.ErrNotFound
+		}
+
 		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
@@ -67,6 +74,21 @@ func (r *BusinessRepo) GetBusinessByID(ctx context.Context, businessID int) (*mo
 }
 
 func (r *BusinessRepo) GetBusinessesByUserID(ctx context.Context, userID int) ([]models.Business, error) {
+	checkUserSql, checkUserArgs, _ := r.Builder.
+		Select("id").
+		From("users").
+		Where("id = ?", userID).
+		ToSql()
+
+	var id int
+	err := r.Pool.QueryRow(ctx, checkUserSql, checkUserArgs...).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoerrors.ErrOwnerNotFound
+		}
+		return nil, fmt.Errorf("failed to execute sql request: %w", err)
+	}
+
 	sql, args, _ := r.Builder.
 		Select("id, name, description, user_id").
 		From("businesses").
@@ -118,6 +140,10 @@ func (r *BusinessRepo) GetBusinessOwner(ctx context.Context, businessID int) (*m
 		&user.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoerrors.ErrNotFound
+		}
+
 		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
@@ -125,6 +151,21 @@ func (r *BusinessRepo) GetBusinessOwner(ctx context.Context, businessID int) (*m
 }
 
 func (r *BusinessRepo) UpdateBusiness(ctx context.Context, business models.Business) (*models.Business, error) {
+	checkUserSql, checkUserArgs, _ := r.Builder.
+		Select("id").
+		From("businesses").
+		Where("id = ?", business.ID).
+		ToSql()
+
+	var id int
+	err := r.Pool.QueryRow(ctx, checkUserSql, checkUserArgs...).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoerrors.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to execute sql request: %w", err)
+	}
+
 	sql, args, _ := r.Builder.
 		Update("businesses").
 		Set("name", business.Name).
@@ -132,7 +173,7 @@ func (r *BusinessRepo) UpdateBusiness(ctx context.Context, business models.Busin
 		Where("id = ?", business.ID).
 		ToSql()
 
-	_, err := r.Pool.Exec(ctx, sql, args...)
+	_, err = r.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute sql request: %w", err)
 	}
@@ -141,12 +182,27 @@ func (r *BusinessRepo) UpdateBusiness(ctx context.Context, business models.Busin
 }
 
 func (r *BusinessRepo) DeleteBusiness(ctx context.Context, businessID int) error {
+	checkUserSql, checkUserArgs, _ := r.Builder.
+		Select("id").
+		From("businesses").
+		Where("id = ?", businessID).
+		ToSql()
+
+	var id int
+	err := r.Pool.QueryRow(ctx, checkUserSql, checkUserArgs...).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return repoerrors.ErrNotFound
+		}
+		return fmt.Errorf("failed to execute sql request: %w", err)
+	}
+
 	sql, args, _ := r.Builder.
 		Delete("businesses").
 		Where("id = ?", businessID).
 		ToSql()
 
-	_, err := r.Pool.Exec(ctx, sql, args...)
+	_, err = r.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("failed to execute sql request: %w", err)
 	}
