@@ -25,6 +25,7 @@ func newReportRoutes(r chi.Router, reportService service.Reports, logger utils.L
 	r.Route("/reports", func(r chi.Router) {
 		r.Get("/", rr.getAll)
 		r.Get("/{reportID}", rr.getByID)
+		r.Get("/tg/{tgID}", rr.getByUserTgID)
 		r.Post("/", rr.create)
 		r.Put("/{reportID}", rr.put)
 		r.Patch("/{reportID}", rr.patch)
@@ -90,6 +91,37 @@ func (rr *reportRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, report)
+}
+
+// @Summary Get reports by user Telegram ID
+// @Description Получить все отчеты пользователя по Telegram ID
+// @Tags reports
+// @Accept json
+// @Produce json
+// @Param tgID path int64 true "Telegram User ID"
+// @Success 200 {array} models.Report
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /reports/tg/{tgID} [get]
+func (rr *reportRoutes) getByUserTgID(w http.ResponseWriter, r *http.Request) {
+	tgIDParam := chi.URLParam(r, "tgID")
+	tgID, err := parseTgIDParam(tgIDParam)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid tgID param")
+		return
+	}
+
+	reports, err := rr.reportService.GetReportsByTgID(r.Context(), tgID)
+	if err != nil {
+		rr.logger.Error("error getting reports by user tgID", map[string]any{
+			"tg_id": tgID,
+			"error": err.Error(),
+		})
+		writeError(w, http.StatusInternalServerError, "failed to get reports by user tgID")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, reports)
 }
 
 type reportCreateRequest struct {

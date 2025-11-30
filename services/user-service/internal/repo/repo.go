@@ -30,6 +30,7 @@ type Business interface {
 type Reports interface {
 	GetReports(ctx context.Context) ([]models.Report, error)
 	GetReportByID(ctx context.Context, reportID int) (*models.Report, error)
+	GetByReportsUserID(ctx context.Context, userID int) ([]models.Report, error)
 	CreateReport(ctx context.Context, report models.Report) (*models.Report, error)
 	UpdateReport(ctx context.Context, report models.Report) (*models.Report, error)
 	DeleteReport(ctx context.Context, reportID int) error

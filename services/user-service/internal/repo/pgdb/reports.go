@@ -97,6 +97,48 @@ func (r *ReportsRepo) GetReportByID(ctx context.Context, reportID int) (*models.
 	return &report, nil
 }
 
+func (r *ReportsRepo) GetByReportsUserID(ctx context.Context, userID int) ([]models.Report, error) {
+	sql, args, _ := r.Builder.
+		Select("id, user_id, name, users, customers, avp, apc, tms, cogs, cogs1s, fc, rr, agr, created_at, updated_at").
+		From("reports").
+		Where("user_id = ?", userID).
+		ToSql()
+
+	rows, err := r.Pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var reports []models.Report
+	for rows.Next() {
+		var report models.Report
+		err := rows.Scan(
+			&report.ID,
+			&report.UserID,
+			&report.Name,
+			&report.Users,
+			&report.Customers,
+			&report.AVP,
+			&report.APC,
+			&report.TMS,
+			&report.COGS,
+			&report.COGS1s,
+			&report.FC,
+			&report.RR,
+			&report.AGR,
+			&report.CreatedAt,
+			&report.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		reports = append(reports, report)
+	}
+
+	return reports, nil
+}
+
 func (r *ReportsRepo) CreateReport(ctx context.Context, report models.Report) (*models.Report, error) {
 	checkSql, checkArgs, _ := r.Builder.
 		Select("id").
