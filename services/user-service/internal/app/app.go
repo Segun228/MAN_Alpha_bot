@@ -17,6 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// @title           User Service
+// @version         1.0
 func Run(configPath string) {
 	var cfgMutex sync.RWMutex
 

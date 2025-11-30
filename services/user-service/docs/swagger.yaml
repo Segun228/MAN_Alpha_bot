@@ -160,6 +160,8 @@ definitions:
     type: object
 info:
   contact: {}
+  title: User Service
+  version: "1.0"
 paths:
   /businesses:
     get:
