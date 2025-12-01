@@ -18,6 +18,9 @@ services:
       dockerfile: ./services/stt/Dockerfile
     container_name: speech-service
     restart: on-failure
+    environment:
+      - STT_ROUTE=${STT_ROUTE}
+      - STT_API_KEY=${STT_API_KEY}
     ports:
       - "${STT_PORT}:8096"
     networks:
