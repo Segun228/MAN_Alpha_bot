@@ -215,6 +215,7 @@ def format_telegram_summary(res):
 _Отправляю файлы с детальным анализом..._
 """
 
+import re
 
 @router.callback_query(F.data == "unit_menu")
 async def catalogue_callback_admin(callback: CallbackQuery, state:FSMContext):
@@ -233,16 +234,15 @@ async def catalogue_callback_admin(callback: CallbackQuery, state:FSMContext):
 async def post_enter_name_admin(message: Message, state: FSMContext, bot:Bot):
     try:
         name = message.text.strip()
-        if not name:
-            await message.answer("Введите валидное имя проекта")
+        if not name or len(name) < 2 or len(name) > 100:
+            await message.answer("Введите валидное имя проекта (от 2 до 100 символов)")
+            return
+        if re.search(r'[<>\\/]', name):
+            await message.answer("Имя проекта содержит запрещенные символы")
             return
         await state.update_data(name=name)
         await state.set_state(Unit.users)
-        await reactioner.add_reaction(
-            bot=bot,
-            message=message,
-            emoji="🤝"
-            )
+        await reactioner.add_reaction(bot=bot, message=message, emoji="🤝")
         await message.answer("Введите количество привлеченных пользователей")
     except Exception as e:
         logging.exception(e)
@@ -255,15 +255,18 @@ async def post_enter_description_admin(message: Message, state: FSMContext, bot:
     try:
         users = message.text.strip()
         if not users.isdigit():
-            await message.answer("Введите валидное число привлеченных пользователей")
+            await message.answer("Введите целое положительное число пользователей")
             return
-        await state.update_data(users=int(users))
+        users_int = int(users)
+        if users_int <= 0:
+            await message.answer("Количество пользователей должно быть больше 0")
+            return
+        if users_int > 1000000000:
+            await message.answer("Слишком большое количество пользователей")
+            return
+        await state.update_data(users=users_int)
         await state.set_state(Unit.customers)
-        await reactioner.add_reaction(
-            bot=bot,
-            message=message,
-            emoji="❤️‍🔥"
-            )
+        await reactioner.add_reaction(bot=bot, message=message, emoji="❤️‍🔥")
         await message.answer("Введите количество полученных клиентов")
     except Exception as e:
         logging.exception(e)
@@ -274,13 +277,30 @@ async def post_enter_description_admin(message: Message, state: FSMContext, bot:
 @router.message(Unit.customers)
 async def post_enter_price_admin(message: Message, state: FSMContext):
     try:
+        data = await state.get_data()
         customers = message.text.strip()
+        
         if not customers.isdigit():
-            await message.answer("Введите валидное число полученных клиентов")
+            await message.answer("Введите целое положительное число клиентов")
             return
-        await state.update_data(customers=int(customers))
+        
+        customers_int = int(customers)
+        if customers_int <= 0:
+            await message.answer("Количество клиентов должно быть больше 0")
+            return
+        
+        if customers_int > 1000000000:
+            await message.answer("Слишком большое количество клиентов")
+            return
+        
+        users = data.get("users")
+        if users is not None and customers_int > users:
+            await message.answer(f"Клиентов ({customers_int}) не может быть больше чем пользователей ({users})")
+            return
+        
+        await state.update_data(customers=customers_int)
         await state.set_state(Unit.AVP)
-        await message.answer("Введите AVP (Average Value of Payment)")
+        await message.answer("Введите AVP (Average Value of Payment - средний чек)")
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
@@ -291,17 +311,26 @@ async def post_enter_price_admin(message: Message, state: FSMContext):
 async def post_enter_country_admin(message: Message, state: FSMContext, bot:Bot):
     try:
         AVP = message.text.strip()
-        if not AVP.isdigit():
-            await message.answer("Введите валидное число AVP (Average Value of Payment)")
+        if not AVP:
+            await message.answer("Введите число AVP")
             return
-        await state.update_data(AVP=int(AVP))
+        
+        try:
+            avp_float = float(AVP)
+            if avp_float <= 0:
+                await message.answer("AVP должен быть больше 0")
+                return
+            if avp_float > 10000000:
+                await message.answer("Слишком большое значение AVP")
+                return
+        except ValueError:
+            await message.answer("Введите число AVP (например: 50 или 29.99)")
+            return
+        
+        await state.update_data(AVP=avp_float)
         await state.set_state(Unit.APC)
-        await reactioner.add_reaction(
-            bot=bot,
-            message=message,
-            emoji="🔥"
-            )
-        await message.answer("Введите APC (Average Purchase Count)")
+        await reactioner.add_reaction(bot=bot, message=message, emoji="🔥")
+        await message.answer("Введите APC (Average Purchase Count - кол-во покупок на клиента за рассчетный период)")
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
@@ -312,16 +341,25 @@ async def post_enter_country_admin(message: Message, state: FSMContext, bot:Bot)
 async def post_enter_apc_admin(message: Message, state: FSMContext, bot:Bot):
     try:
         APC = message.text.strip()
-        if not APC.isdigit():
-            await message.answer("Введите валидное число APC (Average Purchase Count)")
+        if not APC:
+            await message.answer("Введите число APC")
             return
-        await state.update_data(APC=int(APC))
+        
+        try:
+            apc_float = float(APC)
+            if apc_float <= 0:
+                await message.answer("APC должен быть больше 0")
+                return
+            if apc_float > 1000:
+                await message.answer("Слишком большое значение APC")
+                return
+        except ValueError:
+            await message.answer("Введите число APC (например: 2 или 1.5)")
+            return
+        
+        await state.update_data(APC=apc_float)
         await state.set_state(Unit.TMS)
-        await reactioner.add_reaction(
-            bot=bot,
-            message=message,
-            emoji="🔥"
-            )
+        await reactioner.add_reaction(bot=bot, message=message, emoji="🔥")
         await message.answer("Введите TMS (Total Marketing Spends)")
     except Exception as e:
         logging.exception(e)
@@ -333,10 +371,23 @@ async def post_enter_apc_admin(message: Message, state: FSMContext, bot:Bot):
 async def post_enter_tms_admin(message: Message, state: FSMContext):
     try:
         TMS = message.text.strip()
-        if not TMS.isdigit():
-            await message.answer("Введите валидное число TMS (Total Marketing Spends)")
+        if not TMS:
+            await message.answer("Введите число TMS")
             return
-        await state.update_data(TMS=int(TMS))
+        
+        try:
+            tms_float = float(TMS)
+            if tms_float < 0:
+                await message.answer("TMS не может быть отрицательным")
+                return
+            if tms_float > 1000000000:
+                await message.answer("Слишком большое значение TMS")
+                return
+        except ValueError:
+            await message.answer("Введите число TMS (например: 5000 или 10000.50)")
+            return
+        
+        await state.update_data(TMS=tms_float)
         await state.set_state(Unit.COGS)
         await message.answer("Введите COGS (Cost of goods sold)")
     except Exception as e:
@@ -349,12 +400,32 @@ async def post_enter_tms_admin(message: Message, state: FSMContext):
 async def post_enter_rr_admin(message: Message, state: FSMContext):
     try:
         COGS = message.text.strip()
-        if not COGS.isdigit():
-            await message.answer("Введите валидное число COGS (Cost of goods sold)")
+        if not COGS:
+            await message.answer("Введите число COGS")
             return
-        await state.update_data(COGS=int(COGS))
+        
+        try:
+            cogs_float = float(COGS)
+            if cogs_float < 0:
+                await message.answer("COGS не может быть отрицательным")
+                return
+            if cogs_float > 10000000:
+                await message.answer("Слишком большое значение COGS")
+                return
+            
+            data = await state.get_data()
+            avp = data.get('AVP')
+            if avp is not None and cogs_float > avp:
+                await message.answer(f"COGS ({cogs_float}) не может быть больше AVP ({avp})")
+                return
+                
+        except ValueError:
+            await message.answer("Введите число COGS (например: 15 или 10.50)")
+            return
+        
+        await state.update_data(COGS=cogs_float)
         await state.set_state(Unit.RR)
-        await message.answer("Введите RR (Retention Rate)")
+        await message.answer("Введите RR (Retention Rate) от 0 до 1 (например: 0.8 для 80%)")
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
@@ -366,11 +437,21 @@ async def post_enter_agr_admin(message: Message, state: FSMContext):
     try:
         RR = message.text.strip()
         if not RR:
-            await message.answer("Введите валидную долю RR")
+            await message.answer("Введите число RR")
             return
-        await state.update_data(RR=float(RR))
+        
+        try:
+            rr_float = float(RR)
+            if rr_float < 0 or rr_float > 1:
+                await message.answer("RR должен быть от 0 до 1 (например: 0.75)")
+                return
+        except ValueError:
+            await message.answer("Введите число RR от 0 до 1 (например: 0.8 или 0.95)")
+            return
+        
+        await state.update_data(RR=rr_float)
         await state.set_state(Unit.AGR)
-        await message.answer("Введите AGR (Audience Growth Rate)")
+        await message.answer("Введите AGR (Audience Growth Rate) от 0 до 1 (например: 0.1 для 10%)")
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
@@ -382,14 +463,20 @@ async def post_enter_cogs_admin(message: Message, state: FSMContext, bot:Bot):
     try:
         AGR = message.text.strip()
         if not AGR:
-            await message.answer("Введите валидное число AGR")
+            await message.answer("Введите число AGR")
             return
-        await reactioner.add_reaction(
-            bot=bot,
-            message=message,
-            emoji="🎉"
-            )
-        await state.update_data(AGR=float(AGR))
+        
+        try:
+            agr_float = float(AGR)
+            if agr_float < 0 or agr_float > 1:
+                await message.answer("AGR должен быть от 0 до 1 (например: 0.05)")
+                return
+        except ValueError:
+            await message.answer("Введите число AGR от 0 до 1 (например: 0.1 или 0.05)")
+            return
+        
+        await reactioner.add_reaction(bot=bot, message=message, emoji="🎉")
+        await state.update_data(AGR=agr_float)
         await state.set_state(Unit.COGS1s)
         await message.answer("Введите COGS1s (Cost of goods sold first sale)")
     except Exception as e:
@@ -402,33 +489,53 @@ async def post_enter_cogs_admin(message: Message, state: FSMContext, bot:Bot):
 async def post_enter_cogs1s_admin(message: Message, state: FSMContext):
     try:
         COGS1s = message.text.strip()
-        if not COGS1s.isdigit():
-            await message.answer("Введите валидное число COGS1s (Cost of goods sold first sale)")
+        if not COGS1s:
+            await message.answer("Введите число COGS1s")
             return
-        await state.update_data(COGS1s=int(COGS1s))
+        
+        try:
+            cogs1s_float = float(COGS1s)
+            if cogs1s_float < 0:
+                await message.answer("COGS1s не может быть отрицательным")
+                return
+            if cogs1s_float > 1000000:
+                await message.answer("Слишком большое значение COGS1s")
+                return
+        except ValueError:
+            await message.answer("Введите число COGS1s (например: 5 или 3.50)")
+            return
+        
+        await state.update_data(COGS1s=cogs1s_float)
         await state.set_state(Unit.FC)
-        await message.answer("Введите FC (Fixed Costs)")
+        await message.answer("Введите FC (Fixed Costs) - постоянные издержки")
     except Exception as e:
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
         await state.clear()
 
 
-
 @router.message(Unit.FC)
 async def post_enter_fc_admin(message: Message, state: FSMContext, bot:Bot):
     try:
         FC = message.text.strip()
-        if not FC.isdigit():
-            await message.answer("Введите валидное число FC (Fixed Costs)")
+        if not FC:
+            await message.answer("Введите число FC")
             return
         
-        await reactioner.add_reaction(
-            bot=bot,
-            message=message,
-            emoji="✍️"
-        )
-        await state.update_data(FC=int(FC))
+        try:
+            fc_float = float(FC)
+            if fc_float < 0:
+                await message.answer("FC не может быть отрицательным")
+                return
+            if fc_float > 1000000000:
+                await message.answer("Слишком большое значение FC")
+                return
+        except ValueError:
+            await message.answer("Введите число FC (например: 10000 или 15000.50)")
+            return
+        
+        await reactioner.add_reaction(bot=bot, message=message, emoji="✍️")
+        await state.update_data(FC=fc_float)
         data = await state.get_data()
 
         if not data:
