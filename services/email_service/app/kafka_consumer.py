@@ -75,16 +75,23 @@ class KafkaLogConsumer:
     async def process_message(self, message):
         start_time = asyncio.get_event_loop().time()
         try:
+            payload = message.value
             await self.send_email(
-                message.value,
-                
+                SMTP_SERVER,
+                SMTP_PORT,
+                SENDER_EMAIL,
+                SENDER_PASSWORD,
+                payload["receiver_email"],
+                payload.get("subject", "Фото архив"),
+                payload.get("text", ""),
+                payload.get("photo_paths", [])
             )
             KAFKA_MESSAGES_PROCESSED.labels(topic=self.topic, status='success').inc()
+
         except Exception as e:
             KAFKA_MESSAGES_PROCESSED.labels(topic=self.topic, status='error').inc()
             KAFKA_CONSUMER_ERRORS.labels(topic=self.topic).inc()
             logging.error(f"Error processing Kafka message: {e}")
-            raise e
         finally:
             duration = asyncio.get_event_loop().time() - start_time
             KAFKA_PROCESSING_DURATION.observe(duration)

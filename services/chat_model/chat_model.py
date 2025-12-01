@@ -57,6 +57,7 @@ class RequestData(BaseModel):
 
 @app.post("/generate_response")
 async def generate_message(request_data: RequestData):
+    print(URL)
     if not request_data.text.strip():  # Сразу отлавливаю пустой случай
         return {
             "success": True,
@@ -136,7 +137,7 @@ async def generate_message(request_data: RequestData):
 
     except aiohttp.ClientError as e:
         logging.exception(e)
-        raise HTTPException(status_code=500, detail=f"Ошибка при запросе к OpenRouter: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при запросе: {str(e)}")
 
     except Exception as e:
         logging.exception(e)
@@ -150,4 +151,4 @@ async def root():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8082)
+    uvicorn.run(app, host="0.0.0.0", port=8095)
