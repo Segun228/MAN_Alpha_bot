@@ -8,41 +8,28 @@ import (
 
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/metrics"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/utils"
+	"github.com/go-chi/chi/middleware"
 	"github.com/sirupsen/logrus"
 )
 
-type statusWriter struct {
-	http.ResponseWriter
-	status int
-}
+const (
+	metricsRoutePath   = "/metrics"
+	actuatorPrometheus = "/actuator/prometheus"
+)
 
 func PrometheusMiddleware(m *metrics.Metrics) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
-			ww := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			next.ServeHTTP(ww, r)
 
 			duration := time.Since(start).Seconds()
 			m.HttpRequestDurationSeconds.WithLabelValues(r.Method, r.URL.Path).Observe(duration)
-			m.HttpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, fmt.Sprintf("%d", ww.status)).Inc()
+			m.HttpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, fmt.Sprintf("%d", ww.Status())).Inc()
 		})
 	}
-}
-
-func (w *statusWriter) WriteHeader(code int) {
-	if w.status == 0 {
-		w.status = code
-		w.ResponseWriter.WriteHeader(code)
-	}
-}
-
-func (w *statusWriter) Write(b []byte) (int, error) {
-	if w.status == 0 {
-		w.status = http.StatusOK
-	}
-	return w.ResponseWriter.Write(b)
 }
 
 func CORSMiddleware(allowedOrigins []string) func(next http.Handler) http.Handler {
@@ -65,15 +52,27 @@ func CORSMiddleware(allowedOrigins []string) func(next http.Handler) http.Handle
 	}
 }
 
-func LoggingMiddleware(logger utils.Logger) func(next http.Handler) http.Handler {
+func loggingMiddleware(log utils.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger.Info("incomong request", logrus.Fields{
-				"method": r.Method,
-				"path":   r.URL.Path,
-				"remote": r.RemoteAddr,
+			if r.URL.Path == metricsRoutePath || r.URL.Path == actuatorPrometheus {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+
+			start := time.Now()
+			next.ServeHTTP(ww, r)
+			duration := time.Since(start)
+
+			log.Info("request completed", map[string]any{
+				"method":      r.Method,
+				"path":        r.URL.Path,
+				"status":      ww.Status(),
+				"duration_ms": duration.Milliseconds(),
+				"remote_ip":   r.RemoteAddr,
 			})
-			next.ServeHTTP(w, r)
 		})
 	}
 }

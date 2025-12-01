@@ -172,7 +172,7 @@ services:
     networks:
       - app-man-network
 
-  grafana: ### gateway?
+  grafana:
     image: grafana/grafana:10.1.5
     container_name: grafana
     ports:

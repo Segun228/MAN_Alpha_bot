@@ -9,7 +9,7 @@ func BotAuthMiddleware(botKey string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			key := r.Header.Get("X-Bot-Key")
 			if key == "" || key != botKey {
-				http.Error(w, "invalid or missing bot key", http.StatusUnauthorized)
+				writeError(w, http.StatusUnauthorized, "invalid or missing bot key")
 				return
 			}
 			next.ServeHTTP(w, r)
