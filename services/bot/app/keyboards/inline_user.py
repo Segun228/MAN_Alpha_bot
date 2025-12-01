@@ -9,11 +9,48 @@ import logging
 main = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="📦 Каталог", callback_data="catalogue")],
+        [InlineKeyboardButton(text="📊 Юнит-экономика", callback_data="unit_menu")],
         [InlineKeyboardButton(text="🤖 ИИ-инструменты", callback_data="ai_menu")],
         [InlineKeyboardButton(text="👤 Аккаунт", callback_data="account_menu")],
         [InlineKeyboardButton(text="📞 Контакты", callback_data="contacts")]
     ]
 )
+
+
+async def get_reports(reports):
+    keyboard = InlineKeyboardBuilder()
+    if reports is None or reports == [] or reports == ():
+        keyboard.add(InlineKeyboardButton(text="Создать модель ➕", callback_data="create_report"))
+        keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
+        return keyboard.adjust(1).as_markup()
+    for report in reports:
+        keyboard.add(InlineKeyboardButton(text=f"{report.get('name', 'Модель экономики')}", callback_data=f"report_{report.get('id')}"))
+    keyboard.add(InlineKeyboardButton(text="Создать модель ➕", callback_data="create_report"))
+    keyboard.add(InlineKeyboardButton(text="Аналитика", callback_data=f"analise_{report.get('id')}"))
+    keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
+    return keyboard.adjust(1).as_markup()
+
+
+async def get_report_menu(report_id):
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(InlineKeyboardButton(text="Аналитика", callback_data=f"analise_unit_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Редактировать модель 📝", callback_data=f"edit_report_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Удалить модель 🗑️", callback_data=f"delete_report_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Каталог 📦", callback_data="catalogue"))
+    keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
+    return keyboard.adjust(1).as_markup()
+
+
+async def create_unit_edit_menu(report_id):
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(InlineKeyboardButton(text="Рассчитать экономику", callback_data=f"count_unit_economics_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Рассчитать точку безубыточности", callback_data=f"count_unit_bep_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Когортный анализ", callback_data=f"cohort_analisis_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Сгенерировать Unit-отчет", callback_data=f"generate_report_unit_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
+    return keyboard.adjust(1).as_markup()
+
+
 
 account_menu = InlineKeyboardMarkup(
     inline_keyboard=[
