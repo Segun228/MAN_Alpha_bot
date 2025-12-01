@@ -70,6 +70,40 @@ reactioner = ReactionManager()
 # UNIT ECONOMICS BLOCK
 #========================================================================================================================================================================
 #========================================================================================================================================================================
+def safe_float_convert(value: str, min_val=None, max_val=None):
+    """Безопасное преобразование строки в float с проверкой диапазона"""
+    try:
+        value = value.replace(',', '.')
+        result = float(value)
+        
+        if min_val is not None and result < min_val:
+            raise ValueError(f"Значение должно быть не меньше {min_val}")
+        if max_val is not None and result > max_val:
+            raise ValueError(f"Значение должно быть не больше {max_val}")
+        
+        return result
+    except ValueError as e:
+        raise
+    except Exception:
+        raise ValueError("Некорректное число")
+
+
+def safe_int_convert(value: str, min_val=None, max_val=None):
+    """Безопасное преобразование строки в int с проверкой диапазона"""
+    try:
+        result = int(value)
+        
+        if min_val is not None and result < min_val:
+            raise ValueError(f"Значение должно быть не меньше {min_val}")
+        if max_val is not None and result > max_val:
+            raise ValueError(f"Значение должно быть не больше {max_val}")
+        
+        return result
+    except ValueError as e:
+        raise
+    except Exception:
+        raise ValueError("Некорректное целое число")
+
 
 async def send_economics_results(res, byte_data, message, bot):
     """
@@ -306,7 +340,6 @@ async def post_enter_price_admin(message: Message, state: FSMContext):
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
         await state.clear()
 
-
 @router.message(Unit.AVP)
 async def post_enter_country_admin(message: Message, state: FSMContext, bot:Bot):
     try:
@@ -316,15 +349,9 @@ async def post_enter_country_admin(message: Message, state: FSMContext, bot:Bot)
             return
         
         try:
-            avp_float = float(AVP)
-            if avp_float <= 0:
-                await message.answer("AVP должен быть больше 0")
-                return
-            if avp_float > 10000000:
-                await message.answer("Слишком большое значение AVP")
-                return
-        except ValueError:
-            await message.answer("Введите число AVP (например: 50 или 29.99)")
+            avp_float = safe_float_convert(AVP, min_val=0.01, max_val=10000000)
+        except ValueError as e:
+            await message.answer(f"Ошибка: {str(e)}. Введите число AVP (например: 50 или 29.99)")
             return
         
         await state.update_data(AVP=avp_float)
@@ -346,15 +373,9 @@ async def post_enter_apc_admin(message: Message, state: FSMContext, bot:Bot):
             return
         
         try:
-            apc_float = float(APC)
-            if apc_float <= 0:
-                await message.answer("APC должен быть больше 0")
-                return
-            if apc_float > 1000:
-                await message.answer("Слишком большое значение APC")
-                return
-        except ValueError:
-            await message.answer("Введите число APC (например: 2 или 1.5)")
+            apc_float = safe_float_convert(APC, min_val=0.01, max_val=1000)
+        except ValueError as e:
+            await message.answer(f"Ошибка: {str(e)}. Введите число APC (например: 2 или 1.5)")
             return
         
         await state.update_data(APC=apc_float)
@@ -376,15 +397,9 @@ async def post_enter_tms_admin(message: Message, state: FSMContext):
             return
         
         try:
-            tms_float = float(TMS)
-            if tms_float < 0:
-                await message.answer("TMS не может быть отрицательным")
-                return
-            if tms_float > 1000000000:
-                await message.answer("Слишком большое значение TMS")
-                return
-        except ValueError:
-            await message.answer("Введите число TMS (например: 5000 или 10000.50)")
+            tms_float = safe_float_convert(TMS, min_val=0, max_val=1000000000)
+        except ValueError as e:
+            await message.answer(f"Ошибка: {str(e)}. Введите число TMS (например: 5000 или 10000.50)")
             return
         
         await state.update_data(TMS=tms_float)
@@ -405,24 +420,17 @@ async def post_enter_rr_admin(message: Message, state: FSMContext):
             return
         
         try:
-            cogs_float = float(COGS)
-            if cogs_float < 0:
-                await message.answer("COGS не может быть отрицательным")
-                return
-            if cogs_float > 10000000:
-                await message.answer("Слишком большое значение COGS")
-                return
-            
-            data = await state.get_data()
-            avp = data.get('AVP')
-            if avp is not None and cogs_float > avp:
-                await message.answer(f"COGS ({cogs_float}) не может быть больше AVP ({avp})")
-                return
-                
-        except ValueError:
-            await message.answer("Введите число COGS (например: 15 или 10.50)")
+            cogs_float = safe_float_convert(COGS, min_val=0, max_val=10000000)
+        except ValueError as e:
+            await message.answer(f"Ошибка: {str(e)}. Введите число COGS (например: 15 или 10.50)")
             return
         
+        data = await state.get_data()
+        avp = data.get('AVP')
+        if avp is not None and cogs_float > avp:
+            await message.answer(f"COGS ({cogs_float}) не может быть больше AVP ({avp})")
+            return
+            
         await state.update_data(COGS=cogs_float)
         await state.set_state(Unit.RR)
         await message.answer("Введите RR (Retention Rate) от 0 до 1 (например: 0.8 для 80%)")
@@ -441,12 +449,9 @@ async def post_enter_agr_admin(message: Message, state: FSMContext):
             return
         
         try:
-            rr_float = float(RR)
-            if rr_float < 0 or rr_float > 1:
-                await message.answer("RR должен быть от 0 до 1 (например: 0.75)")
-                return
-        except ValueError:
-            await message.answer("Введите число RR от 0 до 1 (например: 0.8 или 0.95)")
+            rr_float = safe_float_convert(RR, min_val=0, max_val=1)
+        except ValueError as e:
+            await message.answer(f"Ошибка: {str(e)}. Введите число RR от 0 до 1 (например: 0.8 или 0.95)")
             return
         
         await state.update_data(RR=rr_float)
@@ -467,12 +472,9 @@ async def post_enter_cogs_admin(message: Message, state: FSMContext, bot:Bot):
             return
         
         try:
-            agr_float = float(AGR)
-            if agr_float < 0 or agr_float > 1:
-                await message.answer("AGR должен быть от 0 до 1 (например: 0.05)")
-                return
-        except ValueError:
-            await message.answer("Введите число AGR от 0 до 1 (например: 0.1 или 0.05)")
+            agr_float = safe_float_convert(AGR, min_val=0, max_val=1)
+        except ValueError as e:
+            await message.answer(f"Ошибка: {str(e)}. Введите число AGR от 0 до 1 (например: 0.1 или 0.05)")
             return
         
         await reactioner.add_reaction(bot=bot, message=message, emoji="🎉")
@@ -494,15 +496,9 @@ async def post_enter_cogs1s_admin(message: Message, state: FSMContext):
             return
         
         try:
-            cogs1s_float = float(COGS1s)
-            if cogs1s_float < 0:
-                await message.answer("COGS1s не может быть отрицательным")
-                return
-            if cogs1s_float > 1000000:
-                await message.answer("Слишком большое значение COGS1s")
-                return
-        except ValueError:
-            await message.answer("Введите число COGS1s (например: 5 или 3.50)")
+            cogs1s_float = safe_float_convert(COGS1s, min_val=0, max_val=1000000)
+        except ValueError as e:
+            await message.answer(f"Ошибка: {str(e)}. Введите число COGS1s (например: 5 или 3.50)")
             return
         
         await state.update_data(COGS1s=cogs1s_float)
@@ -523,15 +519,9 @@ async def post_enter_fc_admin(message: Message, state: FSMContext, bot:Bot):
             return
         
         try:
-            fc_float = float(FC)
-            if fc_float < 0:
-                await message.answer("FC не может быть отрицательным")
-                return
-            if fc_float > 1000000000:
-                await message.answer("Слишком большое значение FC")
-                return
-        except ValueError:
-            await message.answer("Введите число FC (например: 10000 или 15000.50)")
+            fc_float = safe_float_convert(FC, min_val=0, max_val=1000000000)
+        except ValueError as e:
+            await message.answer(f"Ошибка: {str(e)}. Введите число FC (например: 10000 или 15000.50)")
             return
         
         await reactioner.add_reaction(bot=bot, message=message, emoji="✍️")
@@ -576,7 +566,6 @@ async def post_enter_fc_admin(message: Message, state: FSMContext, bot:Bot):
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
         await state.clear()
-
 
 @router.callback_query(F.data == "email_deny")
 async def email_deny_admin(callback: CallbackQuery, state: FSMContext):
@@ -690,9 +679,7 @@ async def email_custom_accept(message: Message, state: FSMContext):
                 reply_markup=await inline_keyboards.email_choice(telegram_id=message.from_user.id)
             )
         else:
-            await message.answer("🎉 Сообщение успешно отправлено!!!", reply_markup=inline_keyboards.main)
-            await state.clear()
-            
+            await message.answer("🎉 Сообщение успешно отправлено!!!", reply_markup=await inline_keyboards.email_choice(telegram_id=message.from_user.id))
     except Exception as e:
         await message.answer(f"❌ Ошибка: {str(e)}", reply_markup=inline_keyboards.main)
         logging.exception(e)
