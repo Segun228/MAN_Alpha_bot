@@ -5,6 +5,11 @@ class Send(StatesGroup):
     message = State()
 
 
+class SendReport(StatesGroup):
+    handle = State()
+    message = State()
+
+
 class CreateUser(StatesGroup):
     start_creating = State()
     login = State()

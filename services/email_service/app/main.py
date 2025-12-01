@@ -83,7 +83,7 @@ async def monitor_requests(request: Request, call_next):
     return response
 
 
-@app.post("/send-email/")
+@app.post("/send-email")
 async def send_email_with_zip(
     text_message: str = Form(...),
     zip_file: UploadFile = File(...),

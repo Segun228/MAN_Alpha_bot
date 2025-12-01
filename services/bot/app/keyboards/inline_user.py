@@ -17,6 +17,21 @@ main = InlineKeyboardMarkup(
 )
 
 
+
+
+async def email_choice(        
+    telegram_id
+):
+    email_choice = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🙂‍↔️ Нет, спасибо", callback_data="email_deny")],
+            [InlineKeyboardButton(text="🧑‍💻 Да, на мою почту", callback_data=f"email_account_{telegram_id}")],
+            [InlineKeyboardButton(text="🤖 Да, на укажу почту", callback_data=f"email_custom_{telegram_id}")],
+        ]
+    )
+    return email_choice
+
+
 async def get_reports(reports):
     keyboard = InlineKeyboardBuilder()
     if reports is None or reports == [] or reports == ():
