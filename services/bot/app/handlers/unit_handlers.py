@@ -59,7 +59,7 @@ from app.requests.reports.put_report import put_report
 
 
 from app.keyboards import inline_user as keyboards
-
+from app.utils.unit_handlers import analyze_unit_economics
 
 #========================================================================================================================================================================
 #========================================================================================================================================================================
@@ -67,70 +67,153 @@ from app.keyboards import inline_user as keyboards
 #========================================================================================================================================================================
 #========================================================================================================================================================================
 
-@router.callback_query(F.data == "unit_menu")
-async def catalogue_callback_admin(callback: CallbackQuery):
-    await build_log_message(
-        telegram_id=callback.from_user.id,
-        action="callback",
-        source="menu",
-        payload="catalogue"
-    )
-    post_models = await get_user_report(telegram_id=callback.from_user.id)
-    await callback.message.answer("Вот доступные проекты 👇", reply_markup= await keyboards.get_reports(reports=post_models))
-    await callback.answer()
+async def send_economics_results(res, byte_data, message, bot):
+    """
+    Отправка всех результатов анализа пользователю в боте
+    
+    Args:
+        res: UnitEconomicsResult (результаты анализа)
+        byte_data: io.BytesIO (ZIP архив)
+        message: Message объект
+        bot: Bot объект
+    """
+    try:
+        summary_text = format_telegram_summary(res)
+        await message.answer(summary_text, parse_mode='Markdown')
+        
+        if 'basic_report.xlsx' in res.files:
+            excel_buffer = res.files['basic_report.xlsx']
+            excel_buffer.seek(0)
+            
+            await bot.send_document(
+                chat_id=message.chat.id,
+                document=BufferedInputFile(
+                    file=excel_buffer.getvalue(),
+                    filename='Основные_метрики.xlsx'
+                ),
+                caption="📊 Основные метрики в Excel"
+            )
+        
+        if 'bep_chart.png' in res.files:
+            chart_buffer = res.files['bep_chart.png']
+            chart_buffer.seek(0)
+            
+            await bot.send_photo(
+                chat_id=message.chat.id,
+                photo=BufferedInputFile(
+                    file=chart_buffer.getvalue(),
+                    filename='bep_chart.png'
+                ),
+                caption="🎯 График точки безубыточности"
+            )
 
+        if 'cohort_accumulated_profit.png.png' in res.files:
+            chart_buffer = res.files['cohort_accumulated_profit.png.png']
+            chart_buffer.seek(0)
+            
+            await bot.send_photo(
+                chat_id=message.chat.id,
+                photo=BufferedInputFile(
+                    file=chart_buffer.getvalue(),
+                    filename='cohort_accumulated_profit.png.png'
+                ),
+                caption="🎯 График накопленной прибыли"
+            )
 
+        if 'cohort_audience_growth.png.png' in res.files:
+            chart_buffer = res.files['cohort_audience_growth.png.png']
+            chart_buffer.seek(0)
+            
+            await bot.send_photo(
+                chat_id=message.chat.id,
+                photo=BufferedInputFile(
+                    file=chart_buffer.getvalue(),
+                    filename='cohort_audience_growth.png.png'
+                ),
+                caption="🎯 График роста аудитории"
+            )
 
-@router.callback_query(F.data.startswith("report_"))
-async def post_catalogue_callback_admin(callback: CallbackQuery):
-    await callback.answer()
-    post_id = callback.data.split("_")[1]
-    await build_log_message(
-        telegram_id=callback.from_user.id,
-        action="callback",
-        source="menu",
-        payload=f"post_{post_id}"
-    )
-    post_data = await get_report(
-        telegram_id=callback.from_user.id,
-        report_id=post_id
-    )
-    if not post_data or isinstance(post_data, list):
-        await callback.message.answer("Извините, не удалось получить доступ к позиции", reply_markup=inline_keyboards.home)
-        return
+        if 'cohort_profit_dynamics.png.png' in res.files:
+            chart_buffer = res.files['cohort_profit_dynamics.png.png']
+            chart_buffer.seek(0)
+            
+            await bot.send_photo(
+                chat_id=message.chat.id,
+                photo=BufferedInputFile(
+                    file=chart_buffer.getvalue(),
+                    filename='cohort_profit_dynamics.png.png'
+                ),
+                caption="🎯 График изменения прибыли"
+            )
 
-    message_text = (
-        f"📦 **Информация об юните:**\n\n"
-        f"**Название:** `{post_data.get('name')}`\n"
-        f"**Users:** `{post_data.get('users')}`\n"
-        f"**Customers:** `{post_data.get('customers')}`\n"
-        f"**avp:** `{post_data.get('avp')}`\n"
-        f"**apc:** `{post_data.get('apc')}`\n"
-        f"**tms:** `{post_data.get('tms')}`\n"
-        f"**cogs:** `{post_data.get('cogs')}`\n"
-        f"**cogs1s:** `{post_data.get('cogs1s')}`\n"
-        f"**fc:** `{post_data.get('fc')}`\n"
-    )
-
-    await callback.message.answer(
-        text=message_text,
-        parse_mode="MarkdownV2",
-        reply_markup=await inline_keyboards.get_report_menu(
-            report_id=post_id,
+        if 'cohort_analysis.xlsx' in res.files:
+            cohort_buffer = res.files['cohort_analysis.xlsx']
+            cohort_buffer.seek(0)
+            
+            await bot.send_document(
+                chat_id=message.chat.id,
+                document=BufferedInputFile(
+                    file=cohort_buffer.getvalue(),
+                    filename='Когортный_анализ.xlsx'
+                ),
+                caption="📈 Когортный анализ на 24 периода"
+            )
+        
+        byte_data.seek(0)
+        await bot.send_document(
+            chat_id=message.chat.id,
+            document=BufferedInputFile(
+                file=byte_data.getvalue(),
+                filename=f'Полный_отчет_{message.chat.id}.zip'
+            ),
+            caption="🗜️ Полный архив со всеми файлами"
         )
-    )
+        
+        if 'summary_report.txt' in res.files:
+            txt_buffer = res.files['summary_report.txt']
+            txt_buffer.seek(0)
+            report_text = txt_buffer.read().decode('utf-8')
+            if len(report_text) > 4000:
+                for i in range(0, len(report_text), 4000):
+                    await message.answer(f"📄 Отчет (часть {i//4000 + 1}):\n```\n{report_text[i:i+4000]}\n```", parse_mode='Markdown')
+            else:
+                await message.answer(f"📄 Текстовый отчет:\n```\n{report_text}\n```", parse_mode='Markdown')
+        
+    except Exception as e:
+        await message.answer(f"❌ Ошибка при отправке файлов: {str(e)}")
 
-#===========================================================================================================================
-# Создание юнита
-#===========================================================================================================================
-@router.callback_query(F.data.startswith("create_report"))
-async def post_create_callback_admin(callback: CallbackQuery, state: FSMContext):
-    await build_log_message(
-        telegram_id=callback.from_user.id,
-        action="callback",
-        source="inline",
-        payload="create_unit"
-    )
+
+def format_telegram_summary(res):
+    """Форматирует сводку для Telegram"""
+    br = res.basic_report
+    
+    return f"""
+📊 *ОТЧЕТ ПО ЮНИТ-ЭКОНОМИКЕ*
+
+*Основные метрики:*
+• Продукт: {br.get('name', 'N/A')}
+• Пользователи: {br.get('users', 0):,.0f}
+• Клиенты: {br.get('customers', 0):,.0f}
+• Конверсия: {br.get('C1', 0):.1%}
+• ARPU: ${br.get('ARPU', 0):,.2f}
+• CAC: ${br.get('CAC', 0):,.2f}
+• LTV: ${br.get('LTV', 0):,.2f}
+• ROI: {br.get('ROI', 0):.1f}%
+• Прибыль: ${br.get('Profit', 0):,.2f}
+
+🎯 *Точка безубыточности:*
+• BEP: {res.bep_analysis.get('BEP_units_rounded', 0):,.0f} юнитов
+• FC: ${res.bep_analysis.get('FC', 0):,.2f}
+• UCM: ${res.bep_analysis.get('UCM', 0):,.2f}
+
+📈 *Статус:* {"✅ Рентабельно" if br.get('UCM', 0) > 0 else "⚠️ Нерентабельно"}
+
+_Отправляю файлы с детальным анализом..._
+"""
+
+
+@router.callback_query(F.data == "unit_menu")
+async def catalogue_callback_admin(callback: CallbackQuery, state:FSMContext):
     await callback.answer()
     await state.clear()
     await callback.message.answer("Введите название проекта")
@@ -166,285 +249,118 @@ async def post_enter_price_admin(message: Message, state: FSMContext):
         await message.answer("Введите валидное число полученных клиентов")
         return
     await state.update_data(customers=int(customers))
-    await state.set_state(Unit.avp)
-    await message.answer("Введите avp (Average Value of Payment)")
+    await state.set_state(Unit.AVP)
+    await message.answer("Введите AVP (Average Value of Payment)")
 
 
-@router.message(Unit.avp)
+@router.message(Unit.AVP)
 async def post_enter_country_admin(message: Message, state: FSMContext):
-    avp = message.text.strip()
-    if not avp.isdigit():
-        await message.answer("Введите валидное число avp (Average Value of Payment)")
+    AVP = message.text.strip()
+    if not AVP.isdigit():
+        await message.answer("Введите валидное число AVP (Average Value of Payment)")
         return
-    await state.update_data(avp=int(avp))
-    await state.set_state(Unit.apc)
-    await message.answer("Введите apc (Average Purchase Count)")
+    await state.update_data(AVP=int(AVP))
+    await state.set_state(Unit.APC)
+    await message.answer("Введите APC (Average Purchase Count)")
 
 
-@router.message(Unit.apc)
+@router.message(Unit.APC)
 async def post_enter_apc_admin(message: Message, state: FSMContext):
-    apc = message.text.strip()
-    if not apc.isdigit():
-        await message.answer("Введите валидное число apc (Average Purchase Count)")
+    APC = message.text.strip()
+    if not APC.isdigit():
+        await message.answer("Введите валидное число APC (Average Purchase Count)")
         return
-    await state.update_data(apc=int(apc))
-    await state.set_state(Unit.tms)
-    await message.answer("Введите tms (Total Marketing Spends)")
+    await state.update_data(APC=int(APC))
+    await state.set_state(Unit.TMS)
+    await message.answer("Введите TMS (Total Marketing Spends)")
 
 
-@router.message(Unit.tms)
+@router.message(Unit.TMS)
 async def post_enter_tms_admin(message: Message, state: FSMContext):
-    tms = message.text.strip()
-    if not tms.isdigit():
-        await message.answer("Введите валидное число tms (Total Marketing Spends)")
+    TMS = message.text.strip()
+    if not TMS.isdigit():
+        await message.answer("Введите валидное число TMS (Total Marketing Spends)")
         return
-    await state.update_data(tms=int(tms))
-    await state.set_state(Unit.cogs)
-    await message.answer("Введите cogs (Cost of goods sold)")
+    await state.update_data(TMS=int(TMS))
+    await state.set_state(Unit.COGS)
+    await message.answer("Введите COGS (Cost of goods sold)")
 
 
-@router.message(Unit.cogs)
+@router.message(Unit.COGS)
+async def post_enter_rr_admin(message: Message, state: FSMContext):
+    COGS = message.text.strip()
+    if not COGS.isdigit():
+        await message.answer("Введите валидное число COGS (Cost of goods sold)")
+        return
+    await state.update_data(COGS=int(COGS))
+    await state.set_state(Unit.RR)
+    await message.answer("Введите RR (Retention Rate)")
+
+
+@router.message(Unit.RR)
+async def post_enter_agr_admin(message: Message, state: FSMContext):
+    RR = message.text.strip()
+    if not RR:
+        await message.answer("Введите валидную долю RR")
+        return
+    await state.update_data(RR=float(RR))
+    await state.set_state(Unit.AGR)
+    await message.answer("Введите AGR (Audience Growth Rate)")
+
+
+@router.message(Unit.AGR)
 async def post_enter_cogs_admin(message: Message, state: FSMContext):
-    cogs = message.text.strip()
-    if not cogs.isdigit():
-        await message.answer("Введите валидное число cogs (Cost of goods sold)")
+    AGR = message.text.strip()
+    if not AGR:
+        await message.answer("Введите валидное число AGR")
         return
-    await state.update_data(cogs=int(cogs))
-    await state.set_state(Unit.cogs1s)
-    await message.answer("Введите cogs1s (Cost of goods sold first sale)")
+    await state.update_data(AGR=float(AGR))
+    await state.set_state(Unit.COGS1s)
+    await message.answer("Введите COGS1s (Cost of goods sold first sale)")
 
 
-@router.message(Unit.cogs1s)
+@router.message(Unit.COGS1s)
 async def post_enter_cogs1s_admin(message: Message, state: FSMContext):
-    cogs1s = message.text.strip()
-    if not cogs1s.isdigit():
-        await message.answer("Введите валидное число cogs1s (Cost of goods sold first sale)")
+    COGS1s = message.text.strip()
+    if not COGS1s.isdigit():
+        await message.answer("Введите валидное число COGS1s (Cost of goods sold first sale)")
         return
-    await state.update_data(cogs1s=int(cogs1s))
-    await state.set_state(Unit.fc)
-    await message.answer("Введите fc (Fixed Costs)")
+    await state.update_data(COGS1s=int(COGS1s))
+    await state.set_state(Unit.FC)
+    await message.answer("Введите FC (Fixed Costs)")
 
 
-@router.message(Unit.fc)
-async def post_enter_fc_admin(message: Message, state: FSMContext):
-    fc = message.text.strip()
-    if not fc.isdigit():
-        await message.answer("Введите валидное число fc (Fixed Costs)")
+@router.message(Unit.FC)
+async def post_enter_fc_admin(message: Message, state: FSMContext, bot:Bot):
+    FC = message.text.strip()
+    if not FC.isdigit():
+        await message.answer("Введите валидное число FC (Fixed Costs)")
         return
 
-    await state.update_data(fc=int(fc))
+    await state.update_data(FC=int(FC))
     data = await state.get_data()
-    unit_data = await post_report(
-        telegram_id=message.from_user.id,
-        description="Модель юнит-экономики",
-        name=data.get("name"),
-        users=data.get("users"),
-        customers=data.get("customers"),
-        avp=data.get("avp"),
-        apc=data.get("apc"),
-        tms=data.get("tms"),
-        cogs=data.get("cogs"),
-        cogs1s=data.get("cogs1s"),
-        fc=data.get("fc"),
-    )
-    if not unit_data:
+
+    if not data:
         await message.answer("Ошибка при создании юнита", reply_markup=inline_keyboards.main)
         return
 
     msg = (
         f"🧩 **Модель успешно создана:**\n\n"
-        f"**Название:** `{unit_data.get('name')}`\n"
-        f"**Пользователи:** `{unit_data.get('users')}`\n"
-        f"**Клиенты:** `{unit_data.get('customers')}`\n"
-        f"**avp:** `{unit_data.get('avp')}`\n"
-        f"**apc:** `{unit_data.get('apc')}`\n"
-        f"**tms:** `{unit_data.get('tms')}`\n"
-        f"**cogs:** `{unit_data.get('cogs')}`\n"
-        f"**cogs1s:** `{unit_data.get('cogs1s')}`\n"
-        f"**fc:** `{unit_data.get('fc')}`"
+        f"**Название:** `{data.get('name')}`\n"
+        f"**Пользователи:** `{data.get('users')}`\n"
+        f"**Клиенты:** `{data.get('customers')}`\n"
+        f"**AVP:** `{data.get('AVP')}`\n"
+        f"**APC:** `{data.get('APC')}`\n"
+        f"**TMS:** `{data.get('TMS')}`\n"
+        f"**COGS:** `{data.get('COGS')}`\n"
+        f"**COGS1s:** `{data.get('COGS1s')}`\n"
+        f"**FC:** `{data.get('FC')}`"
     )
-    await message.answer(msg, parse_mode="MarkdownV2", reply_markup=await inline_keyboards.get_report_menu(report_id=unit_data.get("id")))
+    res, byte = analyze_unit_economics(
+        data=data
+    )
+    await send_economics_results(res, byte, message, bot)
     await state.clear()
 
-#===========================================================================================================================
-# Редактирование поста
-#===========================================================================================================================
-@router.callback_query(F.data.startswith("edit_report_"))
-async def post_edit_callback_admin(callback: CallbackQuery, state: FSMContext):
-    await build_log_message(
-        telegram_id=callback.from_user.id,
-        action="callback",
-        source="inline",
-        payload="edit_post"
-    )
-    await callback.answer()
-    await state.clear()
-    category_id, unit_id = callback.data.split("_")[2:]
-    await state.update_data(category_id=category_id)
-    await state.update_data(post_id=unit_id)
-    await callback.message.answer("Введите новое название модели")
-    await state.set_state(UnitEdit.handle_edit_unit)
 
-
-@router.message(UnitEdit.handle_edit_unit)
-async def post_edit_name_admin(message: Message, state: FSMContext):
-    name = message.text.strip()
-    if not name:
-        await message.answer("Введите валидное имя модели")
-        return
-    await state.update_data(name=name)
-    await state.set_state(UnitEdit.users)
-    await message.answer("Введите значение users")
-
-
-@router.message(UnitEdit.users)
-async def post_edit_users_admin(message: Message, state: FSMContext):
-    users = message.text.strip()
-    if not users.isdigit():
-        await message.answer("Введите валидное число пользователей")
-        return
-    await state.update_data(users=int(users))
-    await state.set_state(UnitEdit.customers)
-    await message.answer("Введите значение customers")
-
-
-@router.message(UnitEdit.customers)
-async def post_edit_customers_admin(message: Message, state: FSMContext):
-    customers = message.text.strip()
-    if not customers.isdigit():
-        await message.answer("Введите валидное число клиентов")
-        return
-    await state.update_data(customers=int(customers))
-    await state.set_state(UnitEdit.avp)
-    await message.answer("Введите значение avp")
-
-
-@router.message(UnitEdit.avp)
-async def post_edit_avp_admin(message: Message, state: FSMContext):
-    avp = message.text.strip()
-    if not avp.isdigit():
-        await message.answer("Введите валидное значение avp")
-        return
-    await state.update_data(avp=int(avp))
-    await state.set_state(UnitEdit.apc)
-    await message.answer("Введите значение apc")
-
-
-@router.message(UnitEdit.apc)
-async def post_edit_apc_admin(message: Message, state: FSMContext):
-    apc = message.text.strip()
-    if not apc.isdigit():
-        await message.answer("Введите валидное значение apc")
-        return
-    await state.update_data(apc=int(apc))
-    await state.set_state(UnitEdit.tms)
-    await message.answer("Введите значение tms")
-
-
-@router.message(UnitEdit.tms)
-async def post_edit_tms_admin(message: Message, state: FSMContext):
-    tms = message.text.strip()
-    if not tms.isdigit():
-        await message.answer("Введите валидное значение tms")
-        return
-    await state.update_data(tms=int(tms))
-    await state.set_state(UnitEdit.cogs)
-    await message.answer("Введите значение cogs")
-
-
-@router.message(UnitEdit.cogs)
-async def post_edit_cogs_admin(message: Message, state: FSMContext):
-    cogs = message.text.strip()
-    if not cogs.isdigit():
-        await message.answer("Введите валидное значение cogs")
-        return
-    await state.update_data(cogs=int(cogs))
-    await state.set_state(UnitEdit.cogs1s)
-    await message.answer("Введите значение cogs1s")
-
-
-@router.message(UnitEdit.cogs1s)
-async def post_edit_cogs1s_admin(message: Message, state: FSMContext):
-    cogs1s = message.text.strip()
-    if not cogs1s.isdigit():
-        await message.answer("Введите валидное значение cogs1s")
-        return
-    await state.update_data(cogs1s=int(cogs1s))
-    await state.set_state(UnitEdit.fc)
-    await message.answer("Введите значение fc")
-
-
-@router.message(UnitEdit.fc)
-async def post_edit_fc_admin(message: Message, state: FSMContext):
-    fc = message.text.strip()
-    if not fc.isdigit():
-        await message.answer("Введите валидное значение fc")
-        return
-
-    data = await state.get_data()
-    logging.warning(f"DATA: {data}")
-    unit_data = await put_report(
-        telegram_id=message.from_user.id,
-        report_id=data.get("post_id"),
-        description="Unit economics model",
-        user_id=message.from_user.id,
-        name=data.get("name"),
-        users=data.get("users"),
-        customers=data.get("customers"),
-        avp=data.get("avp"),
-        apc=data.get("apc"),
-        tms=data.get("tms"),
-        cogs=data.get("cogs"),
-        cogs1s=data.get("cogs1s"),
-        fc=int(fc),
-    )
-
-    if not unit_data:
-        await message.answer("Ошибка при обновлении модели", reply_markup=await get_catalogue(telegram_id=message.from_user.id))
-        return
-
-    await message.answer("Модель успешно обновлена")
-    message_text = (
-        f"🔧 **Обновлённая модель:**\n\n"
-        f"**Название:** `{unit_data.get('name')}`\n"
-        f"**Users:** `{unit_data.get('users')}`\n"
-        f"**Customers:** `{unit_data.get('customers')}`\n"
-        f"**avp:** `{unit_data.get('avp')}`\n"
-        f"**apc:** `{unit_data.get('apc')}`\n"
-        f"**tms:** `{unit_data.get('tms')}`\n"
-        f"**cogs:** `{unit_data.get('cogs')}`\n"
-        f"**cogs1s:** `{unit_data.get('cogs1s')}`\n"
-        f"**fc:** `{unit_data.get('fc')}`"
-    )
-
-    await message.answer(
-        message_text,
-        reply_markup=await inline_keyboards.get_post_menu(
-            category_id=data.get("category_id"),
-            post_id=data.get("post_id")
-        ),
-        parse_mode="MarkdownV2"
-    )
-    await state.clear()
-
-#===========================================================================================================================
-# Удаление поста
-#===========================================================================================================================
-
-@router.callback_query(F.data.startswith("delete_post_"))
-async def post_delete_callback_admin(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
-    await state.clear()
-    post_id = callback.data.split("_")[2]
-    response = await delete_report(telegram_id=callback.from_user.id, report_id=int(post_id))
-    if not response:
-        await callback.message.answer("Извините, не удалось удалить пост",reply_markup=inline_keyboards.main)
-    await callback.message.answer("Пост успешно удален",reply_markup= inline_keyboards.main)
-    await state.clear()
-    await build_log_message(
-        telegram_id=callback.from_user.id,
-        action="callback",
-        source="inline",
-        payload="delete_post"
-    )
 

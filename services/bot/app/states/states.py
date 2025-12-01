@@ -113,12 +113,14 @@ class Unit(StatesGroup):
     name = State()
     users = State()
     customers = State()
-    avp = State()
-    apc = State()
-    tms = State()
-    cogs = State()
-    cogs1s = State()
-    fc = State()
+    AVP = State()
+    APC = State()
+    TMS = State()
+    COGS = State()
+    COGS1s = State()
+    FC = State()
+    RR = State()
+    AGR = State()
 
 
 class UnitEdit(StatesGroup):
@@ -128,12 +130,12 @@ class UnitEdit(StatesGroup):
     name = State()
     users = State()
     customers = State()
-    avp = State()
-    apc = State()
-    tms = State()
-    cogs = State()
-    cogs1s = State()
-    fc = State()
+    AVP = State()
+    APC = State()
+    TMS = State()
+    COGS = State()
+    COGS1s = State()
+    FC = State()
 
 
 class SendNew(StatesGroup):
