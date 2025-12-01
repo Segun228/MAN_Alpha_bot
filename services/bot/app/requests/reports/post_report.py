@@ -9,16 +9,16 @@ async def post_report(
     telegram_id: int,
     name: str,
     description: str,
-    agr: float,
     apc: float,
     avp: float,
     cogs: float,
     cogs1s: float,
     customers: int,
     fc: float,
-    rr: float,
     tms: float,
-    users: int
+    users: int,
+    rr: float = 0.2,
+    agr: float = 0.1,
 ) -> dict|None:
     """
     Создает отчет с переданными параметрами

@@ -20,14 +20,13 @@ main = InlineKeyboardMarkup(
 async def get_reports(reports):
     keyboard = InlineKeyboardBuilder()
     if reports is None or reports == [] or reports == ():
-        keyboard.add(InlineKeyboardButton(text="Каталог 📚", callback_data="catalogue"))
         keyboard.add(InlineKeyboardButton(text="Создать модель ➕", callback_data="create_report"))
         keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
         return keyboard.adjust(1).as_markup()
     for report in reports:
         keyboard.add(InlineKeyboardButton(text=f"{report.get('name', 'Модель экономики')}", callback_data=f"report_{report.get('id')}"))
     keyboard.add(InlineKeyboardButton(text="Создать модель ➕", callback_data="create_report"))
-    keyboard.add(InlineKeyboardButton(text="Аналитика", callback_data=f"analise_set_{report.get('id')}"))
+    keyboard.add(InlineKeyboardButton(text="Аналитика", callback_data=f"analise_{report.get('id')}"))
     keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
     return keyboard.adjust(1).as_markup()
 

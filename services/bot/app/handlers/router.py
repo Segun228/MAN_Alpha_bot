@@ -5,6 +5,7 @@ from app.middlewares.history import TextMessageLoggerMiddleware
 
 admin_router = Router(name="admin")
 user_router = Router(name="user")
+unit_router = Router(name="unit")
 llm_router = Router(name="llm")
 catcher_router = Router(name="catcher")
 

@@ -104,3 +104,51 @@ class Grades(StatesGroup):
     second = State()
     third = State()
 
+
+
+class Unit(StatesGroup):
+    handle_unit = State()
+    handle_edit_unit = State()
+    model_set = State()
+    name = State()
+    users = State()
+    customers = State()
+    avp = State()
+    apc = State()
+    tms = State()
+    cogs = State()
+    cogs1s = State()
+    fc = State()
+
+
+class UnitEdit(StatesGroup):
+    handle_unit = State()
+    handle_edit_unit = State()
+    model_set = State()
+    name = State()
+    users = State()
+    customers = State()
+    avp = State()
+    apc = State()
+    tms = State()
+    cogs = State()
+    cogs1s = State()
+    fc = State()
+
+
+class SendNew(StatesGroup):
+    handle = State()
+    message = State()
+
+
+class File(StatesGroup):
+    waiting_for_file = State()
+    waiting_for_name = State()
+    waiting_for_replace_file = State()
+
+
+class Cohort(StatesGroup):
+    handle_unit = State()
+    retention_rate = State()
+    audience_growth_rate = State()
+
