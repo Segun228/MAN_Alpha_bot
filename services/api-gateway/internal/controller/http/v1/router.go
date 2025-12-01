@@ -16,10 +16,9 @@ import (
 
 func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigins []string, botSecretKey string, servicesConfig config.ServicesConfig) {
 	r.Use(CORSMiddleware(allowedOrigins))
-	r.Use(LoggingMiddleware(logger))
+	r.Use(loggingMiddleware(logger))
 	r.Use(RecoveryMiddleware(logger))
 	r.Use(PrometheusMiddleware(m))
-	r.Use(BotAuthMiddleware(botSecretKey))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -29,7 +28,23 @@ func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigi
 	r.Handle("/metrics", promhttp.Handler())
 
 	r.Route("/api", func(api chi.Router) {
+		api.Use(BotAuthMiddleware(botSecretKey))
+
 		api.Mount("/users", createProfixedHandler("/api/users", servicesConfig.UserServiceURL))
+	})
+
+	r.Route("/models", func(models chi.Router) {
+		models.Mount("/chat", createProfixedHandler("/models/chat", servicesConfig.ChatModelURL))
+		models.Mount("/docs", createProfixedHandler("/models/docs", servicesConfig.DocsModelURL))
+		models.Mount("/summarizer", createProfixedHandler("/models/summarizer", servicesConfig.SummarizerURL))
+		models.Mount("/defender", createProfixedHandler("/models/defender", servicesConfig.DefenderURL))
+		models.Mount("/recomendator", createProfixedHandler("/models/recomendator", servicesConfig.RecomendatorURL))
+		models.Mount("/business_analyzer", createProfixedHandler("/models/business_analyzer", servicesConfig.BusinessAnalyzerURL))
+	})
+
+	r.Route("/utils", func(u chi.Router) {
+		u.Mount("/db", createProfixedHandler("/utils/db", servicesConfig.DBServiceURL))
+		u.Mount("/email", createProfixedHandler("/utils/email", servicesConfig.EmailServiceURL))
 	})
 }
 
