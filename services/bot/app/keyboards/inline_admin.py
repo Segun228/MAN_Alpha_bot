@@ -7,9 +7,9 @@ main = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="Каталог 📦", callback_data="catalogue")],
         [InlineKeyboardButton(text="Рассылка ✉️", callback_data="send_menu")],
-        [InlineKeyboardButton(text="📊 Юнит-экономика", callback_data="unit_menu")],
+        [InlineKeyboardButton(text="Юнит-экономика 🎯", callback_data="unit_menu")],
         [InlineKeyboardButton(text="Опрос качества 📊", callback_data="start_polling")],
-        [InlineKeyboardButton(text="📞 Контакты", callback_data="contacts")]
+        [InlineKeyboardButton(text="Контакты 📞", callback_data="contacts")]
     ]
 )
 

@@ -61,6 +61,9 @@ from app.requests.reports.put_report import put_report
 from app.keyboards import inline_user as keyboards
 from app.utils.unit_handlers import analyze_unit_economics
 
+from app.utils.reaction_handler import ReactionManager
+reactioner = ReactionManager()
+
 #========================================================================================================================================================================
 #========================================================================================================================================================================
 # UNIT ECONOMICS BLOCK
@@ -221,24 +224,34 @@ async def catalogue_callback_admin(callback: CallbackQuery, state:FSMContext):
 
 
 @router.message(Unit.name)
-async def post_enter_name_admin(message: Message, state: FSMContext):
+async def post_enter_name_admin(message: Message, state: FSMContext, bot:Bot):
     name = message.text.strip()
     if not name:
         await message.answer("Введите валидное имя проекта")
         return
     await state.update_data(name=name)
     await state.set_state(Unit.users)
+    await reactioner.add_reaction(
+        bot=bot,
+        message=message,
+        emoji="🤝"
+        )
     await message.answer("Введите количество привлеченных пользователей")
 
 
 @router.message(Unit.users)
-async def post_enter_description_admin(message: Message, state: FSMContext):
+async def post_enter_description_admin(message: Message, state: FSMContext, bot:Bot):
     users = message.text.strip()
     if not users.isdigit():
         await message.answer("Введите валидное число привлеченных пользователей")
         return
     await state.update_data(users=int(users))
     await state.set_state(Unit.customers)
+    await reactioner.add_reaction(
+        bot=bot,
+        message=message,
+        emoji="❤️‍🔥"
+        )
     await message.answer("Введите количество полученных клиентов")
 
 
@@ -254,24 +267,34 @@ async def post_enter_price_admin(message: Message, state: FSMContext):
 
 
 @router.message(Unit.AVP)
-async def post_enter_country_admin(message: Message, state: FSMContext):
+async def post_enter_country_admin(message: Message, state: FSMContext, bot:Bot):
     AVP = message.text.strip()
     if not AVP.isdigit():
         await message.answer("Введите валидное число AVP (Average Value of Payment)")
         return
     await state.update_data(AVP=int(AVP))
     await state.set_state(Unit.APC)
+    await reactioner.add_reaction(
+        bot=bot,
+        message=message,
+        emoji="🔥"
+        )
     await message.answer("Введите APC (Average Purchase Count)")
 
 
 @router.message(Unit.APC)
-async def post_enter_apc_admin(message: Message, state: FSMContext):
+async def post_enter_apc_admin(message: Message, state: FSMContext, bot:Bot):
     APC = message.text.strip()
     if not APC.isdigit():
         await message.answer("Введите валидное число APC (Average Purchase Count)")
         return
     await state.update_data(APC=int(APC))
     await state.set_state(Unit.TMS)
+    await reactioner.add_reaction(
+        bot=bot,
+        message=message,
+        emoji="🔥"
+        )
     await message.answer("Введите TMS (Total Marketing Spends)")
 
 
@@ -309,11 +332,16 @@ async def post_enter_agr_admin(message: Message, state: FSMContext):
 
 
 @router.message(Unit.AGR)
-async def post_enter_cogs_admin(message: Message, state: FSMContext):
+async def post_enter_cogs_admin(message: Message, state: FSMContext, bot:Bot):
     AGR = message.text.strip()
     if not AGR:
         await message.answer("Введите валидное число AGR")
         return
+    await reactioner.add_reaction(
+        bot=bot,
+        message=message,
+        emoji="🎉"
+        )
     await state.update_data(AGR=float(AGR))
     await state.set_state(Unit.COGS1s)
     await message.answer("Введите COGS1s (Cost of goods sold first sale)")
@@ -336,7 +364,11 @@ async def post_enter_fc_admin(message: Message, state: FSMContext, bot:Bot):
     if not FC.isdigit():
         await message.answer("Введите валидное число FC (Fixed Costs)")
         return
-
+    await reactioner.add_reaction(
+        bot=bot,
+        message=message,
+        emoji="✍️"
+        )
     await state.update_data(FC=int(FC))
     data = await state.get_data()
 

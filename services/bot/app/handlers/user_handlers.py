@@ -49,7 +49,7 @@ from app.requests.models.post_document_model import post_document_model
 from app.requests.models.post_summarize_model import post_summarize_model
 from app.requests.models.post_idea_model import post_idea_model
 from app.requests.models.post_analysis_model import post_analysis_model
-from app.utils.reaction_handler import ReactionManager
+
 
 from app.states.states import Unit, UnitEdit, SendNew, File, Cohort
 from app.requests.reports.delete_report import delete_report
@@ -60,6 +60,7 @@ from app.requests.reports.put_report import put_report
 
 from app.keyboards import inline_user as keyboards
 
+from app.utils.reaction_handler import ReactionManager
 reactioner = ReactionManager()
 
 def escape_markdown_v2(text: str, version: int = 2) -> str:
