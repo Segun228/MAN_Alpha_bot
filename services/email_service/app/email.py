@@ -42,7 +42,7 @@ def send_email(
             f'attachment; filename="{zip_filename}"')
         msg.attach(zip_part)
 
-        with smtplib.SMTP(smtp_server, port) as server:
+        with smtplib.SMTP(smtp_server, int(port)) as server:
             server.starttls()
             server.login(sender_email, sender_password)
             server.send_message(msg)
@@ -50,5 +50,5 @@ def send_email(
         logging.info(f"Письмо с архивом '{zip_filename}' успешно отправлено!")
         return True
     except Exception as e:
-        logging.info(f"Ошибка при отправке письма: {e}")
+        logging.error(f"Ошибка при отправке письма: {e}")
         return False

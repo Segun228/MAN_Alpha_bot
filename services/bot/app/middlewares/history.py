@@ -119,6 +119,7 @@ class BotReplyLogger():
         self,
         telegram_id: int,
         text: str,
+        business_id: int|None = None,
         context: str = "direct"
     ) -> Any:
         chain_id = message_chain_id.get() or str(uuid.uuid4())[:8]
@@ -131,7 +132,8 @@ class BotReplyLogger():
                 await self.log_bot_response(
                     telegram_id=telegram_id,
                     text=text,
-                    chain_id=chain_id
+                    chain_id=chain_id,
+                    business_id = business_id
                 )
                 logging.info(f"✅ [{chain_id}] Bot reply processed successfully")
             else:
@@ -145,6 +147,7 @@ class BotReplyLogger():
         self, 
         telegram_id: int,
         text: str,
+        business_id: int|None = None,
         chain_id: str = ""
     ) -> None:
         try:
@@ -155,6 +158,7 @@ class BotReplyLogger():
                 "timestamp": datetime.datetime.now().isoformat(),
                 "direction": "answer", 
                 "chat_type": "private",
+                "business_id": business_id
             }
             logging.debug(f"📝 [{chain_id}] Saving LLM response to DB: {response_data}")
             await self.save_to_db(response_data, chain_id)
@@ -170,7 +174,7 @@ class BotReplyLogger():
             timestamp = validate_param(message_data.get("timestamp"))
             direction = validate_param(message_data.get("direction", "question"))
             chat_type = validate_param(message_data.get("chat_type"))
-            
+            business_id = message_data.get("business_id")
             logging.debug(f"🌐 [{chain_id}] Sending LLM response to DB service: user={telegram_id}")
             
             result = await post_message(
@@ -179,7 +183,8 @@ class BotReplyLogger():
                 message_id=message_id,
                 timestamp=timestamp,
                 direction=direction,
-                chat_type=chat_type
+                chat_type=chat_type,
+                business_id = business_id
             )
             
             if result is None:
@@ -189,3 +194,89 @@ class BotReplyLogger():
                 
         except Exception as e:
             logging.error(f"💥 [{chain_id}] Error saving LLM response to DB: {e}", exc_info=True)
+
+
+
+class UserMessageLogger():
+    async def __call__(
+        self,
+        telegram_id: int,
+        text: str,
+        message_id: int,
+        business_id: int|None = None,
+        context: str = "direct"
+    ) -> Any:
+        chain_id = message_chain_id.get() or str(uuid.uuid4())[:8]
+        
+        logging.info(f"🔧 [{chain_id}] UserMessageLogger called for user {telegram_id} from {context}")
+        
+        try:
+            if telegram_id and text:
+                logging.info(f"💬 [{chain_id}] Processing user message: '{text[:50]}...'")
+                await self.log_user_message(
+                    telegram_id=telegram_id,
+                    text=text,
+                    message_id=message_id,
+                    chain_id=chain_id,
+                    business_id=business_id
+                )
+                logging.info(f"✅ [{chain_id}] User message processed successfully")
+            else:
+                logging.warning(f"⚠️ [{chain_id}] Invalid parameters: telegram_id={telegram_id}, text_length={len(text) if text else 0}")
+                
+        except Exception as e:
+            logging.error(f"💥 [{chain_id}] Error in UserMessageLogger: {e}", exc_info=True)
+            raise
+
+    async def log_user_message(
+        self, 
+        telegram_id: int,
+        text: str,
+        message_id: int,
+        business_id: int|None = None,
+        chain_id: str = ""
+    ) -> None:
+        try:
+            message_data = {
+                "telegram_id": telegram_id,
+                "text": text,
+                "message_id": message_id,
+                "timestamp": datetime.datetime.now().isoformat(),
+                "direction": "question", 
+                "chat_type": "private",
+                "business_id": business_id
+            }
+            logging.debug(f"📝 [{chain_id}] Saving user message to DB: {message_data}")
+            await self.save_to_db(message_data, chain_id)
+            logging.info(f"✅ [{chain_id}] User message logged successfully for user {telegram_id}")
+        except Exception as e:
+            logging.error(f"❌ [{chain_id}] Error logging user message: {e}", exc_info=True)
+    
+    async def save_to_db(self, message_data: Dict, chain_id: str = "") -> None:
+        try:
+            telegram_id = validate_param(message_data.get("telegram_id"))
+            text = validate_param(message_data.get("text"))
+            message_id = validate_param(message_data.get("message_id"))
+            timestamp = validate_param(message_data.get("timestamp"))
+            direction = validate_param(message_data.get("direction", "question"))
+            chat_type = validate_param(message_data.get("chat_type"))
+            business_id = message_data.get("business_id")
+            
+            logging.debug(f"🌐 [{chain_id}] Sending user message to DB service: user={telegram_id}, business_id={business_id}")
+            
+            result = await post_message(
+                telegram_id=telegram_id,
+                text=text,
+                message_id=message_id,
+                timestamp=timestamp,
+                direction=direction,
+                chat_type=chat_type,
+                business_id=business_id
+            )
+            if result is None:
+                logging.error(f"❌ [{chain_id}] DB service returned None for user message from user {telegram_id}")
+            else:
+                logging.info(f"✅ [{chain_id}] User message sent to DB service successfully for user {telegram_id}")
+                
+        except Exception as e:
+            logging.error(f"💥 [{chain_id}] Error saving user message to DB: {e}", exc_info=True)

@@ -12,6 +12,32 @@ services:
       - "${API_GATEWAY_PORT}:8081"
     networks:
       - app-man-network
+  speech-service:
+    build: 
+      context: .
+      dockerfile: ./services/stt/Dockerfile
+    container_name: speech-service
+    restart: on-failure
+    ports:
+      - "${STT_PORT}:8096"
+    networks:
+      - app-man-network
+  model-service:
+    build:
+      context: .
+      dockerfile: ./services/model/Dockerfile
+    container_name: model-service
+    restart: on-failure
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+    volumes:
+      - hf-model-cache:/root/.cache/huggingface
+    ports:
+      - "${MODEL_PORT}:8095"
+    networks:
+      - app-man-network
+    env_file:
+      - .env
 
   user-service: ### gateway
     build: 
@@ -301,7 +327,6 @@ services:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     privileged: true
     networks:
@@ -549,6 +574,7 @@ volumes:
   grafana-data:
   clickhouse_config:
   # superset_data:
+  hf-model-cache:
 
 networks:
   app-man-network:

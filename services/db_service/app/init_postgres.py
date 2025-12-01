@@ -31,8 +31,9 @@ def create_messages_table():
         message_id BIGINT,
         direction VARCHAR(10) CHECK (direction IN ('question', 'answer')),
         message TEXT,
+        business_id INTEGER DEFAULT NULL,
         chat_type VARCHAR(100)
-    )
+    );
     """)
     conn.commit()
     cursor.close()

@@ -19,7 +19,8 @@ async def post_analysis_model(
     context=None,
     symbol_threshold = 20,
     base_url = None,
-    offset = 3
+    offset = 3,
+    business_id = None
 ):
     load_dotenv()
     if analysis_type not in ("cjm", "bmc", "pest", "vpc", "swot"):
@@ -40,12 +41,14 @@ async def post_analysis_model(
     request_url = f"http://business_analyzer:8087/{analysis_type}"
     history = (await get_messages(
         telegram_id=telegram_id,
-        offset = offset
+        offset = offset,
+        business_id=business_id
     ))
     if history is None:
-        raise ValueError("Could not get history from the server")
+        logging.info("The history has been received empty")
+        history = []
     if isinstance(history, dict):
-        history = history.get("data")
+        history = history.get("data", [])
     result = []
     if history is not None:
         for el in history:
@@ -65,7 +68,7 @@ async def post_analysis_model(
                 "text":text,
                 "business":business,
                 "context": {'history':result},
-                "description": description
+                "description": description,
             },
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",

@@ -574,6 +574,45 @@ paths:
       summary: Get reports by user Telegram ID
       tags:
       - reports
+    post:
+      consumes:
+      - application/json
+      description: Создать новый отчет, используя Telegram ID пользователя
+      parameters:
+      - description: Telegram User ID
+        format: int64
+        in: path
+        name: tgID
+        required: true
+        type: integer
+      - description: Report to create
+        in: body
+        name: report
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.reportCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new report with Telegram ID
+      tags:
+      - reports
   /users:
     get:
       consumes:

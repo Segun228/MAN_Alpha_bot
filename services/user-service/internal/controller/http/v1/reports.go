@@ -27,6 +27,7 @@ func newReportRoutes(r chi.Router, reportService service.Reports, logger utils.L
 		r.Get("/{reportID}", rr.getByID)
 		r.Get("/tg/{tgID}", rr.getByUserTgID)
 		r.Post("/", rr.create)
+		r.Post("/tg/{tgID}", rr.createWithTg)
 		r.Put("/{reportID}", rr.put)
 		r.Patch("/{reportID}", rr.patch)
 		r.Delete("/{reportID}", rr.delete)
@@ -189,6 +190,70 @@ func (rr *reportRoutes) create(w http.ResponseWriter, r *http.Request) {
 			return
 		default:
 			rr.logger.Error("error creating report", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to create report")
+			return
+		}
+	}
+
+	writeJSON(w, http.StatusCreated, createdReport)
+}
+
+// @Summary Create a new report with Telegram ID
+// @Description Создать новый отчет, используя Telegram ID пользователя
+// @Tags reports
+// @Accept json
+// @Produce json
+// @Param tgID path int64 true "Telegram User ID"
+// @Param report body reportCreateRequest true "Report to create"
+// @Success 201 {object} models.Report
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /reports/tg/{tgID} [post]
+func (rr *reportRoutes) createWithTg(w http.ResponseWriter, r *http.Request) {
+	tgIDParam := chi.URLParam(r, "tgID")
+	tgID, err := parseTgIDParam(tgIDParam)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid tgID param")
+		return
+	}
+
+	var req reportCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		rr.logger.Error("error decoding create report with tgID request", map[string]any{
+			"error": err.Error(),
+		})
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	report := service.ReportCreateInput{
+		Name:      req.Name,
+		Users:     req.Users,
+		Customers: req.Customers,
+		AVP:       req.AVP,
+		APC:       req.APC,
+		TMS:       req.TMS,
+		COGS:      req.COGS,
+		COGS1s:    req.COGS1s,
+		FC:        req.FC,
+		RR:        req.RR,
+		AGR:       req.AGR,
+	}
+
+	createdReport, err := rr.reportService.CreateReportWithTgID(r.Context(), tgID, report)
+	if err != nil {
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		case repoerrors.ErrOwnerNotFound:
+			writeError(w, http.StatusBadRequest, "user not found")
+			return
+		default:
+			rr.logger.Error("error creating report with tgID", map[string]any{
+				"tg_id": tgID,
 				"error": err.Error(),
 			})
 			writeError(w, http.StatusInternalServerError, "failed to create report")

@@ -55,6 +55,30 @@ func (s *ReportService) CreateReport(ctx context.Context, report ReportCreateInp
 	return s.reportRepo.CreateReport(ctx, newReport)
 }
 
+func (s *ReportService) CreateReportWithTgID(ctx context.Context, tgID int64, report ReportCreateInput) (*models.Report, error) {
+	user, err := s.userRepo.GetUserByTgID(ctx, tgID)
+	if err != nil {
+		return nil, err
+	}
+
+	newReport := models.Report{
+		UserID:    user.ID,
+		Name:      report.Name,
+		Users:     report.Users,
+		Customers: report.Customers,
+		AVP:       report.AVP,
+		APC:       report.APC,
+		TMS:       report.TMS,
+		COGS:      report.COGS,
+		COGS1s:    report.COGS1s,
+		FC:        report.FC,
+		RR:        report.RR,
+		AGR:       report.AGR,
+	}
+
+	return s.reportRepo.CreateReport(ctx, newReport)
+}
+
 func (s *ReportService) PutReport(ctx context.Context, report ReportUpdateInput) (*models.Report, error) {
 	updatedReport := models.Report{
 		ID:        report.ID,

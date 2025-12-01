@@ -97,6 +97,7 @@ type Reports interface {
 	GetReportByID(ctx context.Context, reportID int) (*models.Report, error)
 	GetReportsByTgID(ctx context.Context, tgID int64) ([]models.Report, error)
 	CreateReport(ctx context.Context, report ReportCreateInput) (*models.Report, error)
+	CreateReportWithTgID(ctx context.Context, tgID int64, report ReportCreateInput) (*models.Report, error)
 	PutReport(ctx context.Context, report ReportUpdateInput) (*models.Report, error)
 	PathcReport(ctx context.Context, report ReportUpdateInput) (*models.Report, error)
 	DeleteReport(ctx context.Context, reportID int) error
