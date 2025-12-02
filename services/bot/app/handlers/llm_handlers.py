@@ -643,7 +643,6 @@ async def chat_model_answer(message:Message, state:FSMContext, bot:Bot, threshol
             if not question or len(question) < threshold:
                 await message.answer("Неизвестная команда 🧐")
                 await message.answer("Если вы хотите что-то спросить у чат-бота, раскройте более подробно свой вопрос пожалуйста")
-            await state.set_state(states.ChatModelAsk.start)
         elif message.voice:
             file_id = message.voice.file_id
             file = await bot.get_file(file_id)
@@ -652,9 +651,10 @@ async def chat_model_answer(message:Message, state:FSMContext, bot:Bot, threshol
                 raise ValueError("Error while getting the file")
             audio_bytes = byt.read()
             byt.close()
-            question = send_audio(audio_bytes, telegram_id=message.from_user.id)
+            question = await send_audio(audio_bytes, telegram_id=message.from_user.id)
             if not question:
                 raise ValueError("Error while getting the file")
+        await state.set_state(states.ChatModelAsk.start)
         await state.update_data(question = question)
         await message.answer(
             "К какому из ваших проектов относится данный вопрос?\n\nЭто нужно нам для более точного понимания ваших потребностей...",

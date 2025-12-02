@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 async def send_audio(
     audio: bytes,
     telegram_id: int
-) -> dict:
+) -> dict|None:
     """
     Отправляет аудиофайл на сервис распознавания речи (STT)
     
@@ -69,7 +69,7 @@ async def send_audio(
                     try:
                         result = await response.json()
                         logging.info(f"Речь успешно расшифрована для пользователя {telegram_id}")
-                        return result
+                        return result.get("text") if isinstance(result, dict) else result
                     except Exception as json_error:
                         logging.error(f"Ошибка парсинга JSON: {json_error}, ответ: {response_text[:200]}")
                         return {
