@@ -7,7 +7,40 @@ definitions:
         type: integer
       name:
         type: string
-      userID:
+      user_id:
+        type: integer
+    type: object
+  github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report:
+    properties:
+      agr:
+        type: number
+      apc:
+        type: integer
+      avp:
+        type: number
+      cogs:
+        type: number
+      cogs1s:
+        type: number
+      created_at:
+        type: string
+      customers:
+        type: integer
+      fc:
+        type: number
+      id:
+        type: integer
+      name:
+        type: string
+      rr:
+        type: number
+      tms:
+        type: number
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      users:
         type: integer
     type: object
   github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User:
@@ -18,21 +51,21 @@ definitions:
         type: array
       churned:
         type: boolean
-      createdAt:
+      created_at:
         type: string
       email:
         type: string
       id:
         type: integer
-      isAdmin:
+      is_admin:
         type: boolean
       login:
         type: string
       password:
         type: string
-      telegramID:
+      telegram_id:
         type: integer
-      updatedAt:
+      updated_at:
         type: string
     type: object
   internal_controller_http_v1.addBusinessRequest:
@@ -60,6 +93,58 @@ definitions:
       telegram_id:
         type: integer
     type: object
+  internal_controller_http_v1.reportCreateRequest:
+    properties:
+      agr:
+        type: number
+      apc:
+        type: integer
+      avp:
+        type: number
+      cogs:
+        type: number
+      cogs1s:
+        type: number
+      customers:
+        type: integer
+      fc:
+        type: number
+      name:
+        type: string
+      rr:
+        type: number
+      tms:
+        type: number
+      user_id:
+        type: integer
+      users:
+        type: integer
+    type: object
+  internal_controller_http_v1.reportUpdateRequest:
+    properties:
+      agr:
+        type: number
+      apc:
+        type: integer
+      avp:
+        type: number
+      cogs:
+        type: number
+      cogs1s:
+        type: number
+      customers:
+        type: integer
+      fc:
+        type: number
+      name:
+        type: string
+      rr:
+        type: number
+      tms:
+        type: number
+      users:
+        type: integer
+    type: object
   internal_controller_http_v1.updateUserRequest:
     properties:
       churned:
@@ -75,6 +160,8 @@ definitions:
     type: object
 info:
   contact: {}
+  title: User Service
+  version: "1.0"
 paths:
   /businesses:
     get:
@@ -125,6 +212,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -163,6 +256,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -192,6 +291,12 @@ paths:
             $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string
@@ -231,6 +336,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -240,6 +351,268 @@ paths:
       summary: Get businesses by user ID
       tags:
       - businesses
+  /reports:
+    get:
+      consumes:
+      - application/json
+      description: Получить список всех отчетов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all reports
+      tags:
+      - reports
+    post:
+      consumes:
+      - application/json
+      description: Создать новый отчет
+      parameters:
+      - description: Report to create
+        in: body
+        name: report
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.reportCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new report
+      tags:
+      - reports
+  /reports/{reportID}:
+    delete:
+      consumes:
+      - application/json
+      description: Удалить отчет по ID
+      parameters:
+      - description: ID отчета
+        in: path
+        name: reportID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete report by ID
+      tags:
+      - reports
+    patch:
+      consumes:
+      - application/json
+      description: Обновить отчет по ID
+      parameters:
+      - description: ID отчета
+        in: path
+        name: reportID
+        required: true
+        type: integer
+      - description: Report fields to update
+        in: body
+        name: report
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.reportUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update report by ID (full)
+      tags:
+      - reports
+    put:
+      consumes:
+      - application/json
+      description: Частичное обновление отчета по ID
+      parameters:
+      - description: ID отчета
+        in: path
+        name: reportID
+        required: true
+        type: integer
+      - description: Report fields to update
+        in: body
+        name: report
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.reportUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Patch report by ID (partial)
+      tags:
+      - reports
+  /reports/tg/{tgID}:
+    get:
+      consumes:
+      - application/json
+      description: Получить все отчеты пользователя по Telegram ID
+      parameters:
+      - description: Telegram User ID
+        format: int64
+        in: path
+        name: tgID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get reports by user Telegram ID
+      tags:
+      - reports
+    post:
+      consumes:
+      - application/json
+      description: Создать новый отчет, используя Telegram ID пользователя
+      parameters:
+      - description: Telegram User ID
+        format: int64
+        in: path
+        name: tgID
+        required: true
+        type: integer
+      - description: Report to create
+        in: body
+        name: report
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.reportCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.Report'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new report with Telegram ID
+      tags:
+      - reports
   /users:
     get:
       consumes:
@@ -318,6 +691,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -346,6 +725,12 @@ paths:
             $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string
@@ -388,6 +773,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -422,6 +813,12 @@ paths:
             $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string
@@ -465,6 +862,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -498,6 +901,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -525,6 +934,12 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string
@@ -567,6 +982,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -601,6 +1022,12 @@ paths:
             $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string
@@ -640,6 +1067,12 @@ paths:
             $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_user-service_internal_models.User'
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string

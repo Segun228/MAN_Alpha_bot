@@ -41,6 +41,8 @@ async def lifespan(app: FastAPI):
         logging.info("Shutting down summarizer...")
 
 
+
+
 app = FastAPI(lifespan=lifespan)
 
 

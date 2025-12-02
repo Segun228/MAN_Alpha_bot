@@ -9,11 +9,63 @@ import logging
 main = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="📦 Каталог", callback_data="catalogue")],
+        [InlineKeyboardButton(text="📊 Юнит-экономика", callback_data="unit_menu")],
         [InlineKeyboardButton(text="🤖 ИИ-инструменты", callback_data="ai_menu")],
         [InlineKeyboardButton(text="👤 Аккаунт", callback_data="account_menu")],
         [InlineKeyboardButton(text="📞 Контакты", callback_data="contacts")]
     ]
 )
+
+
+
+
+async def email_choice(        
+    telegram_id
+):
+    email_choice = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🙂‍↔️ Нет, спасибо", callback_data="email_deny")],
+            [InlineKeyboardButton(text="🧑‍💻 Да, на мою почту", callback_data=f"email_account_{telegram_id}")],
+            [InlineKeyboardButton(text="🤖 Да, на укажу почту", callback_data=f"email_custom_{telegram_id}")],
+        ]
+    )
+    return email_choice
+
+
+async def get_reports(reports):
+    keyboard = InlineKeyboardBuilder()
+    if reports is None or reports == [] or reports == ():
+        keyboard.add(InlineKeyboardButton(text="Создать модель ➕", callback_data="create_report"))
+        keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
+        return keyboard.adjust(1).as_markup()
+    for report in reports:
+        keyboard.add(InlineKeyboardButton(text=f"{report.get('name', 'Модель экономики')}", callback_data=f"report_{report.get('id')}"))
+    keyboard.add(InlineKeyboardButton(text="Создать модель ➕", callback_data="create_report"))
+    keyboard.add(InlineKeyboardButton(text="Аналитика", callback_data=f"analise_{report.get('id')}"))
+    keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
+    return keyboard.adjust(1).as_markup()
+
+
+async def get_report_menu(report_id):
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(InlineKeyboardButton(text="Аналитика", callback_data=f"analise_unit_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Редактировать модель 📝", callback_data=f"edit_report_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Удалить модель 🗑️", callback_data=f"delete_report_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Каталог 📦", callback_data="catalogue"))
+    keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
+    return keyboard.adjust(1).as_markup()
+
+
+async def create_unit_edit_menu(report_id):
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(InlineKeyboardButton(text="Рассчитать экономику", callback_data=f"count_unit_economics_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Рассчитать точку безубыточности", callback_data=f"count_unit_bep_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Когортный анализ", callback_data=f"cohort_analisis_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="Сгенерировать Unit-отчет", callback_data=f"generate_report_unit_{report_id}"))
+    keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
+    return keyboard.adjust(1).as_markup()
+
+
 
 account_menu = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -136,7 +188,6 @@ async def get_business_catalogue(
     keyboard = InlineKeyboardBuilder()
     if business_list is None:
         business_list = await get_user_business(telegram_id=telegram_id)
-    logging.info(business_list)
     if business_list and isinstance(business_list, (list, tuple)):
         for bus in business_list:
             keyboard.add(InlineKeyboardButton(text=f"🏢 {bus.get("name", "business")}", callback_data=f"retrieve_business_{bus.get("id")}"))
@@ -153,7 +204,6 @@ async def get_precise_catalogue(
     keyboard = InlineKeyboardBuilder()
     if business_list is None:
         business_list = await get_user_business(telegram_id=telegram_id)
-    logging.info(business_list)
     if business_list and isinstance(business_list, (list, tuple)):
         for bus in business_list:
             keyboard.add(InlineKeyboardButton(text=f"🏢 {bus.get("name", "business")}", callback_data=f"choose_business_{bus.get("id")}"))

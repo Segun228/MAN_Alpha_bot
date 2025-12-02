@@ -5,15 +5,19 @@ import asyncio
 from aiogram import Bot, Dispatcher, types
 from dotenv import load_dotenv
 
-from app.handlers.router import admin_router, user_router, catcher_router
+from app.handlers.router import admin_router, user_router, unit_router, catcher_router, llm_router
 from app.middlewares.antiflud import ThrottlingMiddleware
 from app.middlewares.metrics import MetricsMiddleware
 from app.middlewares.history import TextMessageLoggerMiddleware
 from app.middlewares.length import MessageLengthMiddleware
 from app.middlewares.swear import SwearMiddleware
+from app.middlewares.security import SecurityMiddleware
+from app.middlewares.defender import DefenderMiddleware
 
 from app.handlers import admin_handlers
 from app.handlers import user_handlers
+from app.handlers import unit_handlers
+from app.handlers import llm_handlers
 from app.handlers import catcher
 
 from app.filters.IsAdmin import IsAdmin
@@ -41,13 +45,15 @@ dp.update.middleware(MetricsMiddleware())
 
 dp.include_router(admin_router)
 dp.include_router(user_router)
+dp.include_router(unit_router)
+dp.include_router(llm_router)
 dp.include_router(catcher_router)
 
 
 dp.message.middleware(ThrottlingMiddleware(limit=0.5))
-dp.message.middleware(TextMessageLoggerMiddleware())
 dp.message.middleware(MessageLengthMiddleware())
 dp.message.middleware(SwearMiddleware())
+dp.message.middleware(SecurityMiddleware())
 
 async def main():
     logging.info("Starting bot with long polling...")

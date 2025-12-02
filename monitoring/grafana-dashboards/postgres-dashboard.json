@@ -20,7 +20,6 @@
   "fiscalYearStartMonth": 0,
   "gnetId": 9628,
   "graphTooltip": 0,
-  "id": 5,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -3152,6 +3151,6 @@
   "timezone": "",
   "title": "PostgreSQL Database",
   "uid": "000000039",
-  "version": 2,
+  "version": 4,
   "weekStart": ""
 }

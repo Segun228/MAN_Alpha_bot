@@ -1,4 +1,4 @@
-from app.handlers.router import admin_router as router
+from app.handlers.router import user_router as router
 import logging
 import re
 import zipfile
@@ -50,6 +50,19 @@ from app.requests.models.post_summarize_model import post_summarize_model
 from app.requests.models.post_idea_model import post_idea_model
 from app.requests.models.post_analysis_model import post_analysis_model
 
+
+from app.states.states import Unit, UnitEdit, SendNew, File, Cohort
+from app.requests.reports.delete_report import delete_report
+from app.requests.reports.get_report import get_report, get_user_report
+from app.requests.reports.post_report import post_report
+from app.requests.reports.put_report import put_report
+
+
+from app.keyboards import inline_user as keyboards
+
+from app.utils.reaction_handler import ReactionManager
+reactioner = ReactionManager()
+
 def escape_markdown_v2(text: str, version: int = 2) -> str:
     if not text:
         return ""
@@ -95,7 +108,7 @@ welcome_text = """
 """
 
 @router.message(CommandStart())
-async def cmd_start_admin(message: Message, state: FSMContext):
+async def cmd_start_admin(message: Message, state: FSMContext, bot:Bot):
     try:
         data = await login(telegram_id=message.from_user.id)
         if data is None:
@@ -108,6 +121,11 @@ async def cmd_start_admin(message: Message, state: FSMContext):
             await message.answer("Ой, вы еще не зарегестрированы! Вам будет необходимо пройти короткую регистрацию")
             await message.answer("Введите ваше имя")
             return
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🤝"
+        )
         await state.update_data(telegram_id = data.get("telegram_id"))
         await message.reply("Приветствую, Пользователь! 👋")
         await message.answer("Я ваш личный бизнес асистент")
@@ -164,12 +182,17 @@ async def callback_start_admin(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message(CreateUser.start_creating)
-async def start_admin_user_create(message: Message, state: FSMContext):
+async def start_admin_user_create(message: Message, state: FSMContext, bot:Bot):
     try:
         login = message.text
         if login:
             login = login.strip()
         await state.update_data(login = login)
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🤝"
+        )
         await message.answer("Имя получено!")
         await message.answer("Введите ваше почту")
         await state.set_state(CreateUser.login)
@@ -187,11 +210,16 @@ async def start_admin_user_create(message: Message, state: FSMContext):
 
 
 @router.message(CreateUser.login)
-async def admin_user_enter_email(message: Message, state: FSMContext):
+async def admin_user_enter_email(message: Message, state: FSMContext, bot:Bot):
     try:
         email = message.text
         if email:
             email = email.strip()
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="✍️"
+        )
         await state.update_data(email = email)
         await message.answer("Почта получена!")
         await message.answer("Введите ваш пароль")
@@ -212,11 +240,24 @@ async def admin_user_enter_email(message: Message, state: FSMContext):
 @router.message(CreateUser.email)
 async def admin_user_enter_password(message: Message, state: FSMContext):
     try:
-        password = message.text
-        if password:
-            password = password.strip()
-        await state.update_data(password = password)
-        await message.answer("Пароль получен!")
+        try:
+            password = message.text.strip() if message.text else ""
+            await state.update_data(password=password)
+            hidden_password = "•" * len(password) if password else "не указан"
+            try:
+                await message.delete()
+            except Exception as e:
+                logging.exception(e)
+                try:
+                    await message.edit_text("🔒 [пароль скрыт]")
+                except Exception as e:
+                    logging.exception(e)
+            if len(password) < 6:
+                await message.answer("Извините, ваш пароль слишком короткий! Сделайте его больше 6 символов пожалуйста...")
+                return
+            await message.answer(f"✅ Пароль получен: {hidden_password}")
+        except Exception as e:
+            logging.exception(e)
         data = await state.get_data()
         login = data.get("login")
         email = data.get("email")
@@ -247,13 +288,18 @@ async def admin_user_enter_password(message: Message, state: FSMContext):
 
 
 @router.message(Command("help"))
-async def cmd_help(message: Message):
+async def cmd_help(message: Message, bot:Bot):
     try:
         await build_log_message(
             telegram_id=message.from_user.id,
             action="command", 
             source="command",
             payload="help"
+        )
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="❤️‍🔥"
         )
         help_text = """
     <b>🤖 Бизнес-Аналитик AI</b> - ваш персональный помощник в развитии бизнеса!
@@ -293,7 +339,7 @@ async def cmd_help(message: Message):
 
 
 @router.message(Command("contacts"))
-async def cmd_contacts(message: Message):
+async def cmd_contacts(message: Message, bot:Bot):
     try:
         await build_log_message(
             telegram_id=message.from_user.id,
@@ -327,6 +373,11 @@ async def cmd_contacts(message: Message):
     <b>📧 Альтернативные способы связи:</b>
     Для срочных вопросов используйте Telegram
     """
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🧑‍💻"
+        )
         contacts_text = (
             contacts_text
         )
@@ -340,7 +391,7 @@ async def cmd_contacts(message: Message):
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
 
 @router.message(Command("info"))
-async def cmd_info(message: Message):
+async def cmd_info(message: Message, bot:Bot):
     try:
         await build_log_message(
             telegram_id=message.from_user.id,
@@ -348,7 +399,11 @@ async def cmd_info(message: Message):
             source="command",
             payload="info"
         )
-        
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="✍️"
+        )
         info_text = """
     <b>🏢 О Business Analyst AI</b>
 
@@ -450,6 +505,7 @@ async def main_menu_callback(callback: CallbackQuery):
     except Exception as e:
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+
 
 #===========================================================================================================================
 # Взаимодействие с аккаунтом
@@ -586,7 +642,6 @@ async def get_single_business_menu(callback:CallbackQuery):
         if not current_business:
             await callback.message.answer("Извините, не смогли найти ваш бизнес", reply_markup=inline_keyboards.home)
             return
-        logging.info(str(current_business))
         await callback.message.answer(
 f"""
 <b>🏢 {current_business.get("name")}</b>
@@ -620,7 +675,7 @@ async def create_business_start(callback:CallbackQuery, state:FSMContext):
 
 
 @router.message(states.CreateBusiness.start)
-async def create_business_name(message:Message, state:FSMContext):
+async def create_business_name(message:Message, state:FSMContext, bot:Bot):
     try:
         name = message.text
         if name is None or not name or not name.strip():
@@ -629,6 +684,11 @@ async def create_business_name(message:Message, state:FSMContext):
         if len(name) > 500:
             await message.answer("Название слишком большое, постарайтесь описать его лаконичнее")
             return
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🫡"
+        )
         await state.update_data(name = name)
         await state.set_state(states.CreateBusiness.description)
         await message.answer(
@@ -680,8 +740,13 @@ async def create_business_name(message:Message, state:FSMContext):
 
 
 @router.message(states.CreateBusiness.description)
-async def create_business_final(message:Message, state:FSMContext):
+async def create_business_final(message:Message, state:FSMContext, bot:Bot):
     try:
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="✍️"
+        )
         description = message.text
         if description is None or not description or not description.strip():
             await message.answer("Извините, не удалось прочесть название, напишите еще раз")
@@ -719,7 +784,6 @@ async def create_business_final(message:Message, state:FSMContext):
 @router.callback_query(F.data.startswith("edit_business_"))
 async def edit_business_start(callback:CallbackQuery, state:FSMContext):
     try:
-        logging.info(callback.data)
         business_id = int(callback.data.strip().split("_")[2])
         await state.update_data(business_id = business_id)
         await state.set_state(states.EditBusiness.start)
@@ -733,7 +797,7 @@ async def edit_business_start(callback:CallbackQuery, state:FSMContext):
 
 
 @router.message(states.EditBusiness.start)
-async def edit_business_name(message:Message, state:FSMContext):
+async def edit_business_name(message:Message, state:FSMContext, bot:Bot):
     try:
         name = message.text
         if name is None or not name or not name.strip():
@@ -742,6 +806,11 @@ async def edit_business_name(message:Message, state:FSMContext):
         if len(name) > 500:
             await message.answer("Название слишком большое, постарайтесь описать его лаконичнее")
             return
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🤝"
+        )
         await state.update_data(name = name)
         await state.set_state(states.EditBusiness.description)
         await message.answer(
@@ -762,9 +831,14 @@ async def edit_business_name(message:Message, state:FSMContext):
 
 
 @router.message(states.EditBusiness.description)
-async def edit_business_final(message:Message, state:FSMContext):
+async def edit_business_final(message:Message, state:FSMContext, bot:Bot):
     try:
         description = message.text
+        await reactioner.add_reaction(
+            bot=bot,
+            message=message,
+            emoji="🔥"
+        )
         if description is None or not description or not description.strip():
             await message.answer("Извините, не удалось прочесть название, напишите еще раз")
             return
@@ -805,7 +879,6 @@ async def edit_business_final(message:Message, state:FSMContext):
 @router.callback_query(F.data.startswith("delete_business_"))
 async def delete_business_start(callback:CallbackQuery, state:FSMContext):
     try:
-        logging.info(callback.data)
         business_id = int(callback.data.strip().split("_")[2])
         await state.update_data(business_id = business_id)
         await state.set_state(states.EditBusiness.start)
@@ -862,506 +935,6 @@ async def delete_business_decline(callback:CallbackQuery, state:FSMContext):
             )
         )
         await state.clear()
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-
-
-
-#===========================================================================================================================
-# Lawyer
-#===========================================================================================================================
-
-
-@router.callback_query(F.data == "personal_lawyer")
-async def get_justice_menu(callback:CallbackQuery, state:FSMContext):
-    try:
-        await callback.message.answer(
-            "Подробно опишите интересующий вас вопрос боту. Здесь вам необходимо описать его ОЧЕНЬ точно, так как бот может не понять вольностей интерпритации",
-        )
-        await callback.message.answer(
-            "Операция очень тяжелая, при ошибке нажмите 'Повторить'",
-        )
-        await state.set_state(states.Lawyer.start)
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-@router.message(states.Lawyer.start)
-async def ask_lawyer_question(message: Message, state: FSMContext):
-    try:
-        user_question = message.text
-        if not user_question or not user_question.strip():
-            await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
-            return
-        
-        await message.answer("Я вас понял, дайте секунду подумать...")
-        await state.update_data(user_question=user_question)
-        
-        result = await post_document_model(
-            telegram_id=message.from_user.id,
-            text=user_question
-        )
-        
-        if result is None:
-            await message.answer(
-                "Модель не смогла дать внятного ответа, попробуйте переформулировать...", 
-                reply_markup=inline_keyboards.home
-            )
-            return
-        if not isinstance(result, dict):
-            await message.answer(
-                result,
-                reply_markup=inline_keyboards.main
-            )
-        else:
-            raise Exception("eeror while getting te result")
-        await state.clear()
-        
-    except Exception as e:
-        logging.exception(e)
-        await message.answer(
-            "Извините, бот немножко устал, попробуйте позже 😢", 
-            reply_markup=inline_keyboards.retry_keyboard
-        )
-        await state.set_state(states.Lawyer.start)
-
-
-@router.callback_query(F.data == "retry_question", states.Lawyer.start)
-async def retry_question(callback: CallbackQuery, state: FSMContext):
-    try:
-        await callback.answer("Повторяю запрос...")
-        state_data = await state.get_data()
-        user_question = state_data.get('user_question')
-        
-        if not user_question:
-            await callback.message.answer(
-                "Не удалось найти предыдущий вопрос. Пожалуйста, задайте вопрос заново.",
-                reply_markup=inline_keyboards.home
-            )
-            await state.clear()
-            return
-        await callback.message.edit_text("Повторяю запрос, секунду...")
-        result = await post_document_model(
-            telegram_id=callback.from_user.id,
-            text=user_question
-        )
-        if result is None:
-            await callback.message.edit_text(
-                "Модель не смогла дать внятного ответа, попробуйте переформулировать...", 
-                reply_markup=inline_keyboards.home
-            )
-            return
-            
-        if not isinstance(result, dict):
-            await callback.message.edit_text(
-                result,
-                reply_markup=inline_keyboards.main
-            )
-        else:
-            raise Exception("eeror while getting te result")
-        await state.clear()
-        
-    except Exception as e:
-        logging.exception(e)
-
-        await callback.message.edit_text(
-            "Снова произошла ошибка. Попробовать еще раз?",
-            reply_markup=inline_keyboards.retry_keyboard
-        )
-
-#===========================================================================================================================
-# Idea Generation
-#===========================================================================================================================
-
-@router.callback_query(F.data == "idea_generation")
-async def generate_idea_start(callback: CallbackQuery, state: FSMContext):
-    try:
-        await callback.message.answer("Пожалуйста, опишите ваш вопрос или идею для анализа:")
-        await state.set_state(states.Idea.awaiting_question)
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-@router.message(states.Idea.awaiting_question)
-async def handle_question_input(message: Message, state: FSMContext):
-    try:
-        question = message.text
-        if not question or len(question.strip()) < 5:
-            await message.answer("Вопрос слишком короткий. Пожалуйста, опишите подробнее:")
-            return
-        
-        await state.update_data(question=question)
-        await state.set_state(states.Idea.start)
-        
-        await message.answer(
-            "К какому из ваших проектов относится данный вопрос?",
-            reply_markup=await inline_keyboards.get_precise_catalogue(telegram_id=message.from_user.id)
-        )
-    except Exception as e:
-        logging.exception(e)
-        await message.answer("Извините, произошла ошибка", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-@router.callback_query(F.data.startswith("choose_business_"), states.Idea.start)
-async def idea_generator_finish(callback: CallbackQuery, state: FSMContext):
-    try:
-        data = await state.get_data()
-        question = data.get("question")
-        if not question:
-            await callback.message.answer("Извините, бот забыл про какой бизнес мы говорили 🥲\n\nПроблема на нашей стороне 👨‍🔧")
-            return
-        
-        business_id = int(callback.data.replace("choose_business_", ""))
-        current_business = await get_business(
-            telegram_id=callback.from_user.id,
-            business_id=business_id
-        )
-        if not current_business:
-            await callback.message.answer("Извините, бот не смог найти ваш бизнес 🥲\n\nПроблема на нашей стороне 👨‍🔧")
-            return
-        
-        await callback.message.answer("Ассистент думает, подождите пожалуйста...")
-        response = await post_idea_model(
-            telegram_id=callback.from_user.id,
-            text=question,
-            description=current_business.get("description"),
-            business=current_business.get("name"),
-        )
-        
-        logging.info(response)
-        
-        if not response:
-            await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
-            return
-        
-        await callback.message.answer(
-            response,
-            reply_markup= inline_keyboards.main
-        )
-        await state.clear()
-        
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-#===========================================================================================================================
-# Summarise
-#===========================================================================================================================
-
-
-@router.callback_query(F.data == "information_structure")
-async def get_information_structure(callback:CallbackQuery, state:FSMContext):
-    try:
-        await callback.message.answer(
-            "напишите информацию для структурирования боту",
-        )
-        await state.set_state(states.Summarizer.start)
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-
-@router.message(states.Summarizer.start)
-async def summarizer_send_request(message:Message, state:FSMContext):
-    try:
-        user_question = message.text
-        await state.update_data(
-            user_question = user_question
-        )
-        if not user_question or not user_question.strip():
-            await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
-            return
-        await message.answer("Я вас понял, дайте секунду сформулировать...")
-        result = await post_summarize_model(
-            telegram_id = message.from_user.id,
-            text = user_question
-        )
-        if result is None:
-            await message.answer(
-                "Модель не смогла дать внятного ответа, попробуйте переформулировать...", 
-                reply_markup=inline_keyboards.home
-            )
-            return
-        if not isinstance(result, dict):
-            await message.answer(
-                result,
-                reply_markup=inline_keyboards.main
-            )
-        elif isinstance(result, dict):
-            await message.answer(
-                result.get("response"),
-                reply_markup=inline_keyboards.main
-            )
-        else:
-            logging.info(result)
-        await state.clear()
-        
-    except Exception as e:
-        logging.exception(e)
-        await message.answer(
-            "Извините, бот немножко устал, попробуйте позже 😢", 
-            reply_markup=inline_keyboards.retry_keyboard
-        )
-        await state.set_state(states.Summarizer.start)
-
-
-@router.callback_query(F.data == "retry_question", states.Summarizer.start)
-async def retry_summarize_question(callback: CallbackQuery, state: FSMContext):
-    try:
-        await callback.answer("Повторяю запрос...")
-        state_data = await state.get_data()
-        user_question = state_data.get('user_question')
-        
-        if not user_question:
-            await callback.message.answer(
-                "Не удалось найти предыдущий вопрос. Пожалуйста, задайте вопрос заново.",
-                reply_markup=inline_keyboards.home
-            )
-            await state.clear()
-            return
-        await callback.message.edit_text("Повторяю запрос, секунду...")
-        result = await post_summarize_model(
-            telegram_id=callback.from_user.id,
-            text=user_question
-        )
-        if result is None:
-            await callback.message.edit_text(
-                "Модель не смогла дать внятного ответа, попробуйте переформулировать...", 
-                reply_markup=inline_keyboards.home
-            )
-            return
-            
-        if not isinstance(result, dict):
-            await callback.message.edit_text(
-                result,
-                reply_markup=inline_keyboards.main
-            )
-        else:
-            raise Exception("eeror while getting te result")
-        await state.clear()
-        
-    except Exception as e:
-        logging.exception(e)
-
-        await callback.message.edit_text(
-            "Снова произошла ошибка. Попробовать еще раз?",
-            reply_markup=inline_keyboards.retry_keyboard
-        )
-
-
-#===========================================================================================================================
-# Business analytics
-#===========================================================================================================================
-
-@router.callback_query(F.data == "business_analysis")
-async def get_analyzis_type(callback:CallbackQuery, state:FSMContext):
-    try:
-        await callback.message.answer(
-            "Какой вид анализа вы хотите провести?",
-            reply_markup=inline_keyboards.business_analysis
-        )
-        await state.set_state(states.Summarizer.start)
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-
-#==================
-# Business analysis
-#==================
-
-@router.callback_query(F.data == "swot_start")
-async def swot_analysis(callback:CallbackQuery, state:FSMContext):
-    try:
-        await callback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
-        await state.set_state(states.Analysys.swot)
-        await state.update_data(type = "swot")
-        return
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-
-@router.callback_query(F.data == "bmc_start")
-async def bmc_analysis(callback:CallbackQuery, state:FSMContext):
-    try:
-        await callback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
-        await state.set_state(states.Analysys.swot)
-        await state.update_data(type = "bmc")
-        return
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-
-@router.callback_query(F.data == "cjm_start")
-async def cjm_analysis(callback:CallbackQuery, state:FSMContext):
-    try:
-        await callback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
-        await state.set_state(states.Analysys.swot)
-        await state.update_data(type = "cjm")
-        return
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-
-@router.callback_query(F.data == "vpc_start")
-async def vpc_analysis(callback:CallbackQuery, state:FSMContext):
-    try:
-        await callback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
-        await state.set_state(states.Analysys.swot)
-        await state.update_data(type = "vpc")
-        return
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-@router.callback_query(F.data == "pest_start")
-async def pest_analysis(callback:CallbackQuery, state:FSMContext):
-    try:
-        await callback.message.answer("В подробностях опишите, что нам необходимо знать. Также, при анализе будет учтена история нашего диалога")
-        await state.set_state(states.Analysys.swot)
-        await state.update_data(type = "pest")
-        return
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-
-
-@router.message(states.Analysys.swot)
-async def analyzer_send_request(message:Message, state:FSMContext):
-    try:
-        user_question = message.text
-        if not user_question or not user_question.strip():
-            await message.answer("Не могли бы вы раскрыть свой вопрос подробнее, я вас не совсем понял")
-            return
-        await state.update_data(
-            question = user_question
-        )
-        await message.answer(
-            "К какому из ваших проектов относится данный вопрос?",
-            reply_markup=await inline_keyboards.get_precise_catalogue(telegram_id=message.from_user.id)
-        )
-        await state.set_state(states.Analysys.cjm)
-
-    except Exception as e:
-        logging.exception(e)
-        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-
-
-@router.callback_query(F.data.startswith("choose_business_"), states.Analysys.cjm)
-async def business_analysis_finish(callback: CallbackQuery, state: FSMContext):
-    try:
-        await callback.message.answer("Я вас понял, дайте секунду проанализировать...")
-        data = await state.get_data()
-        analyzys_type = data.get("type")
-        if not analyzys_type:
-            raise ValueError("No type was saved")
-
-        question = data.get("question")
-        if not question:
-            raise ValueError("No question was saved")
-
-        business_id = int(callback.data.replace("choose_business_", ""))
-        current_business = await get_business(
-            telegram_id=callback.from_user.id,
-            business_id=business_id
-        )
-        if not current_business:
-            await callback.message.answer("Извините, бот не смог найти ваш бизнес 🥲\n\nПроблема на нашей стороне 👨‍🔧")
-            return
-        await callback.message.answer("Ассистент думает, подождите пожалуйста...")
-        response = await post_analysis_model(
-            telegram_id=callback.from_user.id,
-            text=question,
-            description=current_business.get("description"),
-            business=current_business.get("name"),
-            analysis_type=analyzys_type,
-            offset = 0
-        )
-        logging.info(response)
-        if not response:
-            await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
-            return
-        
-        await callback.message.answer(
-            response,
-            reply_markup= inline_keyboards.main
-        )
-        await state.clear()
-        
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-
-@router.message()
-async def chat_model_answer(message: Message, state:FSMContext, threshold = 5):
-    try:
-        await message.answer("Перенаправляем ваш запрос к нашему чат-ассистенту...")
-        question = message.text
-        if not question or len(question) < threshold:
-            await message.answer("Неизвестная команда 🧐")
-            await message.answer("Если вы хотите что-то спросить у чат-бота, раскройте более подробно свой вопрос пожалуйста")
-        await state.set_state(states.ChatModelAsk.start)
-        await state.update_data(question = question)
-        await message.answer(
-            "К какому из ваших проектов относится данный вопрос?\n\nЭто нужно нам для более точного понимания ваших потребностей...",
-            reply_markup= await inline_keyboards.get_precise_catalogue(telegram_id=message.from_user.id)
-        )
-    except Exception as e:
-        logging.exception(e)
-        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-@router.callback_query(F.data.startswith("choose_business_"), states.ChatModelAsk.start)
-async def chat_model_finish(callback:CallbackQuery, state:FSMContext):
-    try:
-        data = await state.get_data()
-        question = data.get("question")
-        if not question:
-            await callback.message.answer("Извините, бот забыл про какой бизнес мы говорили 🥲\n\nПроблема на нашей стороне 👨‍🔧")
-            raise ValueError("Error while memorising the question")
-        business_id = int(callback.data.strip().split("_")[2])
-        current_business = await get_business(
-            telegram_id=callback.from_user.id,
-            business_id=business_id
-        )
-        if not current_business:
-            await callback.message.answer("Извините, бот не смог найти ваш бизнес 🥲\n\nПроблема на нашей стороне 👨‍🔧")
-            raise ValueError("Error while memorising the question")
-        await callback.message.answer("Ассистент думает, подождите пожалуйста...")
-        response = await post_chat_model(
-            telegram_id=callback.from_user.id,
-            text = question,
-            description = current_business.get("description"),
-            business = current_business.get("name"),
-        )
-        logging.info(response)
-        if not response:
-            await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
-            return
-        await callback.message.answer(
-            response,
-            reply_markup= inline_keyboards.main
-        )
     except Exception as e:
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)

@@ -6,7 +6,12 @@ from dotenv import load_dotenv
 from pprint import pprint
 from typing import Any, List
 
-async def get_messages(telegram_id, offset = 3, base_url = None)->Any | dict[str, Any] | None | List[dict[str, Any]]:
+async def get_messages(
+    telegram_id, 
+    offset:int|None = 5, 
+    base_url = None,
+    business_id:int|None = None
+)->Any | dict[str, Any] | None | List[dict[str, Any]]:
     load_dotenv()
     if not base_url:
         base_url = os.getenv("BASE_DB_SERVICE_URL")
@@ -26,7 +31,8 @@ async def get_messages(telegram_id, offset = 3, base_url = None)->Any | dict[str
         async with session.get(
             request_url, 
             json={
-                "offset":offset
+                "offset":offset,
+                "business_id":business_id
             },
             headers={
                 "X-Bot-Key":f"{BOT_API_KEY}",
@@ -37,7 +43,7 @@ async def get_messages(telegram_id, offset = 3, base_url = None)->Any | dict[str
             if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
                 data = data.get("data")
-                logging.info(f"Данные успешно получены! {data}")
+                logging.info("Данные успешно получены!")
                 if len(data) > offset:
                     return data[:offset]
                 return data

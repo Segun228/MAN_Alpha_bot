@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/models"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo/repoerrors"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/utils"
 	"github.com/go-chi/chi/v5"
@@ -61,6 +62,7 @@ func (br *businessRoutes) getAll(w http.ResponseWriter, r *http.Request) {
 // @Param businessID path int true "Business ID"
 // @Success 200 {object} models.Business
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /businesses/{businessID} [get]
 
@@ -77,11 +79,17 @@ func (br *businessRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 
 	business, err := br.businessService.GetBusinessByID(r.Context(), businessID)
 	if err != nil {
-		br.logger.Error("error getting business by id", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to get business by ID")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "business not found")
+			return
+		default:
+			br.logger.Error("error getting business by id", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to get business by ID")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, business)
@@ -95,6 +103,7 @@ func (br *businessRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 // @Param userID path int true "User ID"
 // @Success 200 {array} models.Business
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /businesses/user/{userID} [get]
 func (br *businessRoutes) getByUserID(w http.ResponseWriter, r *http.Request) {
@@ -110,11 +119,17 @@ func (br *businessRoutes) getByUserID(w http.ResponseWriter, r *http.Request) {
 
 	businesses, err := br.businessService.GetBusinessesByUserID(r.Context(), userID)
 	if err != nil {
-		br.logger.Error("error getting businesses by user_id", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to get businesses by user ID")
-		return
+		switch err {
+		case repoerrors.ErrOwnerNotFound:
+			writeError(w, http.StatusNotFound, "owner not found")
+			return
+		default:
+			br.logger.Error("error getting businesses by user_id", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to get businesses by user ID")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, businesses)
@@ -128,6 +143,7 @@ func (br *businessRoutes) getByUserID(w http.ResponseWriter, r *http.Request) {
 // @Param businessID path int true "Business ID"
 // @Success 200 {object} models.User
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /businesses/{businessID}/owner [get]
 func (br *businessRoutes) getOwner(w http.ResponseWriter, r *http.Request) {
@@ -143,11 +159,17 @@ func (br *businessRoutes) getOwner(w http.ResponseWriter, r *http.Request) {
 
 	owner, err := br.businessService.GetBusinessOwner(r.Context(), businessID)
 	if err != nil {
-		br.logger.Error("error getting business owner", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to get business owner")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "business not found")
+			return
+		default:
+			br.logger.Error("error getting business owner", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to get business owner")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, owner)
@@ -167,6 +189,7 @@ type businessUpdateRequest struct {
 // @Param business body businessUpdateRequest true "Business info"
 // @Success 200 {object} models.Business
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /businesses/{businessID} [put]
 func (br *businessRoutes) put(w http.ResponseWriter, r *http.Request) {
@@ -197,8 +220,17 @@ func (br *businessRoutes) put(w http.ResponseWriter, r *http.Request) {
 
 	updatedBusiness, err := br.businessService.PutBusiness(r.Context(), business)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to update business")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "business not found")
+			return
+		default:
+			br.logger.Error("error updating business", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to update business")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, updatedBusiness)
@@ -213,6 +245,7 @@ func (br *businessRoutes) put(w http.ResponseWriter, r *http.Request) {
 // @Param business body businessUpdateRequest true "Business info"
 // @Success 200 {object} models.Business
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /businesses/{businessID} [patch]
 
@@ -244,11 +277,17 @@ func (br *businessRoutes) patch(w http.ResponseWriter, r *http.Request) {
 
 	updatedBusiness, err := br.businessService.PatchBusiness(r.Context(), business)
 	if err != nil {
-		br.logger.Error("error patching business", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to patch business")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "business not found")
+			return
+		default:
+			br.logger.Error("error patching business", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to patch business")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, updatedBusiness)
@@ -262,6 +301,7 @@ func (br *businessRoutes) patch(w http.ResponseWriter, r *http.Request) {
 // @Param businessID path int true "Business ID"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /businesses/{businessID} [delete]
 func (br *businessRoutes) delete(w http.ResponseWriter, r *http.Request) {
@@ -277,11 +317,17 @@ func (br *businessRoutes) delete(w http.ResponseWriter, r *http.Request) {
 
 	err = br.businessService.DeleteBusiness(r.Context(), businessID)
 	if err != nil {
-		br.logger.Error("error deleting businesses", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to delete business")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "business not found")
+			return
+		default:
+			br.logger.Error("error deleting businesses", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to delete business")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "business deleted successfully"})

@@ -2,10 +2,10 @@ package v1
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/models"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo/repoerrors"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/utils"
 	"github.com/go-chi/chi/v5"
@@ -37,20 +37,6 @@ func newUserRoutes(r chi.Router, userService service.User, logger utils.Logger) 
 	})
 }
 
-func writeError(w http.ResponseWriter, status int, msg string) {
-	w.Header().Set("Content-Type", "application/json")
-
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
-}
-
-func writeJSON(w http.ResponseWriter, status int, data any) {
-	w.Header().Set("Content-Type", "application/json")
-
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(data)
-}
-
 // @Summary Get all users
 // @Description Получить список всех пользователей
 // @Tags users
@@ -72,24 +58,6 @@ func (ur *userRoutes) getAll(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, users)
 }
 
-func parseIDParam(idParam string) (int, error) {
-	var id int
-	_, err := fmt.Sscanf(idParam, "%d", &id)
-	if err != nil {
-		return 0, err
-	}
-	return id, nil
-}
-
-func parseTgIDParam(tgIDParam string) (int64, error) {
-	var tgID int64
-	_, err := fmt.Sscanf(tgIDParam, "%d", &tgID)
-	if err != nil {
-		return 0, err
-	}
-	return tgID, nil
-}
-
 // @Summary Get user by ID
 // @Description Получить пользователя по ID
 // @Tags users
@@ -98,6 +66,7 @@ func parseTgIDParam(tgIDParam string) (int64, error) {
 // @Param userID path int true "User ID"
 // @Success 200 {object} models.User
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userID} [get]
 func (ur *userRoutes) getByID(w http.ResponseWriter, r *http.Request) {
@@ -110,8 +79,17 @@ func (ur *userRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ur.userService.GetUserByID(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get user by ID")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error getting user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to get user")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, user)
@@ -125,6 +103,7 @@ func (ur *userRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 // @Param tgID path int true "Telegram ID"
 // @Success 200 {object} models.User
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/tg/{tgID} [get]
 func (ur *userRoutes) getByTgID(w http.ResponseWriter, r *http.Request) {
@@ -137,8 +116,17 @@ func (ur *userRoutes) getByTgID(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ur.userService.GetUserByTgID(r.Context(), tgID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get user by Telegram ID")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error getting user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to get user")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, user)
@@ -180,7 +168,7 @@ func (ur *userRoutes) create(w http.ResponseWriter, r *http.Request) {
 
 	createdUser, err := ur.userService.CreateUser(r.Context(), user)
 	if err != nil {
-		ur.logger.Error("error getting user", map[string]any{
+		ur.logger.Error("error creating user", map[string]any{
 			"error": err.Error(),
 		})
 		writeError(w, http.StatusInternalServerError, "failed to create user")
@@ -204,6 +192,7 @@ type addBusinessRequest struct {
 // @Param business body addBusinessRequest true "Business info"
 // @Success 200 {object} models.User
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userID}/businesses [post]
 func (ur *userRoutes) addBusinessByID(w http.ResponseWriter, r *http.Request) {
@@ -233,11 +222,17 @@ func (ur *userRoutes) addBusinessByID(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := ur.userService.AddBusinessToUserByID(r.Context(), userID, business)
 	if err != nil {
-		ur.logger.Error("error updating user", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to add business to user")
-		return
+		switch err {
+		case repoerrors.ErrOwnerNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error updating user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to add business to user")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, updatedUser)
@@ -252,6 +247,7 @@ func (ur *userRoutes) addBusinessByID(w http.ResponseWriter, r *http.Request) {
 // @Param business body addBusinessRequest true "Business info"
 // @Success 200 {object} models.User
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/tg/{tgId}/businesses [post]
 func (ur *userRoutes) addBusinessByTgID(w http.ResponseWriter, r *http.Request) {
@@ -281,11 +277,17 @@ func (ur *userRoutes) addBusinessByTgID(w http.ResponseWriter, r *http.Request) 
 
 	updatedUser, err := ur.userService.AddBusinessToUserByTgID(r.Context(), tgID, business)
 	if err != nil {
-		ur.logger.Error("error adding business to user", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to add business to user")
-		return
+		switch err {
+		case repoerrors.ErrOwnerNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error updating user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to add business to user")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, updatedUser)
@@ -308,6 +310,7 @@ type updateUserRequest struct {
 // @Param user body updateUserRequest true "User info"
 // @Success 200 {object} models.User
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userID} [put]
 func (ur *userRoutes) putByID(w http.ResponseWriter, r *http.Request) {
@@ -347,11 +350,17 @@ func (ur *userRoutes) putByID(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := ur.userService.PutUserByID(r.Context(), user)
 	if err != nil {
-		ur.logger.Error("error updating whole user", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to update user")
-		return
+		switch err {
+		case repoerrors.ErrOwnerNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error updating user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to update user")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, updatedUser)
@@ -366,6 +375,7 @@ func (ur *userRoutes) putByID(w http.ResponseWriter, r *http.Request) {
 // @Param user body updateUserRequest true "User info"
 // @Success 200 {object} models.User
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/tg/{tgId} [put]
 func (ur *userRoutes) putByTgID(w http.ResponseWriter, r *http.Request) {
@@ -403,11 +413,17 @@ func (ur *userRoutes) putByTgID(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := ur.userService.PutUserByTgID(r.Context(), tgID, user)
 	if err != nil {
-		ur.logger.Error("error updating whole user", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to update user")
-		return
+		switch err {
+		case repoerrors.ErrOwnerNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error updating user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to update user")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, updatedUser)
@@ -422,6 +438,7 @@ func (ur *userRoutes) putByTgID(w http.ResponseWriter, r *http.Request) {
 // @Param user body updateUserRequest true "User info"
 // @Success 200 {object} models.User
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userID} [patch]
 func (ur *userRoutes) patchByID(w http.ResponseWriter, r *http.Request) {
@@ -461,11 +478,17 @@ func (ur *userRoutes) patchByID(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := ur.userService.PatchUser(r.Context(), user)
 	if err != nil {
-		ur.logger.Error("error patching user", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to patch user")
-		return
+		switch err {
+		case repoerrors.ErrOwnerNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error patching user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to update user")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, updatedUser)
@@ -480,6 +503,7 @@ func (ur *userRoutes) patchByID(w http.ResponseWriter, r *http.Request) {
 // @Param user body updateUserRequest true "User info"
 // @Success 200 {object} models.User
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/tg/{tgId} [patch]
 func (ur *userRoutes) patchByTgID(w http.ResponseWriter, r *http.Request) {
@@ -504,11 +528,17 @@ func (ur *userRoutes) patchByTgID(w http.ResponseWriter, r *http.Request) {
 
 	userFromDB, err := ur.userService.GetUserByTgID(r.Context(), tgID)
 	if err != nil {
-		ur.logger.Error("error getting user", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to get user by Telegram ID")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error getting user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to get user by Telegram ID")
+			return
+		}
 	}
 
 	user := models.User{
@@ -528,11 +558,17 @@ func (ur *userRoutes) patchByTgID(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := ur.userService.PatchUser(r.Context(), user)
 	if err != nil {
-		ur.logger.Error("error patching user", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to patch user")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error patching user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to patch user")
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, updatedUser)
@@ -546,6 +582,7 @@ func (ur *userRoutes) patchByTgID(w http.ResponseWriter, r *http.Request) {
 // @Param userID path int true "User ID"
 // @Success 204 {object} nil
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userID} [delete]
 func (ur *userRoutes) deleteByID(w http.ResponseWriter, r *http.Request) {
@@ -561,11 +598,17 @@ func (ur *userRoutes) deleteByID(w http.ResponseWriter, r *http.Request) {
 
 	err = ur.userService.DeleteUserByID(r.Context(), userID)
 	if err != nil {
-		ur.logger.Error("error deleting user", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to delete user")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error deleting user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to delete user")
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -579,6 +622,7 @@ func (ur *userRoutes) deleteByID(w http.ResponseWriter, r *http.Request) {
 // @Param tgId path int true "Telegram ID"
 // @Success 204 {object} nil
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/tg/{tgId} [delete]
 func (ur *userRoutes) deleteByTgID(w http.ResponseWriter, r *http.Request) {
@@ -594,11 +638,17 @@ func (ur *userRoutes) deleteByTgID(w http.ResponseWriter, r *http.Request) {
 
 	err = ur.userService.DeleteUserByTgID(r.Context(), tgID)
 	if err != nil {
-		ur.logger.Error("error deleting user", map[string]any{
-			"error": err.Error(),
-		})
-		writeError(w, http.StatusInternalServerError, "failed to delete user")
-		return
+		switch err {
+		case repoerrors.ErrNotFound:
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		default:
+			ur.logger.Error("error deleting user", map[string]any{
+				"error": err.Error(),
+			})
+			writeError(w, http.StatusInternalServerError, "failed to delete user")
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)

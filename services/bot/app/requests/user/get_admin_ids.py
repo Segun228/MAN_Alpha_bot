@@ -30,7 +30,6 @@ async def get_admin_ids(telegram_id):
             if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
                 logging.info("Данные успешно получены!")
-                logging.info(str(data))
                 result = []
                 for el in data:
                     if isinstance(el, dict) and el.get("is_admin"):

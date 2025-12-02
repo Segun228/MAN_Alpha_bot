@@ -67,7 +67,6 @@ async def monitor_requests(request: Request, call_next):
 async def swot_analysis(request: Request):
     try:
         data = await request.json()
-        logging.info(data)
         context = data.get("context")
         business = data.get("business", "Малый бизнес")
         description = data.get("description")
@@ -99,7 +98,6 @@ async def swot_analysis(request: Request):
             business = business,
             context = context
         )
-        logging.info(result)
         return JSONResponse(
             content=result,
             media_type="application/json"

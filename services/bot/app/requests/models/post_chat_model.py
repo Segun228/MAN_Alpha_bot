@@ -16,7 +16,9 @@ async def post_chat_model(
     business=None,
     context=None,
     symbol_threshold = 20,
-    base_url = None
+    base_url = None,
+    offset:int|None = 5,
+    business_id:int|None = None
 ):
     load_dotenv()
     if base_url is None or not base_url:
@@ -34,11 +36,15 @@ async def post_chat_model(
     # request_url = base_url + "models/chat"
     request_url = "http://chat-model:8082/generate_response"
     history = (await get_messages(
-        telegram_id=telegram_id
+        telegram_id=telegram_id,
+        offset = offset,
+        business_id=business_id
     ))
     if not history:
-        raise ValueError("Could not get history from the server")
-    history = history.get("data")
+        logging.info(f"The history has been received empty {history}")
+        history = []
+    if isinstance(history, dict):
+        history = history.get("data", [])
     result = []
     for el in history:
         if not el.get("message") or len(el.get("message")) < symbol_threshold:

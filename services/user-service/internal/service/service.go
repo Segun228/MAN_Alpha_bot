@@ -61,9 +61,52 @@ type Business interface {
 	DeleteBusiness(ctx context.Context, businessID int) error
 }
 
+type ReportCreateInput struct {
+	UserID    int
+	Name      string
+	Users     int
+	Customers int
+	AVP       float64
+	APC       int
+	TMS       float64
+	COGS      float64
+	COGS1s    float64
+	FC        float64
+	RR        float64
+	AGR       float64
+}
+
+type ReportUpdateInput struct {
+	ID        int
+	UserID    int
+	Name      string
+	Users     int
+	Customers int
+	AVP       float64
+	APC       int
+	TMS       float64
+	COGS      float64
+	COGS1s    float64
+	FC        float64
+	RR        float64
+	AGR       float64
+}
+
+type Reports interface {
+	GetReports(ctx context.Context) ([]models.Report, error)
+	GetReportByID(ctx context.Context, reportID int) (*models.Report, error)
+	GetReportsByTgID(ctx context.Context, tgID int64) ([]models.Report, error)
+	CreateReport(ctx context.Context, report ReportCreateInput) (*models.Report, error)
+	CreateReportWithTgID(ctx context.Context, tgID int64, report ReportCreateInput) (*models.Report, error)
+	PutReport(ctx context.Context, report ReportUpdateInput) (*models.Report, error)
+	PathcReport(ctx context.Context, report ReportUpdateInput) (*models.Report, error)
+	DeleteReport(ctx context.Context, reportID int) error
+}
+
 type Services struct {
 	User
 	Business
+	Reports
 }
 
 type ServicesDependencies struct {
@@ -74,5 +117,6 @@ func NewServices(deps *ServicesDependencies) *Services {
 	return &Services{
 		User:     NewUserService(deps.Repos.User),
 		Business: NewBusinessService(deps.Repos.Business),
+		Reports:  NewReportsService(deps.Repos.Reports, deps.Repos.User),
 	}
 }

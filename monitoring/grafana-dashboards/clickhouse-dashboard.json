@@ -20,7 +20,6 @@
   "fiscalYearStartMonth": 0,
   "gnetId": 13500,
   "graphTooltip": 1,
-  "id": 7,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -2437,6 +2436,6 @@
   "timezone": "browser",
   "title": "Clickhouse internal exporter",
   "uid": "MddcNtTWk",
-  "version": 2,
+  "version": 4,
   "weekStart": ""
 }
