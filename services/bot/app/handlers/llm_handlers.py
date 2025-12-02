@@ -51,7 +51,7 @@ from app.requests.models.post_idea_model import post_idea_model
 from app.requests.models.post_analysis_model import post_analysis_model
 from app.utils.reaction_handler import ReactionManager
 from app.middlewares.history import BotReplyLogger, UserMessageLogger
-
+from app.requests.post.post_audio import send_audio
 replier = BotReplyLogger()
 requester = UserMessageLogger()
 reactioner = ReactionManager()
@@ -638,11 +638,23 @@ async def business_analysis_finish(callback: CallbackQuery, state: FSMContext):
 async def chat_model_answer(message:Message, state:FSMContext, bot:Bot, threshold = 5):
     try:
         await message.answer("Перенаправляем ваш запрос к нашему чат-ассистенту...")
-        question = message.text
-        if not question or len(question) < threshold:
-            await message.answer("Неизвестная команда 🧐")
-            await message.answer("Если вы хотите что-то спросить у чат-бота, раскройте более подробно свой вопрос пожалуйста")
-        await state.set_state(states.ChatModelAsk.start)
+        if message.text:
+            question = message.text
+            if not question or len(question) < threshold:
+                await message.answer("Неизвестная команда 🧐")
+                await message.answer("Если вы хотите что-то спросить у чат-бота, раскройте более подробно свой вопрос пожалуйста")
+            await state.set_state(states.ChatModelAsk.start)
+        elif message.voice:
+            file_id = message.voice.file_id
+            file = await bot.get_file(file_id)
+            byt = await bot.download_file(file.file_path)
+            if not byt or byt is None:
+                raise ValueError("Error while getting the file")
+            audio_bytes = byt.read()
+            byt.close()
+            question = send_audio(audio_bytes, telegram_id=message.from_user.id)
+            if not question:
+                raise ValueError("Error while getting the file")
         await state.update_data(question = question)
         await message.answer(
             "К какому из ваших проектов относится данный вопрос?\n\nЭто нужно нам для более точного понимания ваших потребностей...",
