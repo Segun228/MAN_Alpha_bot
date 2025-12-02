@@ -12,6 +12,35 @@ services:
       - "${API_GATEWAY_PORT}:8081"
     networks:
       - app-man-network
+  speech-service:
+    build: 
+      context: .
+      dockerfile: ./services/stt/Dockerfile
+    container_name: speech-service
+    restart: on-failure
+    environment:
+      - STT_ROUTE=${STT_ROUTE}
+      - STT_API_KEY=${STT_API_KEY}
+    ports:
+      - "${STT_PORT}:8096"
+    networks:
+      - app-man-network
+  model-service:
+    build:
+      context: .
+      dockerfile: ./services/model/Dockerfile
+    container_name: model-service
+    restart: on-failure
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+    volumes:
+      - hf-model-cache:/root/.cache/huggingface
+    ports:
+      - "${MODEL_PORT}:8095"
+    networks:
+      - app-man-network
+    env_file:
+      - .env
 
   # speech-service:
   #   build: 

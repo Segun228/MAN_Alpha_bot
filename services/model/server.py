@@ -1,13 +1,12 @@
 import logging
 import os
 from typing import List, Optional, Dict, Any
-
+import gc
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from dotenv import load_dotenv
 import torch
-
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
@@ -23,7 +22,7 @@ class ChatMessage(BaseModel):
 class ChatCompletionRequest(BaseModel):
     model: Optional[str] = MODEL_NAME
     messages: List[ChatMessage]
-    max_tokens: Optional[int] = 512
+    max_tokens: Optional[int] = 128
     temperature: Optional[float] = 0.7
     top_p: Optional[float] = 1.0
     n: Optional[int] = 1
@@ -57,9 +56,8 @@ try:
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
         device_map="cpu",
-        torch_dtype=torch.float32,
         trust_remote_code=True,
-        use_auth_token=hf_token
+        token=hf_token
     )
 
     model.eval()
@@ -111,6 +109,10 @@ async def openai_chat_completions(req: ChatCompletionRequest):
             skip_special_tokens=True
         )
         completion_tokens = output[0].shape[0] - prompt_len
+        del inputs
+        del output
+        gc.collect()
+        torch._C._nn.gc()  
         return ChatCompletionResponse(
             id="chatcmpl-local",
             object="chat.completion",
