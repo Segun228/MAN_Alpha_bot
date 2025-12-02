@@ -159,11 +159,13 @@ func (ur *userRoutes) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	passwordHash := req.Password // TODO: hash password
+
 	user := models.User{
-		TelegramID: req.TelegramID,
-		Login:      req.Login,
-		Password:   req.Password,
-		Email:      req.Email,
+		TelegramID:   req.TelegramID,
+		Login:        req.Login,
+		PasswordHash: passwordHash,
+		Email:        req.Email,
 	}
 
 	createdUser, err := ur.userService.CreateUser(r.Context(), user)
@@ -333,11 +335,13 @@ func (ur *userRoutes) putByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	passwordHash := req.Password // TODO: hash password
+
 	user := models.User{
-		ID:       userID,
-		Login:    req.Login,
-		Password: req.Password,
-		Email:    req.Email,
+		ID:           userID,
+		Login:        req.Login,
+		PasswordHash: passwordHash,
+		Email:        req.Email,
 	}
 
 	if req.IsAdmin != nil {
@@ -397,10 +401,12 @@ func (ur *userRoutes) putByTgID(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	passwordHash := req.Password // TODO: hash password
+
 	user := models.User{
-		Login:    req.Login,
-		Password: req.Password,
-		Email:    req.Email,
+		Login:        req.Login,
+		PasswordHash: passwordHash,
+		Email:        req.Email,
 	}
 
 	if req.IsAdmin != nil {
@@ -461,11 +467,13 @@ func (ur *userRoutes) patchByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	passwordHash := req.Password // TODO: hash password
+
 	user := models.User{
-		ID:       userID,
-		Login:    req.Login,
-		Password: req.Password,
-		Email:    req.Email,
+		ID:           userID,
+		Login:        req.Login,
+		PasswordHash: passwordHash,
+		Email:        req.Email,
 	}
 
 	if req.IsAdmin != nil {
@@ -541,11 +549,13 @@ func (ur *userRoutes) patchByTgID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	passwordHash := req.Password // TODO: hash password
+
 	user := models.User{
-		ID:       userFromDB.ID,
-		Login:    req.Login,
-		Password: req.Password,
-		Email:    req.Email,
+		ID:           userFromDB.ID,
+		Login:        req.Login,
+		PasswordHash: passwordHash,
+		Email:        req.Email,
 	}
 
 	if req.IsAdmin != nil {

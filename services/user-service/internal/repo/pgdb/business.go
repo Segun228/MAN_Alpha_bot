@@ -121,7 +121,7 @@ func (r *BusinessRepo) GetBusinessesByUserID(ctx context.Context, userID int) ([
 
 func (r *BusinessRepo) GetBusinessOwner(ctx context.Context, businessID int) (*models.User, error) {
 	sql, args, _ := r.Builder.
-		Select("u.id, u.telegram_id, u.login, u.password, u.email, u.churned, u.is_admin, u.created_at, u.updated_at").
+		Select("u.id, u.telegram_id, u.login, u.email, u.churned, u.is_admin, u.created_at, u.updated_at").
 		From("users u").
 		Join("businesses b ON u.id = b.user_id").
 		Where("b.id = ?", businessID).
@@ -132,7 +132,6 @@ func (r *BusinessRepo) GetBusinessOwner(ctx context.Context, businessID int) (*m
 		&user.ID,
 		&user.TelegramID,
 		&user.Login,
-		&user.Password,
 		&user.Email,
 		&user.Churned,
 		&user.IsAdmin,

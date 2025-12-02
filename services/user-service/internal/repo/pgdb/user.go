@@ -55,7 +55,7 @@ func (r *UserRepo) GetUsers(ctx context.Context) ([]models.User, error) {
 
 func (r *UserRepo) GetUserByID(ctx context.Context, userID int) (*models.User, error) {
 	sql, args, _ := r.Builder.
-		Select("id, telegram_id, login, password, email, churned, is_admin, created_at, updated_at").
+		Select("id, telegram_id, login, email, churned, is_admin, created_at, updated_at").
 		From("users").
 		Where("id = ?", userID).
 		ToSql()
@@ -65,7 +65,6 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID int) (*models.User, e
 		&user.ID,
 		&user.TelegramID,
 		&user.Login,
-		&user.Password,
 		&user.Email,
 		&user.Churned,
 		&user.IsAdmin,
@@ -114,7 +113,7 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID int) (*models.User, e
 
 func (r *UserRepo) GetUserByTgID(ctx context.Context, tgID int64) (*models.User, error) {
 	sql, args, _ := r.Builder.
-		Select("id, telegram_id, login, password, email, churned, is_admin, created_at, updated_at").
+		Select("id, telegram_id, login, email, churned, is_admin, created_at, updated_at").
 		From("users").
 		Where("telegram_id = ?", tgID).
 		ToSql()
@@ -124,7 +123,6 @@ func (r *UserRepo) GetUserByTgID(ctx context.Context, tgID int64) (*models.User,
 		&user.ID,
 		&user.TelegramID,
 		&user.Login,
-		&user.Password,
 		&user.Email,
 		&user.Churned,
 		&user.IsAdmin,
@@ -174,8 +172,8 @@ func (r *UserRepo) GetUserByTgID(ctx context.Context, tgID int64) (*models.User,
 func (r *UserRepo) CreateUser(ctx context.Context, user models.User) (*models.User, error) {
 	sql, args, _ := r.Builder.
 		Insert("users").
-		Columns("telegram_id", "login", "password", "email", "churned", "is_admin").
-		Values(user.TelegramID, user.Login, user.Password, user.Email, user.Churned, user.IsAdmin).
+		Columns("telegram_id", "login", "password_hash", "email", "churned", "is_admin").
+		Values(user.TelegramID, user.Login, user.PasswordHash, user.Email, user.Churned, user.IsAdmin).
 		Suffix("RETURNING id, created_at, updated_at").
 		ToSql()
 
@@ -248,7 +246,7 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user models.User) (*models.Us
 	sql, args, _ := r.Builder.
 		Update("users").
 		Set("login", user.Login).
-		Set("password", user.Password).
+		Set("password_hash", user.PasswordHash).
 		Set("email", user.Email).
 		Set("churned", user.Churned).
 		Set("is_admin", user.IsAdmin).

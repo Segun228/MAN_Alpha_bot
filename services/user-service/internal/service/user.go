@@ -71,8 +71,8 @@ func (s *UserService) PatchUser(ctx context.Context, user models.User) (*models.
 		userFromDB.Login = user.Login
 	}
 
-	if user.Password != "" {
-		userFromDB.Password = user.Password
+	if user.PasswordHash != "" {
+		userFromDB.PasswordHash = user.PasswordHash
 	}
 
 	if user.Email != "" {

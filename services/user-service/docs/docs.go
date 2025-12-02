@@ -1502,7 +1502,7 @@ const docTemplate = `{
                 "login": {
                     "type": "string"
                 },
-                "password": {
+                "password_hash": {
                     "type": "string"
                 },
                 "telegram_id": {
