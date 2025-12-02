@@ -159,12 +159,12 @@ func (ur *userRoutes) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passwordHash := req.Password // TODO: hash password
+	// TODO: create new struct, that will be used only for service layer
 
 	user := models.User{
 		TelegramID:   req.TelegramID,
 		Login:        req.Login,
-		PasswordHash: passwordHash,
+		PasswordHash: req.Password,
 		Email:        req.Email,
 	}
 
@@ -335,12 +335,10 @@ func (ur *userRoutes) putByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passwordHash := req.Password // TODO: hash password
-
 	user := models.User{
 		ID:           userID,
 		Login:        req.Login,
-		PasswordHash: passwordHash,
+		PasswordHash: req.Password,
 		Email:        req.Email,
 	}
 
@@ -401,11 +399,10 @@ func (ur *userRoutes) putByTgID(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	passwordHash := req.Password // TODO: hash password
 
 	user := models.User{
 		Login:        req.Login,
-		PasswordHash: passwordHash,
+		PasswordHash: req.Password,
 		Email:        req.Email,
 	}
 
@@ -467,12 +464,10 @@ func (ur *userRoutes) patchByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passwordHash := req.Password // TODO: hash password
-
 	user := models.User{
 		ID:           userID,
 		Login:        req.Login,
-		PasswordHash: passwordHash,
+		PasswordHash: req.Password,
 		Email:        req.Email,
 	}
 
@@ -549,12 +544,10 @@ func (ur *userRoutes) patchByTgID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	passwordHash := req.Password // TODO: hash password
-
 	user := models.User{
 		ID:           userFromDB.ID,
 		Login:        req.Login,
-		PasswordHash: passwordHash,
+		PasswordHash: req.Password,
 		Email:        req.Email,
 	}
 

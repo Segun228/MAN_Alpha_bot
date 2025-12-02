@@ -6,15 +6,18 @@ import (
 
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/models"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/hasher"
 )
 
 type UserService struct {
-	userRepo repo.User
+	userRepo       repo.User
+	passwordHasher hasher.PasswordHasher
 }
 
-func NewUserService(userRepo repo.User) *UserService {
+func NewUserService(userRepo repo.User, passwordHasher hasher.PasswordHasher) *UserService {
 	return &UserService{
-		userRepo: userRepo,
+		userRepo:       userRepo,
+		passwordHasher: passwordHasher,
 	}
 }
 
@@ -31,6 +34,13 @@ func (s *UserService) GetUserByTgID(ctx context.Context, tgID int64) (*models.Us
 }
 
 func (s *UserService) CreateUser(ctx context.Context, user models.User) (*models.User, error) {
+	passwordHash, err := s.passwordHasher.Hash(user.PasswordHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	user.PasswordHash = passwordHash
+
 	return s.userRepo.CreateUser(ctx, user)
 }
 
@@ -48,10 +58,24 @@ func (s *UserService) AddBusinessToUserByTgID(ctx context.Context, tgId int64, b
 }
 
 func (s *UserService) PutUserByID(ctx context.Context, user models.User) (*models.User, error) {
+	passwordHash, err := s.passwordHasher.Hash(user.PasswordHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	user.PasswordHash = passwordHash
+
 	return s.userRepo.UpdateUser(ctx, user)
 }
 
 func (s *UserService) PutUserByTgID(ctx context.Context, tgID int64, user models.User) (*models.User, error) {
+	passwordHash, err := s.passwordHasher.Hash(user.PasswordHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	user.PasswordHash = passwordHash
+
 	userFromDB, err := s.userRepo.GetUserByTgID(ctx, tgID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user by tg id: %w", err)
@@ -72,7 +96,12 @@ func (s *UserService) PatchUser(ctx context.Context, user models.User) (*models.
 	}
 
 	if user.PasswordHash != "" {
-		userFromDB.PasswordHash = user.PasswordHash
+		passwordHash, err := s.passwordHasher.Hash(user.PasswordHash)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hash password: %w", err)
+		}
+
+		userFromDB.PasswordHash = passwordHash
 	}
 
 	if user.Email != "" {

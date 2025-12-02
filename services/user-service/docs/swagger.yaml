@@ -93,6 +93,18 @@ definitions:
       telegram_id:
         type: integer
     type: object
+  internal_controller_http_v1.loginRequest:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  internal_controller_http_v1.loginResponse:
+    properties:
+      user_id:
+        type: integer
+    type: object
   internal_controller_http_v1.reportCreateRequest:
     properties:
       agr:
@@ -163,6 +175,52 @@ info:
   title: User Service
   version: "1.0"
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентификация пользователя по логину и паролю
+      parameters:
+      - description: Login Request
+        in: body
+        name: loginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_controller_http_v1.loginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login a user
+      tags:
+      - Auth
   /businesses:
     get:
       consumes:

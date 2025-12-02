@@ -10,6 +10,7 @@ import (
 	v1 "github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/controller/http/v1"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/hasher"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/httpserver"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/postgres"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/utils"
@@ -60,9 +61,11 @@ func Run(configPath string) {
 
 	log.Info("init repos")
 	repositories := repo.NewRepositories(pg)
+	passwordHasher := hasher.NewHasher()
 
 	deps := service.ServicesDependencies{
-		Repos: repositories,
+		Repos:  repositories,
+		Hasher: passwordHasher,
 	}
 	services := service.NewServices(&deps)
 

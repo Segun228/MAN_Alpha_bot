@@ -5,6 +5,7 @@ import (
 
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/models"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/hasher"
 )
 
 type UserCreateInput struct {
@@ -103,20 +104,27 @@ type Reports interface {
 	DeleteReport(ctx context.Context, reportID int) error
 }
 
+type Auth interface {
+	VerifyUserCredentials(ctx context.Context, login, password string) (int, error)
+}
+
 type Services struct {
 	User
 	Business
 	Reports
+	Auth
 }
 
 type ServicesDependencies struct {
-	Repos *repo.Repositories
+	Repos  *repo.Repositories
+	Hasher hasher.PasswordHasher
 }
 
 func NewServices(deps *ServicesDependencies) *Services {
 	return &Services{
-		User:     NewUserService(deps.Repos.User),
+		User:     NewUserService(deps.Repos.User, deps.Hasher),
 		Business: NewBusinessService(deps.Repos.Business),
 		Reports:  NewReportsService(deps.Repos.Reports, deps.Repos.User),
+		Auth:     NewAuthService(deps.Repos.User, deps.Hasher),
 	}
 }

@@ -55,7 +55,7 @@ func (r *UserRepo) GetUsers(ctx context.Context) ([]models.User, error) {
 
 func (r *UserRepo) GetUserByID(ctx context.Context, userID int) (*models.User, error) {
 	sql, args, _ := r.Builder.
-		Select("id, telegram_id, login, email, churned, is_admin, created_at, updated_at").
+		Select("id, telegram_id, login, password_hash, email, churned, is_admin, created_at, updated_at").
 		From("users").
 		Where("id = ?", userID).
 		ToSql()
@@ -65,6 +65,7 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID int) (*models.User, e
 		&user.ID,
 		&user.TelegramID,
 		&user.Login,
+		&user.PasswordHash,
 		&user.Email,
 		&user.Churned,
 		&user.IsAdmin,
@@ -111,9 +112,39 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID int) (*models.User, e
 	return &user, nil
 }
 
+func (r *UserRepo) GetUserByLogin(ctx context.Context, login string) (*models.User, error) {
+	sql, args, _ := r.Builder.
+		Select("id, telegram_id, login, password_hash, email, churned, is_admin, created_at, updated_at").
+		From("users").
+		Where("login = ?", login).
+		ToSql()
+
+	user := models.User{}
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
+		&user.ID,
+		&user.TelegramID,
+		&user.Login,
+		&user.PasswordHash,
+		&user.Email,
+		&user.Churned,
+		&user.IsAdmin,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoerrors.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to scan row: %w", err)
+	}
+
+	return &user, nil
+}
+
 func (r *UserRepo) GetUserByTgID(ctx context.Context, tgID int64) (*models.User, error) {
 	sql, args, _ := r.Builder.
-		Select("id, telegram_id, login, email, churned, is_admin, created_at, updated_at").
+		Select("id, telegram_id, login, email, password_hash, churned, is_admin, created_at, updated_at").
 		From("users").
 		Where("telegram_id = ?", tgID).
 		ToSql()
