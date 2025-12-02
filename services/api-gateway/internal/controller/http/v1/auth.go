@@ -113,6 +113,17 @@ type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+// @Summary Refresh tokens
+// @Description Обновить JWT токены с помощью refresh токена
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param refreshRequest body refreshRequest true "Refresh Request"
+// @Success 200 {object} service.Tokens
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /auth/refresh [post]
 func (ar *authRoutes) refresh(w http.ResponseWriter, r *http.Request) {
 	var req refreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

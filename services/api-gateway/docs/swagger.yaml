@@ -13,6 +13,11 @@ definitions:
       password:
         type: string
     type: object
+  internal_controller_http_v1.refreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
 info:
   contact: {}
   title: Api Gateway
@@ -62,6 +67,46 @@ paths:
               type: string
             type: object
       summary: Login a user
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Обновить JWT токены с помощью refresh токена
+      parameters:
+      - description: Refresh Request
+        in: body
+        name: refreshRequest
+        required: true
+        schema:
+          $ref: '#/definitions/internal_controller_http_v1.refreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Segun228_MAN_Alpha_bot_services_api-gateway_internal_service.Tokens'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh tokens
       tags:
       - Auth
 swagger: "2.0"
