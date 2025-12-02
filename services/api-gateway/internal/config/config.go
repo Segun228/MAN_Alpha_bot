@@ -26,7 +26,10 @@ type (
 	}
 
 	AuthConfig struct {
-		BotKey string `mapstructure:"bot_key"`
+		AccessTokenTTL  time.Duration `mapstructure:"access_token_ttl"`
+		RefreshTokenTTL time.Duration `mapstructure:"refresh_token_ttl"`
+		SigningKey      string        `mapstructure:"jwt_sign_key"`
+		BotKey          string        `mapstructure:"bot_key"`
 	}
 
 	ServicesConfig struct {
