@@ -37,7 +37,7 @@ func NewRouter(r *chi.Mux, services *service.Services, m *metrics.Metrics, logge
 	})
 
 	r.Route("/api", func(api chi.Router) {
-		api.Use(BotAuthMiddleware(botSecretKey))
+		api.Use(HybridAuthMiddleware(services.Token, logger, botSecretKey))
 
 		api.Mount("/users", createProfixedHandler("/api/users", servicesConfig.UserServiceURL))
 	})

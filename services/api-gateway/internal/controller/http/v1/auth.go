@@ -2,13 +2,19 @@ package v1
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/internal/service"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/utils"
 	"github.com/go-chi/chi"
 )
+
+type contextKey string
+
+const userIDKey contextKey = "user_id"
 
 type authRoutes struct {
 	authService    service.Token
@@ -155,6 +161,35 @@ func (ar *authRoutes) refresh(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, tokens)
 }
 
+func AuthMiddleware(tokenService service.Token, logger utils.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" {
+				writeError(w, http.StatusUnauthorized, "missing authorization header")
+				return
+			}
+
+			headerParts := strings.Split(authHeader, " ")
+			if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+				writeError(w, http.StatusUnauthorized, "invalid authorization header format")
+				return
+			}
+
+			accessToken := headerParts[1]
+			userID, err := tokenService.ParseToken(accessToken)
+			if err != nil {
+				logger.Error("failed to parse access token", map[string]any{
+					"error": err,
+				})
+			}
+
+			ctx := context.WithValue(r.Context(), userIDKey, userID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 func BotAuthMiddleware(botKey string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -164,6 +199,42 @@ func BotAuthMiddleware(botKey string) func(http.Handler) http.Handler {
 				return
 			}
 			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func HybridAuthMiddleware(tokenService service.Token, logger utils.Logger, botKey string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			botKeyHeader := r.Header.Get("X-Bot-Key")
+
+			if authHeader != "" {
+				headerParts := strings.Split(authHeader, " ")
+				if len(headerParts) == 2 && headerParts[0] == "Bearer" {
+					accessToken := headerParts[1]
+					userID, err := tokenService.ParseToken(accessToken)
+					if err == nil {
+						ctx := context.WithValue(r.Context(), userIDKey, userID)
+						next.ServeHTTP(w, r.WithContext(ctx))
+						return
+					}
+
+					logger.Error("failed to parse access token", map[string]any{
+						"error": err,
+					})
+					writeError(w, http.StatusUnauthorized, "invalid access token")
+					return
+				}
+			}
+
+			if botKeyHeader != "" || botKeyHeader == botKey {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			logger.Error("unauthorized access: no valid credentials provided", nil)
+			writeError(w, http.StatusUnauthorized, "no valid credentials provided")
 		})
 	}
 }
