@@ -233,16 +233,16 @@ def format_telegram_summary(res):
 • Пользователи: {br.get('users', 0):,.0f}
 • Клиенты: {br.get('customers', 0):,.0f}
 • Конверсия: {br.get('C1', 0):.1%}
-• ARPU: ${br.get('ARPU', 0):,.2f}
-• CAC: ${br.get('CAC', 0):,.2f}
-• LTV: ${br.get('LTV', 0):,.2f}
+• ARPU: ₽{br.get('ARPU', 0):,.2f}
+• CAC: ₽{br.get('CAC', 0):,.2f}
+• LTV: ₽{br.get('LTV', 0):,.2f}
 • ROI: {br.get('ROI', 0):.1f}%
-• Прибыль: ${br.get('Profit', 0):,.2f}
+• Прибыль: ₽{br.get('Profit', 0):,.2f}
 
 🎯 *Точка безубыточности:*
 • BEP: {res.bep_analysis.get('BEP_units_rounded', 0):,.0f} юнитов
-• FC: ${res.bep_analysis.get('FC', 0):,.2f}
-• UCM: ${res.bep_analysis.get('UCM', 0):,.2f}
+• FC: ₽{res.bep_analysis.get('FC', 0):,.2f}
+• UCM: ₽{res.bep_analysis.get('UCM', 0):,.2f}
 
 📈 *Статус:* {"✅ Рентабельно" if br.get('UCM', 0) > 0 else "⚠️ Нерентабельно"}
 
@@ -645,7 +645,7 @@ async def email_custom_accept(message: Message, state: FSMContext):
         email = message.text.strip()
         
         import re
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}₽'
         
         if not re.match(email_pattern, email):
             await message.answer("❌ Введите корректный email адрес")
