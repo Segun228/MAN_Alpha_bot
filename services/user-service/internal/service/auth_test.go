@@ -33,7 +33,7 @@ func (h *bcryptHasher) Hash(password string) (string, error) {
 	return string(hashedBytes), nil
 }
 
-func TestUserService_VerifyUserCredentials(t *testing.T) {
+func TestAuthService_VerifyUserCredentials(t *testing.T) {
 	login := "testuser"
 	correctPassword := "Qwerty1!"
 	incorrectPassword := "wrongpassword"
