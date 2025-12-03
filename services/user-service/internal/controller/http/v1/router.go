@@ -24,8 +24,11 @@ func NewRouter(services *service.Services, logger utils.Logger, botApiKey string
 
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
+	newAuthRoutes(r, services.Auth, logger)
+
 	r.Route("/", func(r chi.Router) {
-		r.Use(BotAuthMiddleware(botApiKey))
+		r.Use(TrustedSerciceMiddleware(botApiKey, logger))
+
 		newUserRoutes(r, services.User, logger)
 		newBusinessRoutes(r, services.Business, logger)
 		newReportRoutes(r, services.Reports, logger)

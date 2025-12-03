@@ -85,7 +85,7 @@ func RecoveryMiddleware(logger utils.Logger) func(next http.Handler) http.Handle
 					logger.Error("recover from panic", logrus.Fields{
 						"error": err,
 					})
-					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+					writeError(w, http.StatusInternalServerError, "Internal Server Error")
 				}
 			}()
 			next.ServeHTTP(w, r)

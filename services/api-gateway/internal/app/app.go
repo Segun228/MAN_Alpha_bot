@@ -8,6 +8,7 @@ import (
 
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/internal/config"
 	v1 "github.com/Segun228/MAN_Alpha_bot/services/api-gateway/internal/controller/http/v1"
+	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/internal/service"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/httpserver"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/metrics"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/utils"
@@ -17,6 +18,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// @title           Api Gateway
+// @version         1.0
 func Run(configPath string) {
 	var cfgMutex sync.RWMutex
 
@@ -61,7 +64,15 @@ func Run(configPath string) {
 	// Chi router
 	log.Info("initializing router...")
 	router := chi.NewRouter()
-	v1.NewRouter(router, m, log, srvCfg.AllowedOrigins, authCfg.BotKey, servicesCfg)
+
+	deps := service.ServicesDependencies{
+		AccessTokenTTL:  authCfg.AccessTokenTTL,
+		RefreshTokenTTL: authCfg.RefreshTokenTTL,
+		SigningKey:      authCfg.SigningKey,
+	}
+
+	services := service.NewServices(&deps)
+	v1.NewRouter(router, services, m, log, srvCfg.AllowedOrigins, authCfg.BotKey, servicesCfg)
 
 	// HTTP Server
 	log.Info("starting http server...")

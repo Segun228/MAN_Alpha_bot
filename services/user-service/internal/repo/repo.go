@@ -11,6 +11,7 @@ import (
 type User interface {
 	GetUsers(ctx context.Context) ([]models.User, error)
 	GetUserByID(ctx context.Context, userID int) (*models.User, error)
+	GetUserByLogin(ctx context.Context, login string) (*models.User, error)
 	GetUserByTgID(ctx context.Context, tgID int64) (*models.User, error)
 	CreateUser(ctx context.Context, user models.User) (*models.User, error)
 	AddBusinessToUser(ctx context.Context, userID int, business models.Business) (*models.User, error)

@@ -28,6 +28,25 @@ func loggingMiddleware(log utils.Logger) func(next http.Handler) http.Handler {
 	}
 }
 
+func TrustedSerciceMiddleware(botKey string, logger utils.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if key := r.Header.Get("X-Bot-Key"); key != "" && key == botKey {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			if userID := r.Header.Get("X-User-ID"); userID != "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			logger.Error("forbidden: no trusted credential provided")
+			writeError(w, http.StatusForbidden, "access forbidden")
+		})
+	}
+}
+
 func BotAuthMiddleware(botKey string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

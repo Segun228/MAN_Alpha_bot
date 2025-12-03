@@ -159,11 +159,13 @@ func (ur *userRoutes) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: create new struct, that will be used only for service layer
+
 	user := models.User{
-		TelegramID: req.TelegramID,
-		Login:      req.Login,
-		Password:   req.Password,
-		Email:      req.Email,
+		TelegramID:   req.TelegramID,
+		Login:        req.Login,
+		PasswordHash: req.Password,
+		Email:        req.Email,
 	}
 
 	createdUser, err := ur.userService.CreateUser(r.Context(), user)
@@ -334,10 +336,10 @@ func (ur *userRoutes) putByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := models.User{
-		ID:       userID,
-		Login:    req.Login,
-		Password: req.Password,
-		Email:    req.Email,
+		ID:           userID,
+		Login:        req.Login,
+		PasswordHash: req.Password,
+		Email:        req.Email,
 	}
 
 	if req.IsAdmin != nil {
@@ -397,10 +399,11 @@ func (ur *userRoutes) putByTgID(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+
 	user := models.User{
-		Login:    req.Login,
-		Password: req.Password,
-		Email:    req.Email,
+		Login:        req.Login,
+		PasswordHash: req.Password,
+		Email:        req.Email,
 	}
 
 	if req.IsAdmin != nil {
@@ -462,10 +465,10 @@ func (ur *userRoutes) patchByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := models.User{
-		ID:       userID,
-		Login:    req.Login,
-		Password: req.Password,
-		Email:    req.Email,
+		ID:           userID,
+		Login:        req.Login,
+		PasswordHash: req.Password,
+		Email:        req.Email,
 	}
 
 	if req.IsAdmin != nil {
@@ -542,10 +545,10 @@ func (ur *userRoutes) patchByTgID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := models.User{
-		ID:       userFromDB.ID,
-		Login:    req.Login,
-		Password: req.Password,
-		Email:    req.Email,
+		ID:           userFromDB.ID,
+		Login:        req.Login,
+		PasswordHash: req.Password,
+		Email:        req.Email,
 	}
 
 	if req.IsAdmin != nil {
@@ -611,7 +614,7 @@ func (ur *userRoutes) deleteByID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	writeJSON(w, http.StatusNoContent, "success")
 }
 
 // @Summary Delete user by Telegram ID
@@ -651,5 +654,5 @@ func (ur *userRoutes) deleteByTgID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	writeJSON(w, http.StatusNoContent, "success")
 }

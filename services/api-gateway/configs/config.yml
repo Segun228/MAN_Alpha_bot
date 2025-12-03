@@ -8,6 +8,8 @@ http_server:
   allowed_origins:
 
 auth:
+  access_token_ttl: 15m
+  refresh_token_ttl: 720h
   jwt_sign_key: ""
   bot_key: ""
 

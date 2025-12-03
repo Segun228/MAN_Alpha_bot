@@ -6,15 +6,19 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strconv"
 
+	_ "github.com/Segun228/MAN_Alpha_bot/services/api-gateway/docs"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/internal/config"
+	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/internal/service"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/metrics"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/pkg/utils"
 	"github.com/go-chi/chi"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigins []string, botSecretKey string, servicesConfig config.ServicesConfig) {
+func NewRouter(r *chi.Mux, services *service.Services, m *metrics.Metrics, logger utils.Logger, allowedOrigins []string, botSecretKey string, servicesConfig config.ServicesConfig) {
 	r.Use(CORSMiddleware(allowedOrigins))
 	r.Use(loggingMiddleware(logger))
 	r.Use(RecoveryMiddleware(logger))
@@ -27,8 +31,12 @@ func NewRouter(r *chi.Mux, m *metrics.Metrics, logger utils.Logger, allowedOrigi
 
 	r.Handle("/metrics", promhttp.Handler())
 
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
+
+	newAuthRoutes(r, services.Token, logger, servicesConfig.UserServiceURL)
+
 	r.Route("/api", func(api chi.Router) {
-		api.Use(BotAuthMiddleware(botSecretKey))
+		api.Use(HybridAuthMiddleware(services.Token, logger, botSecretKey))
 
 		api.Mount("/users", createProfixedHandler("/api/users", servicesConfig.UserServiceURL))
 	})
@@ -56,6 +64,18 @@ func createProfixedHandler(prefix, targetURL string) http.Handler {
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(remote)
+
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+
+		userID, ok := req.Context().Value(userIDKey).(int)
+		if ok {
+			req.Header.Set("X-User-ID", strconv.Itoa(userID))
+		}
+
+		req.Header.Del("Authorization")
+	}
 
 	return http.StripPrefix(prefix, proxy)
 }

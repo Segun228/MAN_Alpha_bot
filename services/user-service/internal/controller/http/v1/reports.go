@@ -479,5 +479,5 @@ func (rr *reportRoutes) delete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	writeJSON(w, http.StatusNoContent, "success")
 }
