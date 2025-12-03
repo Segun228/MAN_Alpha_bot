@@ -74,7 +74,12 @@ func (s *TokenService) ParseToken(tokenString string) (int, error) {
 		return 0, serviceerrors.ErrInvalidToken
 	}
 
-	userID, err := strconv.Atoi(fmt.Sprintf("%.f", claims["sub"]))
+	subClaim, ok := claims["sub"].(string)
+	if !ok {
+		return 0, fmt.Errorf("invalid sub claim in token")
+	}
+
+	userID, err := strconv.Atoi(subClaim)
 	if err != nil {
 		return 0, fmt.Errorf("invalid user id in token claims: %v", err)
 	}

@@ -63,13 +63,16 @@ func (ar *authRoutes) login(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case service.ErrInvalidCredentials:
 			writeError(w, http.StatusUnauthorized, "invalid credentials")
+			return
 		case repoerrors.ErrNotFound:
 			writeError(w, http.StatusNotFound, "user not found")
+			return
 		default:
 			ar.logger.Error("failed to verify user credentials", map[string]any{
 				"error": err,
 			})
 			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
 		}
 	}
 

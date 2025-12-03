@@ -32,9 +32,7 @@ func NewRouter(r *chi.Mux, services *service.Services, m *metrics.Metrics, logge
 
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
-	r.Route("/auth", func(auth chi.Router) {
-		newAuthRoutes(auth, services.Token, logger, servicesConfig.UserServiceURL)
-	})
+	newAuthRoutes(r, services.Token, logger, servicesConfig.UserServiceURL)
 
 	r.Route("/api", func(api chi.Router) {
 		api.Use(HybridAuthMiddleware(services.Token, logger, botSecretKey))

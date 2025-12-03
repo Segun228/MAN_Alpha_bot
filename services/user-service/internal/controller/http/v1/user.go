@@ -614,7 +614,7 @@ func (ur *userRoutes) deleteByID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	writeJSON(w, http.StatusNoContent, "success")
 }
 
 // @Summary Delete user by Telegram ID
@@ -654,5 +654,5 @@ func (ur *userRoutes) deleteByTgID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	writeJSON(w, http.StatusNoContent, "success")
 }

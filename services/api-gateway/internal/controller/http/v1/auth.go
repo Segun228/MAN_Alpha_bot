@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 
@@ -29,7 +30,7 @@ func newAuthRoutes(r chi.Router, authService service.Token, logger utils.Logger,
 		userServiceURL: userServiceURL,
 	}
 
-	r.Route("/auth", func(r chi.Router) {
+	r.Route("/", func(r chi.Router) {
 		r.Post("/login", ar.login)
 		r.Post("/refresh", ar.refresh)
 	})
@@ -90,7 +91,25 @@ func (ar *authRoutes) login(w http.ResponseWriter, r *http.Request) {
 		ar.logger.Error("user service login returned non-200 status", map[string]any{
 			"status_code": resp.StatusCode,
 		})
-		writeError(w, resp.StatusCode, "failed to login")
+
+		errBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			ar.logger.Error("failed to read error response body", map[string]any{
+				"error": err,
+			})
+			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		var errMap map[string]string
+		if err := json.Unmarshal(errBytes, &errMap); err != nil {
+			ar.logger.Error("failed to unmarshal error response", map[string]any{
+				"error": err,
+			})
+			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+
+		writeError(w, resp.StatusCode, errMap["error"])
 		return
 	}
 
