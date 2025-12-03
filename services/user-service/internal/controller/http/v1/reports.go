@@ -342,7 +342,7 @@ func (rr *reportRoutes) patch(w http.ResponseWriter, r *http.Request) {
 		report.AGR = *req.AGR
 	}
 
-	updatedReport, err := rr.reportService.PathcReport(r.Context(), report)
+	updatedReport, err := rr.reportService.PatchReport(r.Context(), report)
 	if err != nil {
 		switch err {
 		case repoerrors.ErrNotFound:
@@ -425,7 +425,7 @@ func (rr *reportRoutes) put(w http.ResponseWriter, r *http.Request) {
 		report.AGR = *req.AGR
 	}
 
-	updatedReport, err := rr.reportService.PathcReport(r.Context(), report)
+	updatedReport, err := rr.reportService.PatchReport(r.Context(), report)
 	if err != nil {
 		switch err {
 		case repoerrors.ErrNotFound:
