@@ -55,6 +55,7 @@ func Run(configPath string) {
 	srvCfg := cfg.HttpServer
 	authCfg := cfg.Auth
 	servicesCfg := cfg.Services
+	securityCfg := cfg.Security
 	cfgMutex.RUnlock()
 
 	// Prometheus metrics
@@ -72,7 +73,7 @@ func Run(configPath string) {
 	}
 
 	services := service.NewServices(&deps)
-	v1.NewRouter(router, services, m, log, srvCfg.AllowedOrigins, authCfg.BotKey, servicesCfg)
+	v1.NewRouter(router, services, m, log, srvCfg.AllowedOrigins, authCfg.BotKey, servicesCfg, securityCfg.DefenderCheck.Enabled)
 
 	// HTTP Server
 	log.Info("starting http server...")

@@ -8,10 +8,12 @@ services:
     restart: on-failure
     environment:
       - AUTH_BOT_KEY=${BOT_API_KEY}
+      - SECURITY_DEFENDER_CHECK_ENABLED=${SECURITY_DEFENDER_CHECK_ENABLED}
     ports:
       - "${API_GATEWAY_PORT}:8081"
     networks:
       - app-man-network
+      
   speech-service:
     build: 
       context: .
@@ -25,6 +27,7 @@ services:
       - "${STT_PORT}:8096"
     networks:
       - app-man-network
+
   model-service:
     build:
       context: .
@@ -41,33 +44,6 @@ services:
       - app-man-network
     env_file:
       - .env
-
-  # speech-service:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./services/stt/Dockerfile
-  #   container_name: speech-service
-  #   restart: on-failure
-  #   ports:
-  #     - "${STT_PORT}:8096"
-  #   networks:
-  #     - app-man-network
-  # model-service:
-  #   build:
-  #     context: .
-  #     dockerfile: ./services/model/Dockerfile
-  #   container_name: model-service
-  #   restart: on-failure
-  #   environment:
-  #     - HF_HOME=/root/.cache/huggingface
-  #   volumes:
-  #     - hf-model-cache:/root/.cache/huggingface
-  #   ports:
-  #     - "${MODEL_PORT}:8095"
-  #   networks:
-  #     - app-man-network
-  #   env_file:
-  #     - .env
 
   user-service: ### gateway
     build: 
