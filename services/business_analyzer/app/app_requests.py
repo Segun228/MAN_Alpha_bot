@@ -38,7 +38,7 @@ async def get_summary(
                 url = URL,
                 json=PAYLOAD,
                 headers={"Content-Type": "application/json"},
-                timeout=aiohttp.ClientTimeout(total=30)
+                timeout=aiohttp.ClientTimeout(total=60)
             ) as response:
                 if response.status not in (200, 201, 202, 203, 204, 205):
                     raise HTTPException(status_code=response.status)

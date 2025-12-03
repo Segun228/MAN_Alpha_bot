@@ -1,10 +1,10 @@
 import logging
 import os
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 import gc
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from dotenv import load_dotenv
 import torch
 logging.basicConfig(level=logging.INFO)
@@ -22,11 +22,10 @@ class ChatMessage(BaseModel):
 class ChatCompletionRequest(BaseModel):
     model: Optional[str] = MODEL_NAME
     messages: List[ChatMessage]
-    max_tokens: Optional[int] = 128
+    max_tokens: Optional[int] = 512
     temperature: Optional[float] = 0.7
     top_p: Optional[float] = 1.0
     n: Optional[int] = 1
-    stream: Optional[bool] = False
 
 class Usage(BaseModel):
     prompt_tokens: int
@@ -46,46 +45,28 @@ class ChatCompletionResponse(BaseModel):
     usage: Usage
 
 try:
-    print("Loading tokenizer")
+    logging.info("Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(
         MODEL_NAME,
         trust_remote_code=True,
         token=hf_token
     )
-    print("Loading model")
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
         device_map="cpu",
         trust_remote_code=True,
         token=hf_token
     )
-
     model.eval()
-    print("Model loaded successfully")
-
+    model = torch.compile(model)
+    logging.info("Model loaded successfully.")
 except Exception as e:
     logging.error(f"Model load error: {e}")
     raise
 
 
-@app.get("/v1/models")
-async def list_models():
-    return {
-        "object": "list",
-        "data": [
-            {"id": MODEL_NAME, "object": "model", "owned_by": "local", "permission": []}
-        ]
-    }
-
-@app.get("/v1/models/{model_id}")
-async def retrieve_model(model_id: str):
-    if model_id != MODEL_NAME:
-        raise HTTPException(status_code=404, detail="Model not found")
-    return {"id": MODEL_NAME, "object": "model", "owned_by": "local", "permission": []}
-
 @app.post("/api/v1/chat/completions", response_model=ChatCompletionResponse)
 async def openai_chat_completions(req: ChatCompletionRequest):
-    print(hf_token)
     try:
         messages = [{"role": m.role, "content": m.content} for m in req.messages]
         prompt = tokenizer.apply_chat_template(
@@ -93,9 +74,9 @@ async def openai_chat_completions(req: ChatCompletionRequest):
             tokenize=False,
             add_generation_prompt=True
         )
-        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        inputs = tokenizer(prompt, return_tensors="pt").to("cpu")
         prompt_len = inputs["input_ids"].shape[1]
-        with torch.no_grad():
+        with torch.inference_mode():
             output = model.generate(
                 **inputs,
                 max_new_tokens=req.max_tokens,
@@ -104,26 +85,20 @@ async def openai_chat_completions(req: ChatCompletionRequest):
                 do_sample=True,
                 pad_token_id=tokenizer.eos_token_id
             )
-        generated_text = tokenizer.decode(
-            output[0][prompt_len:], 
-            skip_special_tokens=True
-        )
+        generated_text = tokenizer.decode(output[0][prompt_len:], skip_special_tokens=True)
         completion_tokens = output[0].shape[0] - prompt_len
         del inputs
         del output
         gc.collect()
-        torch._C._nn.gc()  
         return ChatCompletionResponse(
             id="chatcmpl-local",
             object="chat.completion",
             model=req.model,
-            choices=[
-                ChatCompletionChoice(
-                    index=0,
-                    message=ChatMessage(role="assistant", content=generated_text),
-                    finish_reason="stop"
-                )
-            ],
+            choices=[ChatCompletionChoice(
+                index=0,
+                message=ChatMessage(role="assistant", content=generated_text),
+                finish_reason="stop"
+            )],
             usage=Usage(
                 prompt_tokens=prompt_len,
                 completion_tokens=completion_tokens,
@@ -135,14 +110,6 @@ async def openai_chat_completions(req: ChatCompletionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/")
-async def root():
-    if hf_token:
-        return {"message": "Local OpenAI-Compatible API running", "status": "ok"}
-    return {"message": "Business Assistant HF token", "status": "failed"}
-
 @app.get("/health")
 async def health():
-    if hf_token:
-        return {"message": "Local OpenAI-Compatible API running", "status": "ok"}
-    return {"message": "Business Assistant HF token", "status": "failed"}
+    return {"status": "ok"}

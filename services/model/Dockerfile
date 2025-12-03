@@ -16,7 +16,8 @@ RUN pip install \
     transformers \
     accelerate \
     sentencepiece \
-    protobuf
+    protobuf \
+    python-dotenv
 
 WORKDIR /app
 COPY services/model /app

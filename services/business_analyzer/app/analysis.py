@@ -92,7 +92,7 @@ async def generate_analysis(
         if not URL:
             raise ValueError("URL route is not set in .env")
 
-        timeout = aiohttp.ClientTimeout(total=60)
+        timeout = aiohttp.ClientTimeout(total=120)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(URL, headers=headers, json=payload) as resp:
                 resp.raise_for_status()
