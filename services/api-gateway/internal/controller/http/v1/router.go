@@ -6,6 +6,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strconv"
 
 	_ "github.com/Segun228/MAN_Alpha_bot/services/api-gateway/docs"
 	"github.com/Segun228/MAN_Alpha_bot/services/api-gateway/internal/config"
@@ -63,6 +64,18 @@ func createProfixedHandler(prefix, targetURL string) http.Handler {
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(remote)
+
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+
+		userID, ok := req.Context().Value(userIDKey).(int)
+		if ok {
+			req.Header.Set("X-User-ID", strconv.Itoa(userID))
+		}
+
+		req.Header.Del("Authorization")
+	}
 
 	return http.StripPrefix(prefix, proxy)
 }
