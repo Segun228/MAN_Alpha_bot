@@ -30,9 +30,6 @@ export default function () {
     check(createUserRes, {
         'User Creation - Status is 201': (r) => r.status === 201,
     });
-    if(createUserRes.status !== 201) {
-        console.log(createUserRes.body)
-    }
 
     const loginPayload = JSON.stringify({
         login: uniqueLogin,
