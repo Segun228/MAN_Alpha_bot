@@ -8,6 +8,7 @@ import (
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/postgres"
 )
 
+//go:generate mockgen -source=repo.go -destination=mocks/repo_mock.go -package=mocks
 type User interface {
 	GetUsers(ctx context.Context) ([]models.User, error)
 	GetUserByID(ctx context.Context, userID int) (*models.User, error)
