@@ -56,6 +56,8 @@ services:
     environment:
       - AUTH_BOT_KEY=${BOT_API_KEY}
       - PG_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DBNAME}?sslmode=disable
+      - KAFKA_BROKER=kafka:9092
+      - KAFKA_TOPICS_LOGS=${KAFKA_LOGS_TOPIC}
     ports:
       - "${USER_SERVICE_PORT}:8083"
     networks:
@@ -271,13 +273,12 @@ services:
   #     kafka:
   #       condition: service_healthy
   #   ports:
-  #     - "${KAFDROP_PORT}:9000"
+  #     - "${KAFDROP_PORT}:19000"
   #   environment:
   #     KAFKA_BROKERCONNECT: kafka:9092
   #   networks:
   #     - app-man-network
   #   restart: on-failure
-    
 
   loki: ### cut public port
     image: grafana/loki:2.9.0
