@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from dotenv import load_dotenv
+from optimum.intel.openvino import OVModelForCausalLM
 import torch
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -51,14 +52,20 @@ try:
         trust_remote_code=True,
         token=hf_token
     )
-    model = AutoModelForCausalLM.from_pretrained(
+    torch.set_grad_enabled(False)
+    model = OVModelForCausalLM.from_pretrained(
         MODEL_NAME,
-        device_map="cpu",
+        export=True,
+        load_in_8bit=True,
         trust_remote_code=True,
-        token=hf_token
+        token=hf_token,
+        ov_config={
+            "NUM_STREAMS": 1,          
+            "INFERENCE_NUM_THREADS": 4,
+            "INFERENCE_PRECISION_HINT": "int8"
+        }
     )
     model.eval()
-    model = torch.compile(model)
     logging.info("Model loaded successfully.")
 except Exception as e:
     logging.error(f"Model load error: {e}")

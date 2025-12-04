@@ -8,13 +8,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install --upgrade pip
 
-RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip install "openvino>=2024.4.0"
+RUN pip install "optimum-intel>=1.17.0"
+RUN pip install "nncf>=2.8.0"
 
 RUN pip install \
     fastapi \
     uvicorn[standard] \
     transformers \
-    accelerate \
     sentencepiece \
     protobuf \
     python-dotenv
