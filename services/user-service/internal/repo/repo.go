@@ -11,6 +11,8 @@ import (
 //go:generate mockgen -source=repo.go -destination=mocks/repo_mock.go -package=mocks
 type User interface {
 	GetUsers(ctx context.Context) ([]models.User, error)
+	GetUserIDByTgID(ctx context.Context, tgID int64) (int, error)
+	GetTgIDByUserID(ctx context.Context, userID int) (int64, error)
 	GetUserByID(ctx context.Context, userID int) (*models.User, error)
 	GetUserByLogin(ctx context.Context, login string) (*models.User, error)
 	GetUserByTgID(ctx context.Context, tgID int64) (*models.User, error)

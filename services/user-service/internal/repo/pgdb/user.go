@@ -53,6 +53,44 @@ func (r *UserRepo) GetUsers(ctx context.Context) ([]models.User, error) {
 	return users, nil
 }
 
+func (r *UserRepo) GetUserIDByTgID(ctx context.Context, tgID int64) (int, error) {
+	sql, args, _ := r.Builder.
+		Select("id").
+		From("users").
+		Where("telegram_id = ?", tgID).
+		ToSql()
+
+	var id int
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, repoerrors.ErrNotFound
+		}
+		return 0, fmt.Errorf("failed to scan row: %w", err)
+	}
+
+	return id, nil
+}
+
+func (r *UserRepo) GetTgIDByUserID(ctx context.Context, userID int) (int64, error) {
+	sql, args, _ := r.Builder.
+		Select("telegram_id").
+		From("users").
+		Where("id = ?", userID).
+		ToSql()
+
+	var tgID int64
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&tgID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, repoerrors.ErrNotFound
+		}
+		return 0, fmt.Errorf("failed to scan row: %w", err)
+	}
+
+	return tgID, nil
+}
+
 func (r *UserRepo) GetUserByID(ctx context.Context, userID int) (*models.User, error) {
 	sql, args, _ := r.Builder.
 		Select("id, telegram_id, login, password_hash, email, churned, is_admin, created_at, updated_at").
