@@ -3,7 +3,9 @@ package v1
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/controller/http/v1/logkeys"
 	_ "github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/models"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo/repoerrors"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
@@ -13,12 +15,14 @@ import (
 
 type reportRoutes struct {
 	reportService service.Reports
+	userService   service.User
 	logger        utils.Logger
 }
 
-func newReportRoutes(r chi.Router, reportService service.Reports, logger utils.Logger) {
+func newReportRoutes(r chi.Router, reportService service.Reports, userService service.User, logger utils.Logger) {
 	rr := &reportRoutes{
 		reportService: reportService,
+		userService:   userService,
 		logger:        logger,
 	}
 
@@ -43,13 +47,30 @@ func newReportRoutes(r chi.Router, reportService service.Reports, logger utils.L
 // @Failure 500 {object} map[string]string
 // @Router /reports [get]
 func (rr *reportRoutes) getAll(w http.ResponseWriter, r *http.Request) {
+	metricsPtrVal := r.Context().Value(logkeys.LogMetricsKey)
+	metricsPtr, ok := metricsPtrVal.(*logkeys.LogMetrics)
+
+	if ok {
+		metricsPtr.Action = "reports_get_all"
+		metricsPtr.Level = "INFO"
+	}
+
 	reports, err := rr.reportService.GetReports(r.Context())
 	if err != nil {
 		rr.logger.Error("error getting reports", map[string]any{
 			"error": err.Error(),
 		})
+
+		if ok {
+			metricsPtr.Level = "ERROR"
+		}
+
 		writeError(w, http.StatusInternalServerError, "failed to get reports")
 		return
+	}
+
+	if ok {
+		metricsPtr.Message = "success"
 	}
 
 	writeJSON(w, http.StatusOK, reports)
@@ -68,17 +89,37 @@ func (rr *reportRoutes) getAll(w http.ResponseWriter, r *http.Request) {
 // @Router /reports/{reportID} [get]
 
 func (rr *reportRoutes) getByID(w http.ResponseWriter, r *http.Request) {
+	metricsPtrVal := r.Context().Value(logkeys.LogMetricsKey)
+	metricsPtr, ok := metricsPtrVal.(*logkeys.LogMetrics)
+
+	if ok {
+		metricsPtr.Action = "reports_get_by_id"
+		metricsPtr.Level = "INFO"
+	}
+
 	reportIDParam := chi.URLParam(r, "reportID")
 	reportID, err := parseIDParam(reportIDParam)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "failed to parse report ID"
+		}
+
 		writeError(w, http.StatusBadRequest, "invalid reportID param")
 		return
 	}
 
 	report, err := rr.reportService.GetReportByID(r.Context(), reportID)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+		}
 		switch err {
 		case repoerrors.ErrNotFound:
+			if ok {
+				metricsPtr.Message = "report not found"
+			}
+
 			writeError(w, http.StatusNotFound, "report not found")
 			return
 		default:
@@ -86,9 +127,31 @@ func (rr *reportRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 				"report_id": reportID,
 				"error":     err.Error(),
 			})
+
+			if ok {
+				metricsPtr.Message = "failed to get report by ID"
+			}
+
 			writeError(w, http.StatusInternalServerError, "failed to get report by ID")
 			return
 		}
+	}
+
+	tgId, err := rr.userService.GetTgIDByUserID(r.Context(), report.UserID)
+	if err != nil {
+		rr.logger.Error("error getting tg_id", map[string]any{
+			"error": err.Error(),
+		})
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "failed to get tg_id"
+		}
+	}
+
+	if ok {
+		metricsPtr.UserID = report.UserID
+		metricsPtr.TelegramID = strconv.FormatInt(tgId, 10)
+		metricsPtr.Message = "success"
 	}
 
 	writeJSON(w, http.StatusOK, report)
@@ -106,17 +169,38 @@ func (rr *reportRoutes) getByID(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /reports/tg/{tgID} [get]
 func (rr *reportRoutes) getByUserTgID(w http.ResponseWriter, r *http.Request) {
+	metricsPtrVal := r.Context().Value(logkeys.LogMetricsKey)
+	metricsPtr, ok := metricsPtrVal.(*logkeys.LogMetrics)
+
+	if ok {
+		metricsPtr.Action = "reports_get_by_user_tg_id"
+		metricsPtr.Level = "INFO"
+	}
+
 	tgIDParam := chi.URLParam(r, "tgID")
 	tgID, err := parseTgIDParam(tgIDParam)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "failed to parse tgID"
+		}
+
 		writeError(w, http.StatusBadRequest, "invalid tgID param")
 		return
 	}
 
 	reports, err := rr.reportService.GetReportsByTgID(r.Context(), tgID)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+		}
+
 		switch err {
 		case repoerrors.ErrNotFound:
+			if ok {
+				metricsPtr.Message = "user not found"
+			}
+
 			writeError(w, http.StatusNotFound, "user not found")
 			return
 		default:
@@ -124,9 +208,18 @@ func (rr *reportRoutes) getByUserTgID(w http.ResponseWriter, r *http.Request) {
 				"tg_id": tgID,
 				"error": err.Error(),
 			})
+
+			if ok {
+				metricsPtr.Message = "failed to get reports by user tgID"
+			}
+
 			writeError(w, http.StatusInternalServerError, "failed to get reports by user tgID")
 			return
 		}
+	}
+
+	if ok {
+		metricsPtr.Message = "success"
 	}
 
 	writeJSON(w, http.StatusOK, reports)
@@ -158,11 +251,25 @@ type reportCreateRequest struct {
 // @Failure 500 {object} map[string]string
 // @Router /reports [post]
 func (rr *reportRoutes) create(w http.ResponseWriter, r *http.Request) {
+	metricsPtrVal := r.Context().Value(logkeys.LogMetricsKey)
+	metricsPtr, ok := metricsPtrVal.(*logkeys.LogMetrics)
+
+	if ok {
+		metricsPtr.Action = "reports_create"
+		metricsPtr.Level = "INFO"
+	}
+
 	var req reportCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		rr.logger.Error("error decoding create report request", map[string]any{
 			"error": err.Error(),
 		})
+
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "failed to decode request body"
+		}
+
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -184,17 +291,47 @@ func (rr *reportRoutes) create(w http.ResponseWriter, r *http.Request) {
 
 	createdReport, err := rr.reportService.CreateReport(r.Context(), report)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+		}
+
 		switch err {
 		case repoerrors.ErrOwnerNotFound:
+			if ok {
+				metricsPtr.Message = "user not found"
+			}
+
 			writeError(w, http.StatusBadRequest, "user not found")
 			return
 		default:
 			rr.logger.Error("error creating report", map[string]any{
 				"error": err.Error(),
 			})
+
+			if ok {
+				metricsPtr.Message = "failed to create report"
+			}
+
 			writeError(w, http.StatusInternalServerError, "failed to create report")
 			return
 		}
+	}
+
+	tgId, err := rr.userService.GetTgIDByUserID(r.Context(), createdReport.UserID)
+	if err != nil {
+		rr.logger.Error("error getting tg_id", map[string]any{
+			"error": err.Error(),
+		})
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "failed to get tg_id"
+		}
+	}
+
+	if ok {
+		metricsPtr.UserID = createdReport.UserID
+		metricsPtr.TelegramID = strconv.FormatInt(tgId, 10)
+		metricsPtr.Message = "success"
 	}
 
 	writeJSON(w, http.StatusCreated, createdReport)
@@ -212,9 +349,22 @@ func (rr *reportRoutes) create(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /reports/tg/{tgID} [post]
 func (rr *reportRoutes) createWithTg(w http.ResponseWriter, r *http.Request) {
+	metricsPtrVal := r.Context().Value(logkeys.LogMetricsKey)
+	metricsPtr, ok := metricsPtrVal.(*logkeys.LogMetrics)
+
+	if ok {
+		metricsPtr.Action = "reports_create_with_tg"
+		metricsPtr.Level = "INFO"
+	}
+
 	tgIDParam := chi.URLParam(r, "tgID")
 	tgID, err := parseTgIDParam(tgIDParam)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "invalid tgID param"
+		}
+
 		writeError(w, http.StatusBadRequest, "invalid tgID param")
 		return
 	}
@@ -224,6 +374,12 @@ func (rr *reportRoutes) createWithTg(w http.ResponseWriter, r *http.Request) {
 		rr.logger.Error("error decoding create report with tgID request", map[string]any{
 			"error": err.Error(),
 		})
+
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "failed to decode request body"
+		}
+
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -244,11 +400,23 @@ func (rr *reportRoutes) createWithTg(w http.ResponseWriter, r *http.Request) {
 
 	createdReport, err := rr.reportService.CreateReportWithTgID(r.Context(), tgID, report)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+		}
+
 		switch err {
 		case repoerrors.ErrNotFound:
+			if ok {
+				metricsPtr.Message = "user not found"
+			}
+
 			writeError(w, http.StatusNotFound, "user not found")
 			return
 		case repoerrors.ErrOwnerNotFound:
+			if ok {
+				metricsPtr.Message = "user not found"
+			}
+
 			writeError(w, http.StatusBadRequest, "user not found")
 			return
 		default:
@@ -256,9 +424,20 @@ func (rr *reportRoutes) createWithTg(w http.ResponseWriter, r *http.Request) {
 				"tg_id": tgID,
 				"error": err.Error(),
 			})
+
+			if ok {
+				metricsPtr.Message = "failed to create report"
+			}
+
 			writeError(w, http.StatusInternalServerError, "failed to create report")
 			return
 		}
+	}
+
+	if ok {
+		metricsPtr.UserID = report.UserID
+		metricsPtr.TelegramID = strconv.FormatInt(tgID, 10)
+		metricsPtr.Message = "success"
 	}
 
 	writeJSON(w, http.StatusCreated, createdReport)
@@ -291,15 +470,33 @@ type reportUpdateRequest struct {
 // @Failure 500 {object} map[string]string
 // @Router /reports/{reportID} [patch]
 func (rr *reportRoutes) patch(w http.ResponseWriter, r *http.Request) {
+	metricsPtrVal := r.Context().Value(logkeys.LogMetricsKey)
+	metricsPtr, ok := metricsPtrVal.(*logkeys.LogMetrics)
+
+	if ok {
+		metricsPtr.Action = "reports_patch"
+		metricsPtr.Level = "INFO"
+	}
+
 	reportIDParam := chi.URLParam(r, "reportID")
 	reportID, err := parseIDParam(reportIDParam)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "invalid reportID param"
+		}
+
 		writeError(w, http.StatusBadRequest, "invalid reportID param")
 		return
 	}
 
 	var req reportUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "failed to decode request body"
+		}
+
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -344,8 +541,16 @@ func (rr *reportRoutes) patch(w http.ResponseWriter, r *http.Request) {
 
 	updatedReport, err := rr.reportService.PatchReport(r.Context(), report)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+		}
+
 		switch err {
 		case repoerrors.ErrNotFound:
+			if ok {
+				metricsPtr.Message = "report not found"
+			}
+
 			writeError(w, http.StatusNotFound, "report not found")
 			return
 		default:
@@ -353,9 +558,31 @@ func (rr *reportRoutes) patch(w http.ResponseWriter, r *http.Request) {
 				"report_id": reportID,
 				"error":     err.Error(),
 			})
+
+			if ok {
+				metricsPtr.Message = "failed to update report"
+			}
+
 			writeError(w, http.StatusInternalServerError, "failed to update report")
 			return
 		}
+	}
+
+	tgId, err := rr.userService.GetTgIDByUserID(r.Context(), updatedReport.UserID)
+	if err != nil {
+		rr.logger.Error("error getting tg_id", map[string]any{
+			"error": err.Error(),
+		})
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "failed to get tg_id"
+		}
+	}
+
+	if ok {
+		metricsPtr.UserID = updatedReport.UserID
+		metricsPtr.TelegramID = strconv.FormatInt(tgId, 10)
+		metricsPtr.Message = "success"
 	}
 
 	writeJSON(w, http.StatusOK, updatedReport)
@@ -374,15 +601,33 @@ func (rr *reportRoutes) patch(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /reports/{reportID} [put]
 func (rr *reportRoutes) put(w http.ResponseWriter, r *http.Request) {
+	metricsPtrVal := r.Context().Value(logkeys.LogMetricsKey)
+	metricsPtr, ok := metricsPtrVal.(*logkeys.LogMetrics)
+
+	if ok {
+		metricsPtr.Action = "reports_put"
+		metricsPtr.Level = "INFO"
+	}
+
 	reportIDParam := chi.URLParam(r, "reportID")
 	reportID, err := parseIDParam(reportIDParam)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "invalid reportID param"
+		}
+
 		writeError(w, http.StatusBadRequest, "invalid reportID param")
 		return
 	}
 
 	var req reportUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "failed to decode request body"
+		}
+
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -427,8 +672,16 @@ func (rr *reportRoutes) put(w http.ResponseWriter, r *http.Request) {
 
 	updatedReport, err := rr.reportService.PatchReport(r.Context(), report)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+		}
+
 		switch err {
 		case repoerrors.ErrNotFound:
+			if ok {
+				metricsPtr.Message = "report not found"
+			}
+
 			writeError(w, http.StatusNotFound, "report not found")
 			return
 		default:
@@ -436,9 +689,31 @@ func (rr *reportRoutes) put(w http.ResponseWriter, r *http.Request) {
 				"report_id": reportID,
 				"error":     err.Error(),
 			})
+
+			if ok {
+				metricsPtr.Message = "failed to update report"
+			}
+
 			writeError(w, http.StatusInternalServerError, "failed to update report")
 			return
 		}
+	}
+
+	tgId, err := rr.userService.GetTgIDByUserID(r.Context(), updatedReport.UserID)
+	if err != nil {
+		rr.logger.Error("error getting tg_id", map[string]any{
+			"error": err.Error(),
+		})
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "failed to get tg_id"
+		}
+	}
+
+	if ok {
+		metricsPtr.UserID = updatedReport.UserID
+		metricsPtr.TelegramID = strconv.FormatInt(tgId, 10)
+		metricsPtr.Message = "success"
 	}
 
 	writeJSON(w, http.StatusOK, updatedReport)
@@ -456,17 +731,38 @@ func (rr *reportRoutes) put(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /reports/{reportID} [delete]
 func (rr *reportRoutes) delete(w http.ResponseWriter, r *http.Request) {
+	metricsPtrVal := r.Context().Value(logkeys.LogMetricsKey)
+	metricsPtr, ok := metricsPtrVal.(*logkeys.LogMetrics)
+
+	if ok {
+		metricsPtr.Action = "reports_delete"
+		metricsPtr.Level = "INFO"
+	}
+
 	reportIDParam := chi.URLParam(r, "reportID")
 	reportID, err := parseIDParam(reportIDParam)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+			metricsPtr.Message = "invalid reportID param"
+		}
+
 		writeError(w, http.StatusBadRequest, "invalid reportID param")
 		return
 	}
 
 	err = rr.reportService.DeleteReport(r.Context(), reportID)
 	if err != nil {
+		if ok {
+			metricsPtr.Level = "ERROR"
+		}
+
 		switch err {
 		case repoerrors.ErrNotFound:
+			if ok {
+				metricsPtr.Message = "report not found"
+			}
+
 			writeError(w, http.StatusNotFound, "report not found")
 			return
 		default:
@@ -474,9 +770,18 @@ func (rr *reportRoutes) delete(w http.ResponseWriter, r *http.Request) {
 				"report_id": reportID,
 				"error":     err.Error(),
 			})
+
+			if ok {
+				metricsPtr.Message = "failed to delete report"
+			}
+
 			writeError(w, http.StatusInternalServerError, "failed to delete report")
 			return
 		}
+	}
+
+	if ok {
+		metricsPtr.Message = "success"
 	}
 
 	writeJSON(w, http.StatusNoContent, "success")
