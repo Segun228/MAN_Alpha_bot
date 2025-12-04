@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import aiohttp
 import logging
-
+import re
 load_dotenv()
 
 logging.basicConfig(
@@ -29,6 +29,11 @@ async def lifespan(app: FastAPI):
 
 api_key = os.getenv("OPENROUTER_API_KEY")
 URL = os.getenv("OPENROUTER_URL")
+if URL == "http://model-service:8095/api/v1/chat/completions":
+    model_name = "Qwen2.5-3B-Instruct(local)"
+else:
+    model_name = "llama-3.1-8b-instruct (api)"
+    
 app = FastAPI(lifespan=lifespan)
 
 if not URL:  # Если .env заполнен неверно, завершаемся с адекватной ошибкой
@@ -65,9 +70,12 @@ async def generate_message(request_data: RequestData):
             "usage": 0,
             "model": "-"
         }
+    text = request_data.text.lower().strip()
+    text = re.sub(r"[^a-zа-яё\s]", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
         # Пытаюсь предугадать 2 случая, не требующих модели. Благодарность и приветствие. Можно добавить прощание
-    if request_data.text.strip().lower() in ["привет", "здравствуй", "здравствуйте", "добрый день", "добрый вечер",
-                                             "доброе утро", "хай", "здорова", "сап", "вассап", "васап"]:
+    if text in ["привет", "здравствуй", "здравствуйте", "добрый день", "добрый вечер",
+                                             "доброе утро", "хай", "здорова", "сап", "вассап", "васап", "ты кто", "расскажи про себя"]:
         return {
             "success": True,
             "response": "Здравствуйте! Я многофункциональный бизнес-ассистент и буду всегда рад помочь Вам. "
@@ -76,7 +84,7 @@ async def generate_message(request_data: RequestData):
             "usage": 0,
             "model": "-"
         }
-    if request_data.text.strip().lower() in ["спасибо", "спс", "добро", "благодарю", "отлично", "класс", "кайф", "отл",
+    if text in ["спасибо", "спс", "добро", "благодарю", "отлично", "класс", "кайф", "отл",
                                              "от души"]:
         return {
             "success": True,
@@ -108,7 +116,7 @@ async def generate_message(request_data: RequestData):
     messages = [system_message] + [message.dict() for message in request_data.context.history] + [user_message]
     try:
         data = {
-            "model": "meta-llama/llama-3.1-8b-instruct",
+            "model": model_name,
             "messages": messages,
             "temperature": 0.7
         }
