@@ -99,7 +99,7 @@ func (s *ReportService) PutReport(ctx context.Context, report ReportUpdateInput)
 	return s.reportRepo.UpdateReport(ctx, updatedReport)
 }
 
-func (s *ReportService) PathcReport(ctx context.Context, report ReportUpdateInput) (*models.Report, error) {
+func (s *ReportService) PatchReport(ctx context.Context, report ReportUpdateInput) (*models.Report, error) {
 	existingReport, err := s.reportRepo.GetReportByID(ctx, report.ID)
 	if err != nil {
 		return nil, err

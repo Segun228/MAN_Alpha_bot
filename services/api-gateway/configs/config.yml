@@ -17,9 +17,15 @@ services:
   user_service_url: "http://user-service:8083"
   chat_model_url: "http://chat-model:8082"
   docs_model_url: "http://docs_model:8084"
-  summarizer_url: "http://summarizer:8086"
-  defender_url: "http://defender:8088"
   recomendator_url: "http://recomendator:8085"
+  summarizer_url: "http://summarizer:8086"
   business_analyzer_url: "http://business_analyzer:8087"
+  defender_url: "http://defender:8088"
   db_service_url: "http://db_service:8093"
   email_service_url: "http://email_service:8094"
+  model_service_url: "http://model-service:8095"
+  speech_service_url: "http://speech-service:5096"
+
+security:
+  defender_check:
+    enabled: true
