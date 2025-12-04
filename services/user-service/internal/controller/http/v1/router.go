@@ -6,15 +6,16 @@ import (
 
 	_ "github.com/Segun228/MAN_Alpha_bot/services/user-service/docs"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/broker"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func NewRouter(services *service.Services, logger utils.Logger, botApiKey string) http.Handler {
+func NewRouter(services *service.Services, logger utils.Logger, logsBroker broker.MessageBroker, botApiKey, env string) http.Handler {
 	r := chi.NewRouter()
-	r.Use(loggingMiddleware(logger))
+	r.Use(loggingMiddleware(logger, logsBroker, env))
 
 	r.Handle("/metrics", promhttp.Handler())
 
@@ -24,14 +25,14 @@ func NewRouter(services *service.Services, logger utils.Logger, botApiKey string
 
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
-	newAuthRoutes(r, services.Auth, logger)
+	newAuthRoutes(r, services.Auth, services.User, logger)
 
 	r.Route("/", func(r chi.Router) {
 		r.Use(TrustedSerciceMiddleware(botApiKey, logger))
 
 		newUserRoutes(r, services.User, logger)
-		newBusinessRoutes(r, services.Business, logger)
-		newReportRoutes(r, services.Reports, logger)
+		newBusinessRoutes(r, services.Business, services.User, logger)
+		newReportRoutes(r, services.Reports, services.User, logger)
 	})
 
 	return r

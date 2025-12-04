@@ -10,6 +10,7 @@ import (
 	v1 "github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/controller/http/v1"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/broker"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/hasher"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/httpserver"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/postgres"
@@ -50,28 +51,50 @@ func Run(configPath string) {
 		log.Info("config reloaded successfully")
 	})
 
+	cfgMutex.RLock()
+	srvCfg := cfg.HttpServer
+	pgCfg := cfg.PG
+	authCfg := cfg.Auth
+	kafkaCfg := cfg.Kafka
+	env := cfg.Env
+	cfgMutex.RUnlock()
+
+	// Postgres
 	log.Info("Initializing postgres...")
-	pg, err := postgres.New(cfg.PG.Url)
+	pg, err := postgres.New(pgCfg.Url)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 	defer pg.Close()
 
-	runMigrations(cfg.PG.Url)
+	runMigrations(pgCfg.Url)
 
 	log.Info("init repos")
 	repositories := repo.NewRepositories(pg)
 	passwordHasher := hasher.NewHasher()
 
+	// Message broker
+	log.Info("initiating kafka broker...")
+	producer := broker.NewProducer([]string{kafkaCfg.Broker}, kafkaCfg.Topics.Logs)
+
+	broker := broker.NewKafkaBroker(producer)
+
+	// Services and routes
 	deps := service.ServicesDependencies{
 		Repos:  repositories,
 		Hasher: passwordHasher,
 	}
 	services := service.NewServices(&deps)
 
-	handler := v1.NewRouter(services, log, cfg.Auth.BotKey)
+	handler := v1.NewRouter(services, log, broker, authCfg.BotKey, env)
 
-	httpServer := httpserver.New(handler, httpserver.Port("8083"))
+	httpServer := httpserver.New(
+		handler,
+		httpserver.Port(srvCfg.Port),
+		httpserver.ReadTimeout(srvCfg.ReadTimeout),
+		httpserver.WriteTimeout(srvCfg.WriteTimeout),
+		httpserver.IdleTimeout(srvCfg.IdleTimeout),
+	)
 
 	// Waiting signal
 	log.Info("configuring gracefull shuttdown...")
