@@ -45,7 +45,7 @@ services:
     env_file:
       - .env
 
-  user-service: ### gateway
+  user-service:
     build: 
       context: .
       dockerfile: ./services/user-service/Dockerfile
@@ -63,7 +63,7 @@ services:
     networks:
       - app-man-network
 
-  chat-model: ### gateway
+  chat-model:
     build:
       context: ./services/chat_model
     container_name: chat-model
@@ -85,7 +85,7 @@ services:
       start_period: 40s
       start_interval: 5s
 
-  docs-model: ### gateway
+  docs-model:
     build:
       context: ./services/docs_model
     container_name: docs_model
@@ -107,7 +107,7 @@ services:
       start_period: 40s
       start_interval: 5s
 
-  clickhouse: ### cut public port
+  clickhouse:
     image: clickhouse/clickhouse-server:24.8
     container_name: clickhouse
     restart: on-failure
@@ -192,7 +192,7 @@ services:
   #     retries: 5
 
 
-  prometheus: ### cut public port
+  prometheus:
     image: prom/prometheus:v2.47.0
     container_name: prometheus
     ports: 
@@ -241,7 +241,7 @@ services:
     networks:
       - app-man-network
 
-  kafka: ### cut public port
+  kafka:
     image: confluentinc/cp-kafka:7.3.0
     container_name: kafka
     depends_on:
@@ -249,6 +249,7 @@ services:
     ports:
       - "${KAFKA_PORT}:9092"
       - "29092:29092"
+    restart: on-failure
     environment:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_BROKER_ID: 1
@@ -280,7 +281,7 @@ services:
   #     - app-man-network
   #   restart: on-failure
 
-  loki: ### cut public port
+  loki:
     image: grafana/loki:2.9.0
     container_name: loki
     ports:
@@ -305,7 +306,7 @@ services:
     restart: on-failure
 
 
-  node-exporter: ### cut public port
+  node-exporter:
     image: prom/node-exporter:latest
     container_name: node_exporter
     ports:
@@ -324,7 +325,7 @@ services:
       - app-man-network
 
 
-  cadvisor: ### cut public port
+  cadvisor:
     image: zcube/cadvisor:latest
     container_name: cadvisor
     ports:
@@ -341,7 +342,7 @@ services:
     env_file:
       - .env
 
-  kafka-exporter: ### cut public port
+  kafka-exporter:
     image: danielqsj/kafka-exporter:latest
     container_name: kafka_exporter
     ports:
@@ -369,7 +370,7 @@ services:
   #   networks:
   #     - app-man-network
 
-  clickhouse-exporter: ### cut public port
+  clickhouse-exporter:
     image: flant/clickhouse-exporter:latest
     container_name: clickhouse_exporter
     env_file:
@@ -384,7 +385,7 @@ services:
     networks:
       - app-man-network
 
-  postgres-exporter: ### cut public port
+  postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: postgres_exporter
     restart: on-failure
@@ -417,7 +418,7 @@ services:
   #   networks:
   #     - app-man-network
 
-  bot: ### cut public port
+  bot:
     image: bot:latest
     container_name: bot
     restart: on-failure
@@ -430,7 +431,7 @@ services:
       - app-man-network
 
 
-  logs: ### cut public port
+  logs:
     image: logs:latest
     build: ./services/logs
     container_name: logs
@@ -445,7 +446,7 @@ services:
     networks:
       - app-man-network
 
-  summarizer: ### gateway
+  summarizer:
     image: summarizer:latest
     build: ./services/summarizer
     container_name: summarizer
@@ -467,7 +468,7 @@ services:
       start_period: 40s
       start_interval: 5s
 
-  defender: ### gateway
+  defender:
     image: defender:latest
     build: ./services/defender
     container_name: defender
@@ -489,7 +490,7 @@ services:
       kafka:
         condition: service_healthy
 
-  recomendator: ### gateway
+  recomendator:
     image: recomendator:latest
     build: ./services/recomendator
     container_name: recomendator
@@ -511,7 +512,7 @@ services:
       kafka:
         condition: service_healthy
 
-  business_analyzer: ### gateway
+  business_analyzer:
     image: business_analyzer:latest
     build: ./services/business_analyzer
     container_name: business_analyzer
@@ -533,7 +534,7 @@ services:
       kafka:
         condition: service_healthy
 
-  db_service: ### gateway
+  db_service:
     image: db_service:latest
     build: ./services/db_service
     container_name: db_service
@@ -548,7 +549,7 @@ services:
       kafka:
         condition: service_healthy
 
-  email_service: ### gateway
+  email_service:
     image: email_service:latest
     build: ./services/email_service
     container_name: email_service
