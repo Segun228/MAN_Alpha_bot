@@ -7,15 +7,16 @@ import (
 	_ "github.com/Segun228/MAN_Alpha_bot/services/user-service/docs"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/broker"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/models"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func NewRouter(services *service.Services, logger utils.Logger, logsBroker broker.MessageBroker, botApiKey, env string) http.Handler {
+func NewRouter(services *service.Services, logQueue chan models.Log, logger utils.Logger, logsBroker broker.MessageBroker, botApiKey, env string) http.Handler {
 	r := chi.NewRouter()
-	r.Use(loggingMiddleware(logger, logsBroker, env))
+	r.Use(loggingMiddleware(logger, logQueue, env))
 
 	r.Handle("/metrics", promhttp.Handler())
 

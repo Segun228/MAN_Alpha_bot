@@ -34,8 +34,9 @@ type (
 	}
 
 	KafkaConfig struct {
-		Broker string `mapstructure:"broker"`
-		Topics struct {
+		Broker     string `mapstructure:"broker"`
+		BufferSize int    `mapstructure:"buffer_size"`
+		Topics     struct {
 			Logs string `mapstructure:"logs"`
 		} `mapstructure:"topics"`
 		Groups struct {

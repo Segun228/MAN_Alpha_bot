@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/controller/http/v1/logkeys"
-	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/broker"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/models"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/utils"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 )
 
-func loggingMiddleware(log utils.Logger, logsBroker broker.MessageBroker, env string) func(next http.Handler) http.Handler {
+func loggingMiddleware(log utils.Logger, logQueue chan models.Log, env string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			metricsPtr := &logkeys.LogMetrics{
@@ -59,8 +58,14 @@ func loggingMiddleware(log utils.Logger, logsBroker broker.MessageBroker, env st
 			}
 
 			if metricsPtr.Action != "" {
-				logs := []models.Log{logToSend}
-				logsBroker.SendLogs(newCtx, logs)
+				select {
+				case logQueue <- logToSend:
+					// do nothing
+				default:
+					log.Warn("log queue is full, dropping log entry", map[string]any{
+						"action": logToSend.Action,
+					})
+				}
 			}
 		})
 	}

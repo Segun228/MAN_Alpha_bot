@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"sync"
@@ -77,7 +78,13 @@ func Run(configPath string) {
 	log.Info("initiating kafka broker...")
 	producer := broker.NewProducer([]string{kafkaCfg.Broker}, kafkaCfg.Topics.Logs)
 
-	broker := broker.NewKafkaBroker(producer)
+	kafkaBroker := broker.NewKafkaBroker(producer)
+	logQueue := broker.InitLogQueue(kafkaCfg.BufferSize)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go broker.StartLogProcessor(ctx, logQueue, kafkaBroker, log)
 
 	// Services and routes
 	deps := service.ServicesDependencies{
@@ -86,7 +93,7 @@ func Run(configPath string) {
 	}
 	services := service.NewServices(&deps)
 
-	handler := v1.NewRouter(services, log, broker, authCfg.BotKey, env)
+	handler := v1.NewRouter(services, logQueue, log, kafkaBroker, authCfg.BotKey, env)
 
 	httpServer := httpserver.New(
 		handler,
