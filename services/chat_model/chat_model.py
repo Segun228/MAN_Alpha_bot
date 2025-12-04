@@ -32,7 +32,7 @@ URL = os.getenv("OPENROUTER_URL")
 if URL == "http://model-service:8095/api/v1/chat/completions":
     model_name = "Qwen2.5-3B-Instruct(local)"
 else:
-    model_name = "llama-3.1-8b-instruct (api)"
+    model_name = "meta-llama/llama-3.1-8b-instruct"
     
 app = FastAPI(lifespan=lifespan)
 
