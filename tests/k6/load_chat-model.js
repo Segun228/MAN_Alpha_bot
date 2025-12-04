@@ -8,7 +8,7 @@ export const options = {
 };
 
 export function setup() {
-    const login = `load_biz_user_${__VU}`;
+    const login = `load_biz_user_${__VU}_${Date.now()}`;
     const password = 'password123';
 
     const createUserPayload = JSON.stringify({

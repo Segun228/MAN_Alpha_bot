@@ -43,32 +43,23 @@ export function setup() {
 export default function (data) {
     const authHeaders = { 'Authorization': `Bearer ${data.accessToken}`, 'Content-Type': 'application/json' };
 
-    // POST /api/users/{userID}/businesses - Создаем и сразу удаляем
-    const businessName = `Load Test Biz ${__VU}_${__ITER}`;
-    let res = http.post(`${CONFIG.BASE_URL}/api/users/users/${data.userID}/businesses`, JSON.stringify({
-        name: businessName,
-        description: "Business for load test",
+    let getAllUsersRes = http.get(`${CONFIG.BASE_URL}/api/users/users`, { headers: authHeaders });
+    check(getAllUsersRes, { 'Get all users (200)': (r) => r.status === 200 });
+
+    // GET /api/users/{id}
+    let getUserRes = http.get(`${CONFIG.BASE_URL}/api/users/users/${data.userID}`, { headers: authHeaders });
+    check(getUserRes, { 'Get user by ID (200)': (r) => r.status === 200 });
+
+    // PATCH /api/users/{id}
+    let patchUserRes = http.patch(`${CONFIG.BASE_URL}/api/users/users/${data.userID}`, JSON.stringify({
+        email: `loadtest_updated_${__VU}_${__ITER}@example.com`,
     }), { headers: authHeaders });
-
-    check(res, { 'Create business (200)': (r) => r.status === 200 });
-
-    const businesses = res.json('businesses');
-    const newBusinessID = businesses && businesses.length > 0 ? businesses[businesses.length - 1].id : null;
-
-    if (newBusinessID) {
-        // GET /api/businesses/{id}
-        let getBizRes = http.get(`${CONFIG.BASE_URL}/api/users/businesses/${newBusinessID}`, { headers: authHeaders });
-        check(getBizRes, { 'Get business by ID (200)': (r) => r.status === 200 });
-
-        // DELETE /api/businesses/{id}
-        let delBizRes = http.del(`${CONFIG.BASE_URL}/api/users/businesses/${newBusinessID}`, null, { headers: authHeaders });
-        check(delBizRes, { 'Delete business (200)': (r) => r.status === 200 });
-    }
+    check(patchUserRes, { 'Patch user (200)': (r) => r.status === 200 });
 }
 
+// teardown выполняется после завершения всех итераций VU
 export function teardown(data) {
     const authHeaders = { 'Authorization': `Bearer ${data.accessToken}` };
     http.del(`${CONFIG.BASE_URL}/api/users/users/${data.userID}`, null, { headers: authHeaders });
     console.log(`Cleaned up user with ID: ${data.userID}`);
 }
-
