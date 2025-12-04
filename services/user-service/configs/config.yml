@@ -11,3 +11,10 @@ auth:
 
 pg:
   url: ""
+
+kafka:
+  broker: ""
+  topics:
+    logs: ""
+  groups:
+    user: "user-service-group"

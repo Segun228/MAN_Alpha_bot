@@ -15,6 +15,7 @@ type (
 		HttpServer HttpServerConfig `mapstructure:"http_server"`
 		PG         PGConfig         `mapstructure:"pg"`
 		Auth       AuthConfig       `maptructure:"auth"`
+		Kafka      KafkaConfig      `mapstructure:"kafka"`
 	}
 
 	HttpServerConfig struct {
@@ -30,6 +31,16 @@ type (
 
 	AuthConfig struct {
 		BotKey string `mapstructure:"bot_key"`
+	}
+
+	KafkaConfig struct {
+		Broker string `mapstructure:"broker"`
+		Topics struct {
+			Logs string `mapstructure:"logs"`
+		} `mapstructure:"topics"`
+		Groups struct {
+			User string `mapstructure:"user"`
+		} `mapstructure:"groups"`
 	}
 )
 
