@@ -25,6 +25,14 @@ func (s *UserService) GetUsers(ctx context.Context) ([]models.User, error) {
 	return s.userRepo.GetUsers(ctx)
 }
 
+func (s *UserService) GetTgIDByUserID(ctx context.Context, userID int) (int64, error) {
+	return s.userRepo.GetTgIDByUserID(ctx, userID)
+}
+
+func (s *UserService) GetUserIDByTgID(ctx context.Context, tgId int64) (int, error) {
+	return s.userRepo.GetUserIDByTgID(ctx, tgId)
+}
+
 func (s *UserService) GetUserByID(ctx context.Context, userID int) (*models.User, error) {
 	return s.userRepo.GetUserByID(ctx, userID)
 }
@@ -49,12 +57,12 @@ func (s *UserService) AddBusinessToUserByID(ctx context.Context, userID int, bus
 }
 
 func (s *UserService) AddBusinessToUserByTgID(ctx context.Context, tgId int64, business models.Business) (*models.User, error) {
-	user, err := s.userRepo.GetUserByTgID(ctx, tgId)
+	userID, err := s.userRepo.GetUserIDByTgID(ctx, tgId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user by tg id: %w", err)
+		return nil, err
 	}
 
-	return s.userRepo.AddBusinessToUser(ctx, user.ID, business)
+	return s.userRepo.AddBusinessToUser(ctx, userID, business)
 }
 
 func (s *UserService) PutUserByID(ctx context.Context, user models.User) (*models.User, error) {
@@ -76,12 +84,12 @@ func (s *UserService) PutUserByTgID(ctx context.Context, tgID int64, user models
 
 	user.PasswordHash = passwordHash
 
-	userFromDB, err := s.userRepo.GetUserByTgID(ctx, tgID)
+	userFromDBID, err := s.userRepo.GetUserIDByTgID(ctx, tgID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user by tg id: %w", err)
+		return nil, err
 	}
 
-	user.ID = userFromDB.ID
+	user.ID = userFromDBID
 	return s.userRepo.UpdateUser(ctx, user)
 }
 
@@ -124,10 +132,10 @@ func (s *UserService) DeleteUserByID(ctx context.Context, userID int) error {
 }
 
 func (s *UserService) DeleteUserByTgID(ctx context.Context, tgID int64) error {
-	user, err := s.userRepo.GetUserByTgID(ctx, tgID)
+	userID, err := s.userRepo.GetUserIDByTgID(ctx, tgID)
 	if err != nil {
-		return fmt.Errorf("failed to get user by tg id: %w", err)
+		return err
 	}
 
-	return s.userRepo.DeleteUser(ctx, user.ID)
+	return s.userRepo.DeleteUser(ctx, userID)
 }
