@@ -1,14 +1,13 @@
-// load_tests/smoke_test.js
-
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { CONFIG } from './config.js';
+import handleSummary from './summary-reporter.js';
+export { handleSummary };
 
 export const options = {
     vus: 1,
     iterations: 1,
     thresholds: {
-        // Мы ожидаем, что 100% проверок в smoke-тесте пройдут успешно
         'checks': ['rate==1.0'],
     },
 };

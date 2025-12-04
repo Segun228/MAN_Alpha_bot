@@ -1,6 +1,8 @@
 import http from 'k6/http';
 import { check } from 'k6';
 import { CONFIG } from './config.js';
+import handleSummary from './summary-reporter.js';
+export { handleSummary };
 
 export const options = {
     vus: 5,

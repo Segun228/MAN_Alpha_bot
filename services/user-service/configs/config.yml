@@ -11,3 +11,11 @@ auth:
 
 pg:
   url: ""
+
+kafka:
+  broker: ""
+  buffer_size: 1024
+  topics:
+    logs: ""
+  groups:
+    user: "user-service-group"

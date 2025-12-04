@@ -85,6 +85,21 @@ func (mr *MockUserMockRecorder) DeleteUser(ctx, userID any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockUser)(nil).DeleteUser), ctx, userID)
 }
 
+// GetTgIDByUserID mocks base method.
+func (m *MockUser) GetTgIDByUserID(ctx context.Context, userID int) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTgIDByUserID", ctx, userID)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTgIDByUserID indicates an expected call of GetTgIDByUserID.
+func (mr *MockUserMockRecorder) GetTgIDByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTgIDByUserID", reflect.TypeOf((*MockUser)(nil).GetTgIDByUserID), ctx, userID)
+}
+
 // GetUserByID mocks base method.
 func (m *MockUser) GetUserByID(ctx context.Context, userID int) (*models.User, error) {
 	m.ctrl.T.Helper()
@@ -128,6 +143,21 @@ func (m *MockUser) GetUserByTgID(ctx context.Context, tgID int64) (*models.User,
 func (mr *MockUserMockRecorder) GetUserByTgID(ctx, tgID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByTgID", reflect.TypeOf((*MockUser)(nil).GetUserByTgID), ctx, tgID)
+}
+
+// GetUserIDByTgID mocks base method.
+func (m *MockUser) GetUserIDByTgID(ctx context.Context, tgID int64) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserIDByTgID", ctx, tgID)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserIDByTgID indicates an expected call of GetUserIDByTgID.
+func (mr *MockUserMockRecorder) GetUserIDByTgID(ctx, tgID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserIDByTgID", reflect.TypeOf((*MockUser)(nil).GetUserIDByTgID), ctx, tgID)
 }
 
 // GetUsers mocks base method.

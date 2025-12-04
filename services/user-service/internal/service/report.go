@@ -28,12 +28,12 @@ func (s *ReportService) GetReportByID(ctx context.Context, reportID int) (*model
 }
 
 func (s *ReportService) GetReportsByTgID(ctx context.Context, tgID int64) ([]models.Report, error) {
-	user, err := s.userRepo.GetUserByTgID(ctx, tgID)
+	userID, err := s.userRepo.GetUserIDByTgID(ctx, tgID)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.reportRepo.GetByReportsUserID(ctx, user.ID)
+	return s.reportRepo.GetByReportsUserID(ctx, userID)
 }
 
 func (s *ReportService) CreateReport(ctx context.Context, report ReportCreateInput) (*models.Report, error) {
@@ -56,13 +56,13 @@ func (s *ReportService) CreateReport(ctx context.Context, report ReportCreateInp
 }
 
 func (s *ReportService) CreateReportWithTgID(ctx context.Context, tgID int64, report ReportCreateInput) (*models.Report, error) {
-	user, err := s.userRepo.GetUserByTgID(ctx, tgID)
+	userID, err := s.userRepo.GetUserIDByTgID(ctx, tgID)
 	if err != nil {
 		return nil, err
 	}
 
 	newReport := models.Report{
-		UserID:    user.ID,
+		UserID:    userID,
 		Name:      report.Name,
 		Users:     report.Users,
 		Customers: report.Customers,

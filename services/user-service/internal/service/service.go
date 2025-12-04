@@ -28,6 +28,8 @@ type UserUpdateInput struct {
 
 type User interface {
 	GetUsers(ctx context.Context) ([]models.User, error)
+	GetTgIDByUserID(ctx context.Context, userID int) (int64, error)
+	GetUserIDByTgID(ctx context.Context, tgId int64) (int, error)
 	GetUserByID(ctx context.Context, userID int) (*models.User, error)
 	GetUserByTgID(ctx context.Context, tgID int64) (*models.User, error)
 	CreateUser(ctx context.Context, user models.User) (*models.User, error)
