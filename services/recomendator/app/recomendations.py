@@ -62,7 +62,7 @@ async def generate_recomendation(context, business, description, words_count=Non
 
         messages = [system_message]
         
-        if context.get("history"):
+        if isinstance(context, dict) and context.get("history"):
             messages.extend(context["history"])
         else:
             messages.extend(context)
