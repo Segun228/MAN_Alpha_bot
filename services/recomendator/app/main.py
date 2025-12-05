@@ -68,7 +68,10 @@ async def recommendations(request: Request):
     try:
         data = await request.json()
         telegram_id = data.get("telegram_id")
-        context = data.get("context")
+        if not isinstance(data, list):
+            context = data.get("context")
+        else:
+            content = data
         
         if not telegram_id:
             raise HTTPException(status_code=400, detail="telegram_id is required")

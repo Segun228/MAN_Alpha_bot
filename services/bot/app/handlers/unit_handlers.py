@@ -645,7 +645,7 @@ async def email_custom_accept(message: Message, state: FSMContext):
         email = message.text.strip()
         
         import re
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}₽'
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         
         if not re.match(email_pattern, email):
             await message.answer("❌ Введите корректный email адрес")
