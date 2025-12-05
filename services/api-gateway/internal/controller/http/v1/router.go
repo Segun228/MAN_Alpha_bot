@@ -55,6 +55,8 @@ func NewRouter(r *chi.Mux, services *service.Services, m *metrics.Metrics, logge
 	})
 
 	r.Route("/utils", func(u chi.Router) {
+		u.Use(HybridAuthMiddleware(services.Token, logger, botSecretKey))
+
 		u.Mount("/db", createProfixedHandler("/utils/db", servicesConfig.DBServiceURL))
 		u.Mount("/email", createProfixedHandler("/utils/email", servicesConfig.EmailServiceURL))
 	})
