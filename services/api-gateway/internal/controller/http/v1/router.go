@@ -50,6 +50,7 @@ func NewRouter(r *chi.Mux, services *service.Services, m *metrics.Metrics, logge
 		models.Mount("/summarizer", createProfixedHandler("/models/summarizer", servicesConfig.SummarizerURL))
 		models.Mount("/business_analyzer", createProfixedHandler("/models/business_analyzer", servicesConfig.BusinessAnalyzerURL))
 		models.Mount("/defender", createProfixedHandler("/models/defender", servicesConfig.DefenderURL))
+		models.Mount("/conversation", createProfixedHandler("/models/conversation", servicesConfig.ConversationModelURL))
 		models.Mount("/speech", createProfixedHandler("/models/speech", servicesConfig.SpeechServiceURL))
 		models.Mount("/model", createProfixedHandler("/models/model", servicesConfig.ModelServiceURL))
 	})
