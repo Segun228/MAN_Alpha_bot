@@ -30,6 +30,17 @@ func (r *UserCryptoRepo) GetUsers(ctx context.Context) ([]models.User, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		for j := range users[i].Businesses {
+			users[i].Businesses[j].Name, err = r.Encrypter.Decrypt(users[i].Businesses[j].Name)
+			if err != nil {
+				return nil, err
+			}
+			users[i].Businesses[j].Description, err = r.Encrypter.Decrypt(users[i].Businesses[j].Description)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return users, nil
@@ -54,6 +65,17 @@ func (r *UserCryptoRepo) GetUserByID(ctx context.Context, userID int) (*models.U
 		return nil, err
 	}
 
+	for i := range user.Businesses {
+		user.Businesses[i].Name, err = r.Encrypter.Decrypt(user.Businesses[i].Name)
+		if err != nil {
+			return nil, err
+		}
+		user.Businesses[i].Description, err = r.Encrypter.Decrypt(user.Businesses[i].Description)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return user, nil
 }
 
@@ -68,6 +90,17 @@ func (r *UserCryptoRepo) GetUserByLogin(ctx context.Context, login string) (*mod
 		return nil, err
 	}
 
+	for i := range user.Businesses {
+		user.Businesses[i].Name, err = r.Encrypter.Decrypt(user.Businesses[i].Name)
+		if err != nil {
+			return nil, err
+		}
+		user.Businesses[i].Description, err = r.Encrypter.Decrypt(user.Businesses[i].Description)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return user, nil
 }
 
@@ -80,6 +113,17 @@ func (r *UserCryptoRepo) GetUserByTgID(ctx context.Context, tgID int64) (*models
 	user.Email, err = r.Encrypter.Decrypt(user.Email)
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range user.Businesses {
+		user.Businesses[i].Name, err = r.Encrypter.Decrypt(user.Businesses[i].Name)
+		if err != nil {
+			return nil, err
+		}
+		user.Businesses[i].Description, err = r.Encrypter.Decrypt(user.Businesses[i].Description)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return user, nil
