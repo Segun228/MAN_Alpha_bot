@@ -89,6 +89,9 @@ class Lawyer(StatesGroup):
     finish = State()
 
 
+class Conv(StatesGroup):
+    start = State()
+    finish = State()
 
 
 class Idea(StatesGroup):
