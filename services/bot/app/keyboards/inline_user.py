@@ -25,7 +25,7 @@ async def get_unit_catalogue(telegram_id, state:FSMContext):
     )
     await state.update_data(reports = reports)
     keyboard = InlineKeyboardBuilder()
-    if reports is None or reports == [] or reports == ():
+    if reports is None or reports == [] or reports == () or isinstance(reports, dict):
         keyboard.add(InlineKeyboardButton(text="Создать модель ➕", callback_data="create_report"))
         keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
         return keyboard.adjust(1).as_markup()
