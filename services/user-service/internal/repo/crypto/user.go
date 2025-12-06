@@ -26,10 +26,6 @@ func (r *UserCryptoRepo) GetUsers(ctx context.Context) ([]models.User, error) {
 	}
 
 	for i := range users {
-		users[i].Login, err = r.Encrypter.Decrypt(users[i].Login)
-		if err != nil {
-			return nil, err
-		}
 		users[i].Email, err = r.Encrypter.Decrypt(users[i].Email)
 		if err != nil {
 			return nil, err
@@ -53,10 +49,6 @@ func (r *UserCryptoRepo) GetUserByID(ctx context.Context, userID int) (*models.U
 		return nil, err
 	}
 
-	user.Login, err = r.Encrypter.Decrypt(user.Login)
-	if err != nil {
-		return nil, err
-	}
 	user.Email, err = r.Encrypter.Decrypt(user.Email)
 	if err != nil {
 		return nil, err
@@ -66,20 +58,11 @@ func (r *UserCryptoRepo) GetUserByID(ctx context.Context, userID int) (*models.U
 }
 
 func (r *UserCryptoRepo) GetUserByLogin(ctx context.Context, login string) (*models.User, error) {
-	login, err := r.Encrypter.Encrypt(login)
-	if err != nil {
-		return nil, err
-	}
-
 	user, err := r.Repo.GetUserByLogin(ctx, login)
 	if err != nil {
 		return nil, err
 	}
 
-	user.Login, err = r.Encrypter.Decrypt(user.Login)
-	if err != nil {
-		return nil, err
-	}
 	user.Email, err = r.Encrypter.Decrypt(user.Email)
 	if err != nil {
 		return nil, err
@@ -94,10 +77,6 @@ func (r *UserCryptoRepo) GetUserByTgID(ctx context.Context, tgID int64) (*models
 		return nil, err
 	}
 
-	user.Login, err = r.Encrypter.Decrypt(user.Login)
-	if err != nil {
-		return nil, err
-	}
 	user.Email, err = r.Encrypter.Decrypt(user.Email)
 	if err != nil {
 		return nil, err
@@ -108,10 +87,6 @@ func (r *UserCryptoRepo) GetUserByTgID(ctx context.Context, tgID int64) (*models
 
 func (r *UserCryptoRepo) CreateUser(ctx context.Context, user models.User) (*models.User, error) {
 	var err error
-	user.Login, err = r.Encrypter.Encrypt(user.Login)
-	if err != nil {
-		return nil, err
-	}
 	user.Email, err = r.Encrypter.Encrypt(user.Email)
 	if err != nil {
 		return nil, err
@@ -136,10 +111,6 @@ func (r *UserCryptoRepo) AddBusinessToUser(ctx context.Context, userID int, busi
 
 func (r *UserCryptoRepo) UpdateUser(ctx context.Context, user models.User) (*models.User, error) {
 	var err error
-	user.Login, err = r.Encrypter.Encrypt(user.Login)
-	if err != nil {
-		return nil, err
-	}
 	user.Email, err = r.Encrypter.Encrypt(user.Email)
 	if err != nil {
 		return nil, err

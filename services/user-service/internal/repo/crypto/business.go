@@ -83,10 +83,6 @@ func (r *BusinessCryptoRepo) GetBusinessOwner(ctx context.Context, businessID in
 		return nil, err
 	}
 
-	user.Login, err = r.Encrypter.Decrypt(user.Login)
-	if err != nil {
-		return nil, err
-	}
 	user.Email, err = r.Encrypter.Decrypt(user.Email)
 	if err != nil {
 		return nil, err
