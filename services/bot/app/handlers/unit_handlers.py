@@ -57,12 +57,12 @@ from app.requests.reports.get_report import get_report, get_user_report
 from app.requests.reports.post_report import post_report
 from app.requests.reports.put_report import put_report
 
-
 from app.keyboards import inline_user as keyboards
 from app.utils.unit_handlers import analyze_unit_economics
 
 from app.utils.reaction_handler import ReactionManager
 from app.requests.post.email import send_zip_email_with_auth
+from app.requests.reports.post_report import post_report
 reactioner = ReactionManager()
 
 #========================================================================================================================================================================
@@ -249,10 +249,96 @@ def format_telegram_summary(res):
 _Отправляю файлы с детальным анализом..._
 """
 
-import re
+
+@router.callback_query(F.data == "unit_menu_list")
+async def catalogue_callback_menu_admin(callback: CallbackQuery, state:FSMContext):
+    try:
+        await callback.answer()
+        await state.clear()
+        await callback.message.answer("Вот ваши модели юнитов:",
+            reply_markup= await inline_keyboards.get_unit_catalogue(telegram_id=callback.from_user.id, state=state)
+        )
+    except Exception as e:
+        logging.exception(e)
+        await callback.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+
+@router.callback_query(F.data.startswith("report_"))
+async def catalogue_get_single(callback: CallbackQuery, state: FSMContext):
+    try:
+        await callback.answer()
+        report_id = int(callback.data.split("_")[1])  # Исправлено: split() -> split("_")
+        data = await state.get_data()
+        reports = data.get("reports", []) 
+        
+        if not reports:
+            await callback.message.answer("Модель не найдена 🥲")
+            return
+        
+        report = None
+        for item in reports:
+            if item.get("id") == report_id:
+                report = item
+                break
+        
+        if not report:
+            await callback.message.answer("Модель не найдена 🥲")
+            return
+        
+        message_text = (
+            f"📊 <b>Отчет: {report.get('name', 'Без названия')}</b>\n\n"
+            f"🆔 <b>ID:</b> {report.get('id', 'N/A')}\n"
+            f"📅 <b>Создан:</b> {report.get('created_at', 'N/A')}\n"
+            f"🔄 <b>Обновлен:</b> {report.get('updated_at', 'N/A')}\n\n"
+            
+            f"<b>Показатели:</b>\n"
+            f"👥 <b>Пользователи:</b> {report.get('users', 0):,}\n"
+            f"👤 <b>Клиенты:</b> {report.get('customers', 0):,}\n"
+            f"💰 <b>Выручка (RR):</b> {report.get('rr', 0):,} ₽\n"
+            f"📈 <b>Средний чек (APC):</b> {report.get('apc', 0):,} ₽\n"
+            f"🛒 <b>Конверсия (AGR):</b> {report.get('agr', 0):.1f}%\n\n"
+            
+            f"<b>Финансы:</b>\n"
+            f"💸 <b>Себестоимость (COGS):</b> {report.get('cogs', 0):,} ₽\n"
+            f"📊 <b>COGS 1S:</b> {report.get('cogs1s', 0):,} ₽\n"
+            f"🏭 <b>Постоянные издержки (FC):</b> {report.get('fc', 0):,} ₽\n"
+            f"⏱️ <b>Время продажи (TMS):</b> {report.get('tms', 0)} мин\n"
+            f"🎯 <b>Средняя цена (AVP):</b> {report.get('avp', 0):,} ₽\n\n"
+            
+            f"👤 <b>User ID:</b> {report.get('user_id', 'N/A')}"
+        )
+        
+        await callback.message.answer(
+            message_text,
+            parse_mode="HTML",
+            reply_markup= await inline_keyboards.model_menu(model_id = report.get("id"))
+        )
+        
+    except IndexError:
+        await callback.answer("Неверный формат запроса ❌", show_alert=True)
+    except Exception as e:
+        logging.exception(e)
+        await callback.answer("Извините, бот немножко устал, попробуйте позже 😢", 
+                             reply_markup=inline_keyboards.home, 
+                             show_alert=True)
+        await state.clear()
+
 
 @router.callback_query(F.data == "unit_menu")
 async def catalogue_callback_admin(callback: CallbackQuery, state:FSMContext):
+    try:
+        await callback.answer()
+        await state.clear()
+        await callback.message.answer("Введите название проекта")
+        await state.set_state(Unit.name)
+    except Exception as e:
+        logging.exception(e)
+        await callback.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
+@router.callback_query(F.data == "create_report")
+async def catalogue_callback_adminn(callback: CallbackQuery, state:FSMContext):
     try:
         await callback.answer()
         await state.clear()
@@ -527,6 +613,7 @@ async def post_enter_fc_admin(message: Message, state: FSMContext, bot:Bot):
         await reactioner.add_reaction(bot=bot, message=message, emoji="✍️")
         await state.update_data(FC=fc_float)
         data = await state.get_data()
+        logging.info(data)
 
         if not data:
             await message.answer("Ошибка при создании юнита", reply_markup=inline_keyboards.main)
@@ -546,7 +633,27 @@ async def post_enter_fc_admin(message: Message, state: FSMContext, bot:Bot):
         )
         
         await message.answer(msg, parse_mode='Markdown')
-        
+        report = data
+        result = await post_report(
+            telegram_id=message.from_user.id,
+            name=report.get('name', 'Без названия'), 
+            description="Описание",  
+            apc=float(report.get('APC', 0.0)),     
+            avp=float(report.get('AVP', 0.0)),      
+            cogs=float(report.get('COGS', 0.0)),    
+            cogs1s=float(report.get('COGS1s', 0.0)), 
+            customers=int(report.get('customers', 0)), 
+            fc=float(report.get('FC', 0.0)),        
+            tms=float(report.get('TMS', 0.0)),      
+            users=int(report.get('users', 0)),     
+            rr=float(report.get('RR', 0.2)),        
+            agr=float(report.get('AGR', 0.1))    
+        )
+
+        if not result:
+            await message.answer("Извините, не смогли сохранить вашу модель")
+        else:
+            await message.answer("Модель успешно сохранена!")
         try:
             res, zip_buffer = analyze_unit_economics(data=data)
             
@@ -566,6 +673,89 @@ async def post_enter_fc_admin(message: Message, state: FSMContext, bot:Bot):
         logging.exception(e)
         await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
         await state.clear()
+
+
+
+
+
+@router.message(Unit.FC)
+async def recount_model(message: Message, state: FSMContext, bot:Bot):
+    try:
+        FC = message.text.strip()
+        if not FC:
+            await message.answer("Введите число FC")
+            return
+        
+        try:
+            fc_float = safe_float_convert(FC, min_val=0, max_val=1000000000)
+        except ValueError as e:
+            await message.answer(f"Ошибка: {str(e)}. Введите число FC (например: 10000 или 15000.50)")
+            return
+        
+        await reactioner.add_reaction(bot=bot, message=message, emoji="✍️")
+        await state.update_data(FC=fc_float)
+        data = await state.get_data()
+        logging.info(data)
+
+        if not data:
+            await message.answer("Ошибка при создании юнита", reply_markup=inline_keyboards.main)
+            return
+
+        msg = (
+            f"🧩 **Модель успешно создана:**\n\n"
+            f"**Название:** `{data.get('name')}`\n"
+            f"**Пользователи:** `{data.get('users')}`\n"
+            f"**Клиенты:** `{data.get('customers')}`\n"
+            f"**AVP:** `{data.get('AVP')}`\n"
+            f"**APC:** `{data.get('APC')}`\n"
+            f"**ТМS:** `{data.get('TMS')}`\n"
+            f"**СОGS:** `{data.get('COGS')}`\n"
+            f"**СОGS1s:** `{data.get('COGS1s')}`\n"
+            f"**FC:** `{data.get('FC')}`"
+        )
+        
+        await message.answer(msg, parse_mode='Markdown')
+        report = data
+        result = await post_report(
+            telegram_id=message.from_user.id,
+            name=report.get('name', 'Без названия'), 
+            description="Описание",  
+            apc=float(report.get('APC', 0.0)),     
+            avp=float(report.get('AVP', 0.0)),      
+            cogs=float(report.get('COGS', 0.0)),    
+            cogs1s=float(report.get('COGS1s', 0.0)), 
+            customers=int(report.get('customers', 0)), 
+            fc=float(report.get('FC', 0.0)),        
+            tms=float(report.get('TMS', 0.0)),      
+            users=int(report.get('users', 0)),     
+            rr=float(report.get('RR', 0.2)),        
+            agr=float(report.get('AGR', 0.1))    
+        )
+
+        if not result:
+            await message.answer("Извините, не смогли сохранить вашу модель")
+        else:
+            await message.answer("Модель успешно сохранена!")
+        try:
+            res, zip_buffer = analyze_unit_economics(data=data)
+            
+            await send_economics_results(res, zip_buffer, message, bot)
+            
+            await state.update_data(zip_file=zip_buffer)
+            
+            await message.answer(
+                "Вы хотите получить результат на почту?", 
+                reply_markup=await inline_keyboards.email_choice(telegram_id=message.from_user.id)
+            )
+            
+        except Exception as e:
+            await message.answer(f"❌ Ошибка при анализе данных: {str(e)}", reply_markup=inline_keyboards.main)
+            await state.clear()
+    except Exception as e:
+        logging.exception(e)
+        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await state.clear()
+
 
 @router.callback_query(F.data == "email_deny")
 async def email_deny_admin(callback: CallbackQuery, state: FSMContext):
