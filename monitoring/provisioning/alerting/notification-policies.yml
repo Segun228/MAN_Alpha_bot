@@ -1,0 +1,7 @@
+apiVersion: 1
+policies:
+  - receiver: Telegram_Alerts
+    group_by: ['cluster', 'alertname']
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h

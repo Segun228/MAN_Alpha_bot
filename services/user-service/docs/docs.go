@@ -543,7 +543,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controller_http_v1.reportCreateRequest"
+                            "$ref": "#/definitions/internal_controller_http_v1.reportCreateWithTgIDRequest"
                         }
                     }
                 ],
@@ -1676,6 +1676,44 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "integer"
+                },
+                "users": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_controller_http_v1.reportCreateWithTgIDRequest": {
+            "type": "object",
+            "properties": {
+                "agr": {
+                    "type": "number"
+                },
+                "apc": {
+                    "type": "integer"
+                },
+                "avp": {
+                    "type": "number"
+                },
+                "cogs": {
+                    "type": "number"
+                },
+                "cogs1s": {
+                    "type": "number"
+                },
+                "customers": {
+                    "type": "integer"
+                },
+                "fc": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rr": {
+                    "type": "number"
+                },
+                "tms": {
+                    "type": "number"
                 },
                 "users": {
                     "type": "integer"

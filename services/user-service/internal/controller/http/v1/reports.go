@@ -337,13 +337,27 @@ func (rr *reportRoutes) create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, createdReport)
 }
 
+type reportCreateWithTgIDRequest struct {
+	Name      string  `json:"name"`
+	Users     int     `json:"users"`
+	Customers int     `json:"customers"`
+	AVP       float64 `json:"avp"`
+	APC       int     `json:"apc"`
+	TMS       float64 `json:"tms"`
+	COGS      float64 `json:"cogs"`
+	COGS1s    float64 `json:"cogs1s"`
+	FC        float64 `json:"fc"`
+	RR        float64 `json:"rr"`
+	AGR       float64 `json:"agr"`
+}
+
 // @Summary Create a new report with Telegram ID
 // @Description Создать новый отчет, используя Telegram ID пользователя
 // @Tags reports
 // @Accept json
 // @Produce json
 // @Param tgID path int64 true "Telegram User ID"
-// @Param report body reportCreateRequest true "Report to create"
+// @Param report body reportCreateWithTgIDRequest true "Report to create"
 // @Success 201 {object} models.Report
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -369,7 +383,7 @@ func (rr *reportRoutes) createWithTg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req reportCreateRequest
+	var req reportCreateWithTgIDRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		rr.logger.Error("error decoding create report with tgID request", map[string]any{
 			"error": err.Error(),
