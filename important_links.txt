@@ -1,4 +1,4 @@
-@busines_copilot_bot - id бота в телеграме
+id бота в телеграме прикреплен в письме
 https://github.com/Segun228/MAN_Alpha_bot - наш репозиторий
 http://130.193.45.25:3000 - графана (ligin = admin, password = admin)
 http://130.193.45.25:8081 - гейтвей
