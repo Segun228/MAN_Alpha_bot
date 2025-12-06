@@ -52,7 +52,7 @@ class Context(BaseModel):
 
 class RequestData(BaseModel):
     text: str
-    context: Context
+    context: Context | None
     business: str = "малый бизнес"
     extended_data: str = ""
     word_count: int | None = None
