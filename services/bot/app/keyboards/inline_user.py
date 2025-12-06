@@ -10,7 +10,6 @@ from aiogram.fsm.context import FSMContext
 main = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="📦 Каталог", callback_data="catalogue")],
-        [InlineKeyboardButton(text="📊 Юнит-экономика", callback_data="unit_menu")],
         [InlineKeyboardButton(text="📊 Модели юнит-экономика", callback_data="unit_menu_list")],
         [InlineKeyboardButton(text="🤖 ИИ-инструменты", callback_data="ai_menu")],
         [InlineKeyboardButton(text="👤 Аккаунт", callback_data="account_menu")],
@@ -96,6 +95,7 @@ async def create_unit_edit_menu(report_id):
 account_menu = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="👑 Запросить права администратора", callback_data="request_admin")],
+        [InlineKeyboardButton(text="❌ Удалить аккаунт", callback_data="delete_account")],
         [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")],
     ]
 )

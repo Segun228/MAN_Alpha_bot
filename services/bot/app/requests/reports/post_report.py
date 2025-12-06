@@ -9,7 +9,7 @@ async def post_report(
     telegram_id: int,
     name: str,
     description: str,
-    apc: float,
+    apc: int,
     avp: float,
     cogs: float,
     cogs1s: float,
@@ -53,7 +53,7 @@ async def post_report(
         logging.error("No telegram_id was provided")
         raise ValueError("No telegram_id was provided")
         
-    request_url = base_url + "reports"
+    request_url = base_url + f"reports/tg/{telegram_id}"
     
     async with aiohttp.ClientSession() as session:
         async with session.post(
@@ -88,7 +88,11 @@ async def post_report(
                     "status": 404
                 }
             else:
-                logging.error(f"❌ Ошибка: {response.status}")
+                try:
+                    error_body = await response.text()
+                    logging.error(f"❌ Тело ошибки: {error_body}")
+                except Exception as e:
+                    logging.error(f"❌ Не удалось прочитать тело ошибки: {e}")
                 return None
 
 # Примеры использования:
