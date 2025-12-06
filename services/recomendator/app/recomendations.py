@@ -62,10 +62,17 @@ async def generate_recomendation(context, business, description, words_count=Non
 
         messages = [system_message]
         
+        context_data = []
         if isinstance(context, dict) and context.get("history"):
-            messages.extend(context["history"])
-        else:
-            messages.extend(context)
+            context_data = context["history"]
+        elif isinstance(context, list):
+            context_data = context
+        
+        for item in context_data:
+            if isinstance(item, dict) and 'role' in item and 'content' in item:
+                messages.append(item)
+            else:
+                logging.warning(f"Skipping invalid message object in context: {item}")
 
         payload = {
             "model": "meta-llama/llama-3.1-8b-instruct",
