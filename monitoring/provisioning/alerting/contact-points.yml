@@ -1,0 +1,11 @@
+apiVersion: 1
+contactPoints:
+  - name: Telegram_Alerts
+    receivers:
+      - uid: telegram-alerts
+        type: telegram
+        settings:
+          bottoken: "${BOT_TOKEN}" #7984483686:AAHCcjRSogbca97NH3OXa6eavV05TWVLQGg
+          chatid: "${ADMINS} " #6911237041
+          uploadimage: true
+          parseMode: HTML
