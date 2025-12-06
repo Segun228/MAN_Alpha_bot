@@ -373,56 +373,17 @@ async def generate_idea_start(callback: CallbackQuery, state: FSMContext):
     try:
         await callback.message.answer("Пожалуйста, опишите ваш вопрос или идею для анализа:")
         await state.set_state(states.Idea.awaiting_question)
-    except Exception as e:
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-@router.message(states.Idea.awaiting_question)
-async def handle_question_input(message: Message, state: FSMContext):
-    try:
-        question = message.text
-        if not question or len(question.strip()) < 5:
-            await message.answer("Вопрос слишком короткий. Пожалуйста, опишите подробнее:")
-            return
-        
-        await state.update_data(question=question)
-        await state.set_state(states.Idea.start)
-        
-        await message.answer(
-            "К какому из ваших проектов относится данный вопрос?",
-            reply_markup=await inline_keyboards.get_precise_catalogue(telegram_id=message.from_user.id)
-        )
-    except Exception as e:
-        logging.exception(e)
-        await message.answer("Извините, произошла ошибка", reply_markup=inline_keyboards.home)
-        await state.clear()
-
-@router.callback_query(F.data.startswith("choose_business_"), states.Idea.start)
-async def idea_generator_finish(callback: CallbackQuery, state: FSMContext):
-    try:
         data = await state.get_data()
         question = data.get("question")
         if not question:
             await callback.message.answer("Извините, бот забыл про какой бизнес мы говорили 🥲\n\nПроблема на нашей стороне 👨‍🔧")
             return
-        
-        business_id = int(callback.data.replace("choose_business_", ""))
-        current_business = await get_business(
-            telegram_id=callback.from_user.id,
-            business_id=business_id
-        )
-        if not current_business:
-            await callback.message.answer("Извините, бот не смог найти ваш бизнес 🥲\n\nПроблема на нашей стороне 👨‍🔧")
-            return
-        
         await callback.message.answer("Ассистент думает, подождите пожалуйста...")
         response = await post_idea_model(
             telegram_id=callback.from_user.id,
             text=question,
-            description=current_business.get("description"),
-            business=current_business.get("name"),
-            business_id=current_business.get("id"),
         )
         if not response:
             await callback.message.answer("Модель не смогла дать внятного ответа, попробуйте переформулировать...", reply_markup=inline_keyboards.home)
@@ -436,12 +397,12 @@ async def idea_generator_finish(callback: CallbackQuery, state: FSMContext):
             telegram_id=callback.from_user.id,
             text=question,
             message_id=callback.from_user.id,
-            business_id=business_id
+            business_id=None
         )
         await replier.log_bot_response(
             telegram_id=callback.from_user.id,
             text=str(response),
-            business_id = business_id 
+            business_id = None
         )
         await state.clear()
         

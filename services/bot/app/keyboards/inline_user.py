@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 main = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="📦 Каталог", callback_data="catalogue")],
-        [InlineKeyboardButton(text="📊 Модели юнит-экономика", callback_data="unit_menu_list")],
+        [InlineKeyboardButton(text="📊 Модели юнит-экономики", callback_data="unit_menu_list")],
         [InlineKeyboardButton(text="🤖 ИИ-инструменты", callback_data="ai_menu")],
         [InlineKeyboardButton(text="👤 Аккаунт", callback_data="account_menu")],
         [InlineKeyboardButton(text="📞 Контакты", callback_data="contacts")]

@@ -29,25 +29,15 @@ def validate_openrouter_request(messages: List[Dict]) -> List[Dict]:
     for msg in messages:
         if not isinstance(msg, dict):
             continue
-        
-        # Проверяем обязательные поля
         if "role" not in msg or "content" not in msg:
             continue
-        
-        # Проверяем роль
         if msg["role"] not in ["system", "user", "assistant"]:
-            msg["role"] = "user"  # Дефолтная роль
-        
-        # Проверяем content
+            msg["role"] = "user"
         if not isinstance(msg["content"], str):
             msg["content"] = str(msg["content"])
-        
-        # Ограничиваем длину
         if len(msg["content"]) > 32000:
             msg["content"] = msg["content"][:32000]
-        
         validated.append(msg)
-    
     return validated
 
 
@@ -70,25 +60,21 @@ async def generate_recomendation(
         Словарь с ответом API
     """
     try:
-        # Валидация входных данных
         if not context:
             raise HTTPException(
                 status_code=400, 
                 detail="Context is required"
             )
         
-        # Получение API ключа из окружения
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
             raise HTTPException(
                 status_code=500,
                 detail="OpenRouter API key not configured"
             )
-        
-        # Получение URL из окружения
+
         openrouter_url = os.getenv("OPENROUTER_URL", "https://openrouter.ai/api/v1/chat/completions")
-        
-        # Подготовка system message
+
         business_info = ""
         if business:
             business_info += f"Бизнес: {business}\n"
@@ -120,64 +106,48 @@ async def generate_recomendation(
 - Шаг 3 (конкретные действия)
 """
         
-        # Создание system сообщения
         system_message = {
             "role": "system",
             "content": system_content.strip()
         }
         
-        # Подготовка messages массива
         messages = [system_message]
         
-        # Обработка context
         history_messages = []
         
         if isinstance(context, dict):
-            # Если context - словарь с историей
             if "history" in context and isinstance(context["history"], list):
                 history_messages = context["history"]
             elif "messages" in context and isinstance(context["messages"], list):
                 history_messages = context["messages"]
         elif isinstance(context, list):
-            # Если context уже список сообщений
             history_messages = context
         
-        # Валидация каждого сообщения в истории
         valid_messages = []
         for msg in history_messages:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
-                # Проверка допустимых ролей
                 if msg["role"] in ["user", "assistant", "system"]:
-                    # Ограничение длины content
                     if len(str(msg["content"])) > 10000:
                         msg["content"] = str(msg["content"])[:10000] + "..."
                     valid_messages.append(msg)
-        
-        # Добавляем валидные сообщения
         messages.extend(valid_messages)
         
-        # Логирование для отладки
         logging.info(f"Total messages: {len(messages)}")
         logging.info(f"System message length: {len(system_content)}")
         
-        # Подготовка payload
         payload = {
             "model": "meta-llama/llama-3.1-8b-instruct",
             "messages": messages,
             "temperature": 0.7,
-            "max_tokens": 1000,  # Ограничение ответа
+            "max_tokens": 1000,
             "stream": False
         }
-        
-        # Заголовки
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://your-app.com",  # Должен совпадать с настройками в OpenRouter
+            "HTTP-Referer": "https://your-app.com",
             "X-Title": "Business Analysis Bot",
         }
-        
-        # Отправка запроса
         timeout = aiohttp.ClientTimeout(total=120)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
@@ -186,10 +156,7 @@ async def generate_recomendation(
                 json=payload,
                 timeout=timeout
             ) as resp:
-                
-                # Обработка различных статусов
                 if resp.status == 400:
-                    # Получаем детали ошибки от OpenRouter
                     error_data = await resp.json()
                     error_detail = error_data.get("error", {}).get("message", "Bad Request")
                     
@@ -228,11 +195,9 @@ async def generate_recomendation(
                         status_code=502,
                         detail=f"OpenRouter error: {resp.status}"
                     )
-                
-                # Успешный ответ
+
                 response_data = await resp.json()
                 
-                # Валидация ответа
                 if "choices" not in response_data or not response_data["choices"]:
                     raise HTTPException(
                         status_code=502,
