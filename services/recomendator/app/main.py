@@ -76,7 +76,7 @@ async def recommendations(request: Request):
         if not telegram_id:
             raise HTTPException(status_code=400, detail="telegram_id is required")
         if not context:
-            raise HTTPException(status_code=400, detail="context is required")
+            context = []
 
         business = data.get("business", "Малый бизнес")
         description = data.get("description", "")
