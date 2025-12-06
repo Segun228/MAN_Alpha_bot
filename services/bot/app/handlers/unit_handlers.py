@@ -678,31 +678,29 @@ async def post_enter_fc_admin(message: Message, state: FSMContext, bot:Bot):
 
 
 
-@router.message(Unit.FC)
-async def recount_model(message: Message, state: FSMContext, bot:Bot):
+@router.callback_query(F.data.startswith("recount_model_"))
+async def recount_model(callback:CallbackQuery, state: FSMContext, bot:Bot):
     try:
-        FC = message.text.strip()
-        if not FC:
-            await message.answer("Введите число FC")
-            return
-        
-        try:
-            fc_float = safe_float_convert(FC, min_val=0, max_val=1000000000)
-        except ValueError as e:
-            await message.answer(f"Ошибка: {str(e)}. Введите число FC (например: 10000 или 15000.50)")
-            return
-        
-        await reactioner.add_reaction(bot=bot, message=message, emoji="✍️")
-        await state.update_data(FC=fc_float)
-        data = await state.get_data()
+        model_id = callback.data.split("_")[2]
+        if not model_id:
+            raise ValueError("Error while getting model id")
+
+
+        data = await get_report(
+            telegram_id=callback.from_user.id,
+            report_id=int(model_id)
+        )
+        if not data:
+            await callback.message.answer("Извините, не удалось пересчитать модель")
+            raise ValueError("Извините, не удалось пересчитать модель")
         logging.info(data)
 
         if not data:
-            await message.answer("Ошибка при создании юнита", reply_markup=inline_keyboards.main)
+            await callback.answer("Ошибка при создании юнита", reply_markup=inline_keyboards.main)
             return
 
         msg = (
-            f"🧩 **Модель успешно создана:**\n\n"
+            f"🧩 **Модель успешно пересчитана:**\n\n"
             f"**Название:** `{data.get('name')}`\n"
             f"**Пользователи:** `{data.get('users')}`\n"
             f"**Клиенты:** `{data.get('customers')}`\n"
@@ -714,10 +712,10 @@ async def recount_model(message: Message, state: FSMContext, bot:Bot):
             f"**FC:** `{data.get('FC')}`"
         )
         
-        await message.answer(msg, parse_mode='Markdown')
+        await callback.answer(msg, parse_mode='Markdown')
         report = data
         result = await post_report(
-            telegram_id=message.from_user.id,
+            telegram_id=callback.from_user.id,
             name=report.get('name', 'Без названия'), 
             description="Описание",  
             apc=float(report.get('APC', 0.0)),     
@@ -733,9 +731,9 @@ async def recount_model(message: Message, state: FSMContext, bot:Bot):
         )
 
         if not result:
-            await message.answer("Извините, не смогли сохранить вашу модель")
+            await callback.answer("Извините, не смогли сохранить вашу модель")
         else:
-            await message.answer("Модель успешно сохранена!")
+            await callback.answer("Модель успешно сохранена!")
         try:
             res, zip_buffer = analyze_unit_economics(data=data)
             
@@ -743,17 +741,17 @@ async def recount_model(message: Message, state: FSMContext, bot:Bot):
             
             await state.update_data(zip_file=zip_buffer)
             
-            await message.answer(
+            await callback.answer(
                 "Вы хотите получить результат на почту?", 
                 reply_markup=await inline_keyboards.email_choice(telegram_id=message.from_user.id)
             )
             
         except Exception as e:
-            await message.answer(f"❌ Ошибка при анализе данных: {str(e)}", reply_markup=inline_keyboards.main)
+            await callback.answer(f"❌ Ошибка при анализе данных: {str(e)}", reply_markup=inline_keyboards.main)
             await state.clear()
     except Exception as e:
         logging.exception(e)
-        await message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+        await callback.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
         await state.clear()
 
 
