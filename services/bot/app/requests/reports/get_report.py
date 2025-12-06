@@ -74,7 +74,7 @@ async def get_user_report(telegram_id, **kwargs)->Any | dict[str, Any] | None | 
             if response.status in (200, 201, 202, 203, 204, 205):
                 data = await response.json()
                 logging.info("Данные успешно получены!")
-                return data.get("reportes")
+                return data
             elif response.status == 404:
                 logging.error("report was not found")
                 return {

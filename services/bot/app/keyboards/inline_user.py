@@ -3,13 +3,15 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from typing import Iterable
 from pprint import pprint
 from app.requests.get.get_business import get_business, get_user_business
+from app.requests.reports.get_report import get_user_report
 import logging
-
+from aiogram.fsm.context import FSMContext
 
 main = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="📦 Каталог", callback_data="catalogue")],
         [InlineKeyboardButton(text="📊 Юнит-экономика", callback_data="unit_menu")],
+        [InlineKeyboardButton(text="📊 Модели юнит-экономика", callback_data="unit_menu_list")],
         [InlineKeyboardButton(text="🤖 ИИ-инструменты", callback_data="ai_menu")],
         [InlineKeyboardButton(text="👤 Аккаунт", callback_data="account_menu")],
         [InlineKeyboardButton(text="📞 Контакты", callback_data="contacts")]
@@ -18,6 +20,31 @@ main = InlineKeyboardMarkup(
 
 
 
+async def get_unit_catalogue(telegram_id, state:FSMContext):
+    reports = await get_user_report(
+        telegram_id=telegram_id
+    )
+    await state.update_data(reports = reports)
+    keyboard = InlineKeyboardBuilder()
+    if reports is None or reports == [] or reports == ():
+        keyboard.add(InlineKeyboardButton(text="Создать модель ➕", callback_data="create_report"))
+        keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
+        return keyboard.adjust(1).as_markup()
+    for report in reports:
+        keyboard.add(InlineKeyboardButton(text=f"{report.get('name', 'Модель экономики')}", callback_data=f"report_{report.get('id')}"))
+    keyboard.add(InlineKeyboardButton(text="Создать модель ➕", callback_data="create_report"))
+    keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
+    return keyboard.adjust(1).as_markup()
+
+
+async def model_menu(model_id):
+    if not model_id:
+        return None
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔁 Пересчитать модель", callback_data=f"recount_model_{model_id}")],
+        [InlineKeyboardButton(text="❌ Удалить модель", callback_data=f"delete_model_{model_id}")],
+        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
+    ])
 
 async def email_choice(        
     telegram_id
@@ -41,7 +68,6 @@ async def get_reports(reports):
     for report in reports:
         keyboard.add(InlineKeyboardButton(text=f"{report.get('name', 'Модель экономики')}", callback_data=f"report_{report.get('id')}"))
     keyboard.add(InlineKeyboardButton(text="Создать модель ➕", callback_data="create_report"))
-    keyboard.add(InlineKeyboardButton(text="Аналитика", callback_data=f"analise_{report.get('id')}"))
     keyboard.add(InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu"))
     return keyboard.adjust(1).as_markup()
 
