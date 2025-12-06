@@ -16,6 +16,7 @@ type (
 		PG         PGConfig         `mapstructure:"pg"`
 		Auth       AuthConfig       `maptructure:"auth"`
 		Kafka      KafkaConfig      `mapstructure:"kafka"`
+		Secutiry   SecutiryConfig   `mapstructure:"security"`
 	}
 
 	HttpServerConfig struct {
@@ -42,6 +43,10 @@ type (
 		Groups struct {
 			User string `mapstructure:"user"`
 		} `mapstructure:"groups"`
+	}
+
+	SecutiryConfig struct {
+		EncrypterKey string `mapstructure:"encrypter_key"`
 	}
 )
 

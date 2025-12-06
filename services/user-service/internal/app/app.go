@@ -10,6 +10,7 @@ import (
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/config"
 	v1 "github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/controller/http/v1"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo"
+	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/repo/crypto"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/internal/service"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/broker"
 	"github.com/Segun228/MAN_Alpha_bot/services/user-service/pkg/hasher"
@@ -58,6 +59,7 @@ func Run(configPath string) {
 	authCfg := cfg.Auth
 	kafkaCfg := cfg.Kafka
 	env := cfg.Env
+	secCfg := cfg.Secutiry
 	cfgMutex.RUnlock()
 
 	// Postgres
@@ -73,6 +75,21 @@ func Run(configPath string) {
 	log.Info("init repos")
 	repositories := repo.NewRepositories(pg)
 	passwordHasher := hasher.NewHasher()
+
+	// Crypto
+	if secCfg.EncrypterKey == "" {
+		log.Info("crypto disabled")
+	} else {
+		cryptoService, err := crypto.NewAESCryptoService(secCfg.EncrypterKey)
+		if err != nil {
+			log.Error("failed to initiate crypto service", map[string]any{
+				"error": err,
+			})
+		} else {
+			cryptoRepos := crypto.NewCryptoRepos(repositories, cryptoService)
+			repositories = cryptoRepos
+		}
+	}
 
 	// Message broker
 	log.Info("initiating kafka broker...")

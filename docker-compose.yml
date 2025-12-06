@@ -69,6 +69,7 @@ services:
       - PG_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DBNAME}?sslmode=disable
       - KAFKA_BROKER=kafka:9092
       - KAFKA_TOPICS_LOGS=${KAFKA_LOGS_TOPIC}
+      - SECURITY_ENCRYPTER_KEY=${USER_ENCRYPTER_KEY}
     ports:
       - "${USER_SERVICE_PORT}:8083"
     networks:

@@ -18,10 +18,15 @@ type AESCryptoService struct {
 	key []byte
 }
 
-func NewAESCryptoService(key []byte) *AESCryptoService {
-	return &AESCryptoService{
-		key: key,
+func NewAESCryptoService(key string) (*AESCryptoService, error) {
+	keyBytes, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode base64: %w", err)
 	}
+
+	return &AESCryptoService{
+		key: keyBytes,
+	}, nil
 }
 
 func (s *AESCryptoService) Encrypt(plainText string) (string, error) {
