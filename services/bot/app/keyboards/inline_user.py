@@ -10,7 +10,6 @@ from aiogram.fsm.context import FSMContext
 main = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="📦 Каталог", callback_data="catalogue")],
-        [InlineKeyboardButton(text="📊 Юнит-экономика", callback_data="unit_menu")],
         [InlineKeyboardButton(text="📊 Модели юнит-экономика", callback_data="unit_menu_list")],
         [InlineKeyboardButton(text="🤖 ИИ-инструменты", callback_data="ai_menu")],
         [InlineKeyboardButton(text="👤 Аккаунт", callback_data="account_menu")],
@@ -96,6 +95,7 @@ async def create_unit_edit_menu(report_id):
 account_menu = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="👑 Запросить права администратора", callback_data="request_admin")],
+        [InlineKeyboardButton(text="❌ Удалить аккаунт", callback_data="delete_account")],
         [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")],
     ]
 )
@@ -152,6 +152,7 @@ restart = InlineKeyboardMarkup(
 catalogue = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="⚖️ Персональный юрист", callback_data="personal_lawyer")],
+        [InlineKeyboardButton(text="🗣️ Переговорщик", callback_data="conversation")],
         [InlineKeyboardButton(text="💡 Генерация идей", callback_data="idea_generation")],
         [InlineKeyboardButton(text="📊 Бизнес-анализ", callback_data="business_analysis")],
         [InlineKeyboardButton(text="📋 Структурирование информации", callback_data="information_structure")],
@@ -164,6 +165,7 @@ async def create_catalogue(business_id:int):
     keyboard= InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="⚖️ Персональный юрист", callback_data=f"personal_lawyer_{business_id}")],
+            [InlineKeyboardButton(text="🗣️ Переговорщик", callback_data=f"conversation_{business_id}")],
             [InlineKeyboardButton(text="💡 Генерация идей", callback_data=f"idea_generation_{business_id}")],
             [InlineKeyboardButton(text="📊 Бизнес-анализ", callback_data=f"business_analysis_{business_id}")],
             [InlineKeyboardButton(text="📋 Структурирование информации", callback_data=f"information_structure_{business_id}")],

@@ -65,6 +65,63 @@ async def post_document_model(
                 return None
 
 
+async def post_conv_model(
+    telegram_id,
+    text=None,
+    symbol_threshold = 20,
+    base_url = None
+):
+    load_dotenv()
+    if base_url is None or not base_url:
+        base_url = os.getenv("BASE_URL")
+    BOT_API_KEY = os.getenv("BOT_API_KEY")
+    if not base_url or base_url is None:
+        logging.error("No base URL was provided")
+        raise ValueError("No base URL was provided")
+    if not BOT_API_KEY or BOT_API_KEY is None:
+        logging.error("No BOT_API_KEY was provided")
+        raise ValueError("No BOT_API_KEY was provided")
+    if not telegram_id or telegram_id is None:
+        logging.error("No base telegram_id was provided")
+        raise ValueError("No telegram_id was provided")
+    # request_url = base_url + "models/docs"
+    request_url = "http://conversation-service:8090/generate_conversation"
+
+    async with aiohttp.ClientSession(timeout = aiohttp.ClientTimeout(total=600)) as session:
+        async with session.post(
+            request_url,
+            json={
+                "text":text,
+            },
+            headers={
+                "X-Bot-Key":f"{BOT_API_KEY}",
+                "X-User-ID":f"{telegram_id}",
+                "Content-Type": "application/json" 
+            },
+        ) as response:
+            if response.status in (200, 201, 202, 203, 204, 205):
+                data = await response.json()
+                logging.info("Сообщение модели отправлено!")
+                if hasattr(data, "get"):
+                    data = data.get("response")
+                    return data
+                if isinstance(data, list):
+                    return data[0]
+                logging.info(data)
+                return data
+            elif response.status == 404:
+                logging.error("Route was not found")
+                return {
+                    "error": "Route was not found",
+                    "status": 404
+                }
+            else:
+                logging.error(f"Ошибка: {response.status}")
+                return None
+
+
+
+
 if __name__ == "__main__":
     async def test_post_chat_model():
         print("=== ТЕСТИРОВАНИЕ post_document_model ===")

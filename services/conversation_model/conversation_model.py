@@ -41,18 +41,9 @@ if not api_key:
     raise ValueError("api-key is not set in .env")
 
 
-class Message(BaseModel):
-    role: str
-    content: str
-
-
-class Context(BaseModel):
-    history: List[Message] = []
-
 
 class RequestData(BaseModel):
     text: str
-    context: Context
     business: str = "малый бизнес"
     extended_data: str = ""
     word_count: int | None = None
@@ -142,7 +133,7 @@ async def generate_message(request_data: RequestData):
         user_message = {"role": "user", "content": request_data.text + f"ответь примерно за {request_data.word_count} слов"}
     else:
         user_message = {"role": "user", "content": request_data.text}
-    messages = [system_message] + [message.dict() for message in request_data.context.history] + [user_message]
+    messages = [system_message] + [user_message]
     try:
         data = {
             "model": model_name,
