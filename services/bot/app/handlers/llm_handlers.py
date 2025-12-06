@@ -147,7 +147,7 @@ async def ask_Conv_question(message: Message, state: FSMContext, bot:Bot):
             telegram_id=message.from_user.id,
             text=user_question
         )
-        
+        logging.error(result)
         if result is None:
             await message.answer(
                 "Модель не смогла дать внятного ответа, попробуйте переформулировать...", 
@@ -182,7 +182,7 @@ async def ask_Conv_question(message: Message, state: FSMContext, bot:Bot):
         await state.set_state(states.Lawyer.start)
 
 
-@router.callback_query(F.data == "retry_question", states.Lawyer.start)
+@router.callback_query(F.data == "retry_question", states.Conv.start)
 async def retry_question_conv(callback: CallbackQuery, state: FSMContext):
     try:
         await callback.answer("Повторяю запрос...")

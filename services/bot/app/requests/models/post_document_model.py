@@ -104,7 +104,7 @@ async def post_conv_model(
                 logging.info("Сообщение модели отправлено!")
                 if hasattr(data, "get"):
                     data = data.get("response")
-                    return " ".join(data)
+                    return data
                 if isinstance(data, list):
                     return data[0]
                 logging.info(data)
