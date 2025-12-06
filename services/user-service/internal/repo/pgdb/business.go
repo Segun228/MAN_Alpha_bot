@@ -29,6 +29,7 @@ func (r *BusinessRepo) GetBusinesses(ctx context.Context) ([]models.Business, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to query row: %w", err)
 	}
+	defer rows.Close()
 
 	var businesses []models.Business
 	for rows.Next() {
