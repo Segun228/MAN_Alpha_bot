@@ -45,6 +45,18 @@ services:
     env_file:
       - .env
 
+  conversation-service:
+    build:
+      context: ./services/conversation_model
+    container_name: conversation-service
+    restart: on-failure
+    ports:
+      - "${CONVERSATION_PORT}:8090"
+    networks:
+      - app-man-network
+    env_file:
+      - .env
+
   user-service:
     build: 
       context: .
