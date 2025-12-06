@@ -57,6 +57,7 @@ from app.requests.reports.get_report import get_report, get_user_report
 from app.requests.reports.post_report import post_report
 from app.requests.reports.put_report import put_report
 
+from app.requests.delete.delete_user import delete_user
 
 from app.keyboards import inline_user as keyboards
 
@@ -80,31 +81,52 @@ def escape_markdown_v2(text: str, version: int = 2) -> str:
 
 
 welcome_text = """
-<b>🚀 Добро пожаловать в Business Analyst AI!</b>
+<b>👋 ПРИВЕТСТВУЮ!</b>
+Я — ваш персональный AI-помощник для управления бизнесом.
+Работаю 24/7 в Telegram! ⏰
 
-Я ваш персональный AI-помощник для развития бизнеса. Помогаю анализировать данные, генерировать идеи и находить пути для роста.
+<b>✨ ВОЗМОЖНОСТИ:</b>
 
-<b>🎯 Что я могу для вас сделать:</b>
+<u>Аналитика</u>
+• 📊 SWOT/PEST/CJM/BMC анализ
+• 💰 Юнит-экономика и финансовое моделирование
+• 📈 Оптимизация бизнес-процессов
 
-• <b>📊 Проанализировать</b> ваши бизнес-метрики
-• <b>💡 Сгенерировать</b> новые идеи для развития  
-• <b>📝 Структурировать</b> отчеты и документы
-• <b>🔍 Выявить</b> слабые места и возможности
-• <b>🎯 Предложить</b> конкретные шаги для улучшений
+<u>Креатив</u>  
+• 💡 Генерация и валидация идей
+• 🗺️ Построение CJM (карт клиентского пути)
+• 🎯 Разработка стратегий
 
-<b>📋 Доступные разделы:</b>
-- Бизнес-аналитика
-- Генерация идей  
-- Суммаризация данных
-- SWOT-анализ
-- Персональные рекомендации
+<u>Право</u>
+• ⚖️ Поиск законов и нормативов РФ
+• 📑 Юридические консультации
+• 🔍 Правовой анализ
 
-<b>🔍 Используйте команды:</b>
-/help - подробная инструкция
-/info - о боте и возможностях  
-/contacts - связь с поддержкой
+<u>Удобство</u>
+• 🎤 Голосовые команды
+• 📱 Интуитивный интерфейс
+• 🔐 Полная безопасность данных
 
-<b>Выберите раздел ниже чтобы начать работу! 👇</b>
+<b>🚀 БЫСТРЫЙ СТАРТ:</b>
+1. Создайте бизнес → 2. Опишите его → 3. Проанализируйте → 
+4. Генерируйте идеи → 5. Консультируйтесь → 6. Оптимизируйте
+
+<b>📌 ГЛАВНОЕ МЕНЮ:</b>
+• <code>📁 Каталог</code> — ваши бизнесы
+• <code>💰 Юнит-экономика</code> — расчёты
+• <code>📊 Модели</code> — создание моделей  
+• <code>🤖 ИИ-инструменты</code> — AI-помощник
+• <code>👤 Аккаунт</code> — настройки
+• <code>📞 Контакты</code> — поддержка
+
+<b>🔒 ГАРАНТИИ:</b>
+✓ Локальные модели ✓ Шифрование данных 
+✓ Конфиденциальность ✓ Без сторонних сервисов
+
+<b>⚡ КОМАНДЫ:</b>
+/help — помощь 📚 | /info — о боте ℹ️ | /contacts — связь 📱
+
+<b>👇 ВЫБЕРИТЕ РАЗДЕЛ НИЖЕ:</b>
 """
 
 @router.message(CommandStart())
@@ -507,6 +529,46 @@ async def main_menu_callback(callback: CallbackQuery):
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
 
 
+@router.callback_query(F.data == "delete_account")
+async def delete_account_f(callback: CallbackQuery):
+    try:
+        await callback.message.answer(
+            "Вы уверены? Отменить действие будет невозможно...",
+            reply_markup= await inline_keyboards.confirm(
+                object_id=callback.from_user.id,
+                confirm_callback="confirm_delete_account",
+                decline_callback="decline_delete_account"
+            )
+        )
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+
+@router.callback_query(F.data.startswith("confirm_delete_account"))
+async def delete_account_conf(callback: CallbackQuery):
+    try:
+        res = await delete_user(
+            telegram_id=callback.from_user.id,
+            user_id=callback.from_user.id
+        )
+        if res:
+            await callback.message.answer("Аккауент был удален")
+        else:
+            await callback.message.answer("Ошибка удаления аккаунта", reply_markup=inline_keyboards.main)
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+
+
+
+@router.callback_query(F.data.startswith("decline_delete_account"))
+async def delete_account_decl(callback: CallbackQuery):
+    try:
+        await callback.message.answer("Удаление отменено", reply_markup=inline_keyboards.main)
+    except Exception as e:
+        logging.exception(e)
+        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
+
 #===========================================================================================================================
 # Взаимодействие с аккаунтом
 #===========================================================================================================================
@@ -555,18 +617,6 @@ async def delete_account_confirmation_callback(callback: CallbackQuery):
         logging.exception(e)
         await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
 
-
-@router.callback_query(F.data == "delete_account")
-async def delete_account_callback(callback: CallbackQuery, state: FSMContext):
-    try:
-        await delete_account(telegram_id=callback.from_user.id)
-        await state.clear()
-        await callback.message.answer("Аккаунт удален 😢", reply_markup=inline_keyboards.restart)
-        await callback.answer()
-    except Exception as e:
-        logging.exception(e)
-        await callback.message.answer("Извините, бот немножко устал, попробуйте позже 😢", reply_markup=inline_keyboards.home)
-        await state.clear()
 
 
 #===========================================================================================================================
