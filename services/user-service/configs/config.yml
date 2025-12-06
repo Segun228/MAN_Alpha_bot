@@ -19,3 +19,6 @@ kafka:
     logs: ""
   groups:
     user: "user-service-group"
+
+security:
+  encrypter_key: ""

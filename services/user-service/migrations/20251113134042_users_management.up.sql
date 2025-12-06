@@ -1,9 +1,9 @@
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     telegram_id BIGINT UNIQUE NOT NULL,
-    login VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
+    login TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
     churned BOOLEAN DEFAULT FALSE,
     is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -12,7 +12,7 @@ CREATE TABLE users (
 
 CREATE TABLE businesses (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name TEXT NOT NULL,
     description TEXT,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -22,7 +22,7 @@ CREATE TABLE businesses (
 CREATE TABLE reports (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
+    name TEXT NOT NULL,
     users INT NOT NULL,
     customers INT NOT NULL,
     avp FLOAT NOT NULL,

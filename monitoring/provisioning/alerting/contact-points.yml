@@ -5,7 +5,7 @@ contactPoints:
       - uid: telegram-alerts
         type: telegram
         settings:
-          bottoken: "${BOT_TOKEN}" #7984483686:AAHCcjRSogbca97NH3OXa6eavV05TWVLQGg
-          chatid: "${ADMINS} " #6911237041
+          bottoken: "${BOT_TOKEN}"
+          chatid: "${ADMINS} "
           uploadimage: true
           parseMode: HTML
